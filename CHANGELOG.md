@@ -2,6 +2,19 @@
 
 Newest first. One entry per version bump.
 
+## 0.3.1
+
+**Changed**
+- The yard is now the locomotive depot fan at Junín, Buenos Aires, on the
+  San Martín line, from OpenStreetMap. A 110 m approach leads to seven
+  dead-end tracks (56 to 182 m) and a spur to the turntable, with seven
+  switches. The turntable doesn't turn yet. Cars start on tracks 1, 3, 6
+  and 7.
+
+**New**
+- A north arrow in the top right corner. The yard is turned to fit the
+  screen, so north is rarely up.
+
 ## 0.3.0
 
 **New**

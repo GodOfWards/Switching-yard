@@ -116,9 +116,10 @@
   //                never holds rules.
   //   INPUT / LOOP keyboard, buttons and taps to ACTIONS; the fixed-step loop.
   //
-  // Coordinates are metres, +x east, +y south. They are the world's, not the
-  // screen's: RENDERING fits the yard to the screen and, on a portrait screen,
-  // turns it a quarter so the yard runs up the screen (see makeView()).
+  // Coordinates are metres, +x along the yard, +y to its right; WORLD DATA
+  // says where north is. They are the world's, not the screen's: RENDERING
+  // fits the yard to the screen and, on a portrait screen, turns it a
+  // quarter so the yard runs up the screen (see makeView()).
   // Physics is in SI units: metres, seconds, kilograms, newtons.
   //
   // A train is a list of coupled vehicles, ordered from its head to its tail,
@@ -131,7 +132,7 @@
   // ==================================================
   // CONFIG
   // ==================================================
-  const GAME_CONFIG = { VERSION: "0.3.0" };
+  const GAME_CONFIG = { VERSION: "0.3.1" };
   const STEP_SECONDS = 1 / 60;          // fixed simulation step
   const MAX_STEPS_PER_FRAME = 5;        // drop time rather than spiral after a stall
   const VIEW_MARGIN = 8;                // metres of ground kept around the yard
@@ -179,93 +180,100 @@
   // ==================================================
   // WORLD DATA
   // ==================================================
-  // A yard off a main line. From the west: a headshunt, then a ladder of
-  // four sidings to the south, a run-around loop to the north and a curved
-  // industry spur at the east end.
+  // The locomotive depot fan at Junín (Buenos Aires), on the San Martín
+  // line, from OpenStreetMap: a lead off the yard's north side splits into
+  // seven dead-end tracks and a spur to the turntable. The turntable does
+  // not turn; its spur is a dead end. Source and method:
+  // docs/reference/junin-yard.md.
+  //
+  // OSM gives which track leaves which switch, where the switches stand and
+  // where the tracks end. Its lines are rough, so each track is laid again
+  // as a curve then a straight from its switch, which follows the real
+  // layout but not exactly; switches standing closer than 30 m were spaced
+  // out. Curves are 150 m radius where they fit, tighter (down to 82 m)
+  // where the switches stand too close for that. The approach is 110 m of
+  // the yard track the lead leaves from, cut off at a buffer. Tracks are
+  // numbered from the turntable side; the numbers are the game's, not the
+  // railway's.
+  //
+  // The yard is turned 40° clockwise from the map, so its length lies along
+  // x; NORTH is true north on these axes. Coordinates are metres from the
+  // approach's end.
   //
   // Every segment runs from node `a` to node `b`: a straight line, or, with
   // `r`, a circular curve of radius |r| metres that bends right (r > 0) or
-  // left (r < 0) on the way from a to b, as seen on a map with north up.
+  // left (r < 0) on the way from a to b, with x to the right and y down.
   // Track joins smoothly: where segments meet, the curves are laid out so
   // the directions match. A switch sits on a node: `trunk` is the
   // single-track side, `legs` the two diverging routes, and `normal` the leg
   // it starts set to. A node with only one segment is the end of track, with
   // a buffer stop.
-  //
-  // Every curve is 50 m radius, about the tightest a yard gives a four-axle
-  // road switcher such as the G12 (not checked against its spec). Turnouts
-  // and ladder leave at 25°, with tracks 12 m apart.
-  // Real yards use about 7° and 5 m; both are widened so the yard reads on a
-  // phone. Retunable: the layout is only these numbers.
+  const NORTH = { x: 0.643, y: -0.766 };  // unit vector: (sin 40°, −cos 40°)
   const NODES = {
-    westEnd:   { x: 0,      y: 0 },
-    L0:        { x: 50,     y: 0 },
-    raW:       { x: 125,    y: 0 },
-    raE:       { x: 275,    y: 0 },
-    ind:       { x: 300,    y: 0 },
-    eastEnd:   { x: 330,    y: 0 },
-    rw1:       { x: 146.13, y: -4.68 },
-    rw2:       { x: 151.77, y: -7.32 },
-    rw3:       { x: 172.9,  y: -12 },
-    re1:       { x: 253.87, y: -4.68 },
-    re2:       { x: 248.23, y: -7.32 },
-    re3:       { x: 227.1,  y: -12 },
-    lad0:      { x: 71.13,  y: 4.68 },
-    L1:        { x: 76.77,  y: 7.32 },
-    s1Start:   { x: 97.9,   y: 12 },
-    s1End:     { x: 255,    y: 12 },
-    L2:        { x: 102.51, y: 19.32 },
-    s2Start:   { x: 123.64, y: 24 },
-    s2End:     { x: 245,    y: 24 },
-    L3:        { x: 128.24, y: 31.32 },
-    s3Start:   { x: 149.37, y: 36 },
-    s3End:     { x: 235,    y: 36 },
-    lad4:      { x: 153.97, y: 43.32 },
-    s4Start:   { x: 175.11, y: 48 },
-    s4End:     { x: 225,    y: 48 },
-    indBend:   { x: 350,    y: 50 },
-    indEnd:    { x: 350,    y: 80 },
+    approachEnd:  { x: 0, y: 0 },
+    leadStart:    { x: 103.49, y: 37.29 },
+    leadBend:     { x: 180.28, y: 43.91 },
+    J1:           { x: 227.19, y: 35.67 },
+    J2:           { x: 255.28, y: 25.16 },
+    J4:           { x: 342.6, y: 13.45 },
+    t3Bend:       { x: 419.84, y: 14.64 },
+    t3End:        { x: 459.32, y: 4.76 },
+    t2End:        { x: 457.97, y: -5.48 },
+    J5:           { x: 280.95, y: 9.62 },
+    spurBend:     { x: 315.89, y: -19.64 },
+    turntable:    { x: 328.17, y: -33.6 },
+    t1Bend:       { x: 334.12, y: -10.06 },
+    t1End:        { x: 457.73, y: -30.54 },
+    J3:           { x: 286.32, y: 25.49 },
+    J3J6Bend:     { x: 300.7, y: 23.73 },
+    J6:           { x: 358.77, y: 19.43 },
+    t4Bend:       { x: 363.76, y: 19.14 },
+    t4End:        { x: 459.63, y: 15.26 },
+    J6J7Bend:     { x: 395.11, y: 21.17 },
+    J7:           { x: 404.18, y: 22.72 },
+    t6Bend:       { x: 408.6, y: 23.4 },
+    t6End:        { x: 460.39, y: 30.67 },
+    t5Bend:       { x: 435.34, y: 24.74 },
+    t5End:        { x: 460.23, y: 23.77 },
+    t7Bend:       { x: 326.95, y: 24.09 },
+    t7End:        { x: 461.59, y: 37.79 },
   };
   const SEGMENTS = {
-    headshunt:   { a: "westEnd", b: "L0" },
-    main1:       { a: "L0",      b: "raW" },
-    main2:       { a: "raW",     b: "raE" },
-    main3:       { a: "raE",     b: "ind" },
-    mainEast:    { a: "ind",     b: "eastEnd" },
-    // Run-around: out of the main and back, over a reverse curve at each end.
-    rwCurve1:    { a: "raW",     b: "rw1",     r: -50 },
-    rwCross:     { a: "rw1",     b: "rw2" },
-    rwCurve2:    { a: "rw2",     b: "rw3",     r: 50 },
-    loop:        { a: "rw3",     b: "re3" },
-    reCurve2:    { a: "re3",     b: "re2",     r: 50 },
-    reCross:     { a: "re2",     b: "re1" },
-    reCurve1:    { a: "re1",     b: "raE",     r: -50 },
-    // Ladder: a straight track at 25° with each siding curving off it.
-    ladderCurve: { a: "L0",      b: "lad0",    r: 50 },
-    ladder1:     { a: "lad0",    b: "L1" },
-    ladder2:     { a: "L1",      b: "L2" },
-    ladder3:     { a: "L2",      b: "L3" },
-    ladder4:     { a: "L3",      b: "lad4" },
-    s1Curve:     { a: "L1",      b: "s1Start", r: -50 },
-    siding1:     { a: "s1Start", b: "s1End" },
-    s2Curve:     { a: "L2",      b: "s2Start", r: -50 },
-    siding2:     { a: "s2Start", b: "s2End" },
-    s3Curve:     { a: "L3",      b: "s3Start", r: -50 },
-    siding3:     { a: "s3Start", b: "s3End" },
-    s4Curve:     { a: "lad4",    b: "s4Start", r: -50 },
-    siding4:     { a: "s4Start", b: "s4End" },
-    // Industry spur: a quarter circle south off the main.
-    indCurve:    { a: "ind",     b: "indBend", r: 50 },
-    industry:    { a: "indBend", b: "indEnd" },
+    approach:           { a: "approachEnd", b: "leadStart" },
+    leadCurve:          { a: "leadStart", b: "leadBend", r: -150 },
+    lead:               { a: "leadBend", b: "J1" },
+    J1J2:               { a: "J1", b: "J2", r: -81.9 },
+    J2J4:               { a: "J2", b: "J4", r: 110.7 },
+    track3Curve:        { a: "J4", b: "t3Bend", r: -150 },
+    track3:             { a: "t3Bend", b: "t3End" },
+    track2:             { a: "J4", b: "t2End", r: -137.7 },
+    J2J5:               { a: "J2", b: "J5" },
+    turntableSpurCurve: { a: "J5", b: "spurBend", r: -150 },
+    turntableSpur:      { a: "spurBend", b: "turntable" },
+    track1Curve:        { a: "J5", b: "t1Bend", r: 150 },
+    track1:             { a: "t1Bend", b: "t1End" },
+    J1J3:               { a: "J1", b: "J3" },
+    J3J6Curve:          { a: "J3", b: "J3J6Bend", r: 150 },
+    J3J6:               { a: "J3J6Bend", b: "J6" },
+    track4Curve:        { a: "J6", b: "t4Bend", r: 150 },
+    track4:             { a: "t4Bend", b: "t4End" },
+    J6J7Curve:          { a: "J6", b: "J6J7Bend", r: 150 },
+    J6J7:               { a: "J6J7Bend", b: "J7" },
+    track6Curve:        { a: "J7", b: "t6Bend", r: -150 },
+    track6:             { a: "t6Bend", b: "t6End" },
+    track5Curve:        { a: "J7", b: "t5Bend", r: -150 },
+    track5:             { a: "t5Bend", b: "t5End" },
+    track7Curve:        { a: "J3", b: "t7Bend", r: 150 },
+    track7:             { a: "t7Bend", b: "t7End" },
   };
   const SWITCHES = {
-    L0:  { trunk: "headshunt", legs: ["main1", "ladderCurve"], normal: "main1" },
-    L1:  { trunk: "ladder1",   legs: ["s1Curve", "ladder2"],   normal: "s1Curve" },
-    L2:  { trunk: "ladder2",   legs: ["s2Curve", "ladder3"],   normal: "s2Curve" },
-    L3:  { trunk: "ladder3",   legs: ["s3Curve", "ladder4"],   normal: "s3Curve" },
-    raW: { trunk: "main1",     legs: ["main2", "rwCurve1"],    normal: "main2" },
-    raE: { trunk: "main3",     legs: ["main2", "reCurve1"],    normal: "main2" },
-    ind: { trunk: "main3",     legs: ["mainEast", "indCurve"], normal: "mainEast" },
+    J1: { trunk: "lead", legs: ["J1J3", "J1J2"], normal: "J1J3" },
+    J2: { trunk: "J1J2", legs: ["J2J5", "J2J4"], normal: "J2J5" },
+    J3: { trunk: "J1J3", legs: ["J3J6Curve", "track7Curve"], normal: "J3J6Curve" },
+    J4: { trunk: "J2J4", legs: ["track3Curve", "track2"], normal: "track3Curve" },
+    J5: { trunk: "J2J5", legs: ["turntableSpurCurve", "track1Curve"], normal: "track1Curve" },
+    J6: { trunk: "J3J6", legs: ["track4Curve", "J6J7Curve"], normal: "track4Curve" },
+    J7: { trunk: "J6J7", legs: ["track6Curve", "track5Curve"], normal: "track6Curve" },
   };
 
   // Kinds of rolling stock. Lengths are over the couplers.
@@ -278,14 +286,14 @@
   // metres along `segment` and faces `dir` (+1 toward the segment's `b`).
   // A loco's cab faces the head unless it has `flip: -1`.
   const START_TRAINS = [
-    { segment: "headshunt", s: 32, dir: 1, vehicles: [{ id: "loco1", type: "g12" }] },
-    { segment: "siding1", s: 155, dir: 1, vehicles: [
+    { segment: "approach", s: 60, dir: 1, vehicles: [{ id: "loco1", type: "g12" }] },
+    { segment: "track1", s: 100, dir: 1, vehicles: [
       { id: "car1", type: "boxLoaded" }, { id: "car2", type: "boxLoaded" }, { id: "car3", type: "boxEmpty" }] },
-    { segment: "siding2", s: 119, dir: 1, vehicles: [
+    { segment: "track3", s: 36, dir: 1, vehicles: [
       { id: "car4", type: "boxEmpty" }, { id: "car5", type: "boxEmpty" }] },
-    { segment: "siding3", s: 84, dir: 1, vehicles: [
+    { segment: "track6", s: 48, dir: 1, vehicles: [
       { id: "car6", type: "boxLoaded" }, { id: "car7", type: "boxEmpty" }] },
-    { segment: "industry", s: 28, dir: 1, vehicles: [{ id: "car8", type: "boxLoaded" }] },
+    { segment: "track7", s: 120, dir: 1, vehicles: [{ id: "car8", type: "boxLoaded" }] },
   ];
   const PLAYER_LOCO = "loco1";
 
@@ -666,7 +674,7 @@
 
   // The world→screen mapping for a canvas of w×h CSS px. A yard wider than
   // it is tall, on a screen taller than it is wide, is turned a quarter
-  // anticlockwise: east runs up the screen and south runs right. The view
+  // anticlockwise: +x runs up the screen and +y runs right. The view
   // centres on the camera's point, kept so the yard never leaves the screen.
   function makeView(w, h) {
     const ww = BOUNDS.maxX - BOUNDS.minX, wh = BOUNDS.maxY - BOUNDS.minY;
@@ -782,6 +790,23 @@
       const p = view.toScreen(c.at.x, c.at.y);
       ctx.fillStyle = "#1b1d1f";
       ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(2.5, k * 0.5), 0, Math.PI * 2); ctx.fill();
+    }
+
+    // North arrow in the top right corner, turned with the view.
+    {
+      const o = view.toScreen(0, 0), n = view.toScreen(NORTH.x, NORTH.y);
+      const len = Math.hypot(n.x - o.x, n.y - o.y) || 1, ux = (n.x - o.x) / len, uy = (n.y - o.y) / len;
+      const cx = screenW - 26, cy = 34, size = 10;
+      ctx.fillStyle = "#d8d4cc"; ctx.globalAlpha = 0.7;
+      ctx.beginPath();
+      ctx.moveTo(cx + ux * size, cy + uy * size);
+      ctx.lineTo(cx - ux * size * 0.6 - uy * size * 0.5, cy - uy * size * 0.6 + ux * size * 0.5);
+      ctx.lineTo(cx - ux * size * 0.3, cy - uy * size * 0.3);
+      ctx.lineTo(cx - ux * size * 0.6 + uy * size * 0.5, cy - uy * size * 0.6 - ux * size * 0.5);
+      ctx.fill();
+      ctx.font = "600 11px system-ui, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText("N", cx + ux * size * 2, cy + uy * size * 2);
+      ctx.globalAlpha = 1; ctx.textAlign = "start"; ctx.textBaseline = "alphabetic";
     }
 
     if (state.notice) {
