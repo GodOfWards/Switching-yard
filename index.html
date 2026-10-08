@@ -6,10 +6,12 @@
 <meta name="theme-color" content="#000000">
 <title>Switching Game</title>
 <style>
-  /* Dark palette: the yard and the bar sit on black. Controls are a near-black
-     panel with a border light enough to find them by; retunable. */
-  :root { --bg: #000; --ground: #000; --fg: #d8d4cc; --muted: #8a867e; --line: #3a3d42;
-    --button: #17191c; --button-down: #2c3036; }
+  /* Dark palette: the yard and the bar sit on black. Cool greys for chrome,
+     one amber accent for anything on or active, red only for Emergency;
+     retunable. */
+  :root { --bg: #000; --ground: #000; --fg: #ecebe7; --muted: #7a7b80; --line: #26272b;
+    --button: #111214; --button-down: #1f2125; --overlay: rgba(17, 18, 20, 0.78);
+    --accent: #f2b13c; --danger: #ff6b6b; --danger-bg: #2a0f10; --danger-line: #5c1d1f; }
   html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg);
     font: 15px/1.4 system-ui, sans-serif; overscroll-behavior: none; }
   /* Phone held upright is the target. The yard fills the screen and the
@@ -25,14 +27,15 @@
   /* Zoom, then Pause a little apart from it, sit over the yard's top-left
      corner. */
   #zoom { position: absolute; top: 8px; left: 8px; display: flex; flex-direction: column; gap: 6px; }
-  #zoom button { width: 40px; height: 40px; border-radius: 8px; border: 1px solid var(--line);
-    background: rgba(23, 25, 28, 0.85); color: var(--fg); font: 600 20px system-ui, sans-serif; padding: 0;
+  #zoom button { width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--line);
+    background: var(--overlay); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+    color: var(--fg); font: 500 20px system-ui, sans-serif; padding: 0;
     touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
   #zoom button:active { background: var(--button-down); }
   #zoom #followBtn { font-size: 16px; }
-  #zoom #followBtn.on { color: #e3c55a; }
+  #zoom #followBtn.on { color: var(--accent); }
   #zoom #pauseBtn { margin-top: 8px; font-size: 16px; }
-  #zoom #pauseBtn.on { color: #e3c55a; border-color: #e3c55a; }
+  #zoom #pauseBtn.on { color: var(--accent); border-color: var(--accent); }
   #readout { font-variant-numeric: tabular-nums; display: flex; justify-content: space-between; }
   #readout small { color: var(--muted); font-size: 12px; align-self: center; }
   /* The reverser and three notched levers (throttle, loco brake, train
@@ -41,24 +44,24 @@
      comfortable thumb target; retunable. */
   #controls { display: grid; grid-template-columns: repeat(5, minmax(48px, 1fr)); gap: 4px 8px;
     max-width: 420px; width: 100%; margin: 0 auto; }
-  #controls button { min-height: 44px; border-radius: 8px; border: 1px solid var(--line);
-    background: var(--button); color: var(--fg); font: 600 18px system-ui, sans-serif;
+  #controls button { min-height: 44px; border-radius: 12px; border: 1px solid var(--line);
+    background: var(--button); color: var(--fg); font: 500 18px system-ui, sans-serif;
     touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
   #controls button:active { background: var(--button-down); }
-  #controls .word { font-size: 13px; }
-  #controls #emergBtn { background: #6b2620; border-color: #8a3a30; }
-  #controls #emergBtn:active { background: #84302a; }
-  .lever { text-align: center; font-size: 11px; line-height: 1.25; color: var(--muted);
-    font-variant-numeric: tabular-nums; }
-  .lever b { display: block; color: var(--fg); font-size: 14px; }
+  #controls .word { font-size: 13px; font-weight: 600; letter-spacing: 0.02em; }
+  #controls #emergBtn { background: var(--danger-bg); border-color: var(--danger-line); color: var(--danger); }
+  #controls #emergBtn:active { background: var(--danger-line); }
+  .lever { text-align: center; font-size: 11px; line-height: 1.3; color: var(--muted);
+    white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .lever b { display: block; color: var(--fg); font-size: 15px; font-weight: 600; }
   .meter { height: 3px; margin: 2px 6px 0; background: var(--line); border-radius: 2px; overflow: hidden; }
-  .meter i { display: block; height: 100%; width: 0; background: #e3c55a; }
+  .meter i { display: block; height: 100%; width: 0; background: var(--accent); }
   /* The coupling menu: two thumb-sized buttons over the yard, next to the
      coupling tapped. */
   #couplingMenu { position: absolute; display: none; gap: 6px; }
   #couplingMenu.open { display: flex; }
-  #couplingMenu button { min-width: 88px; min-height: 44px; border-radius: 8px; border: 1px solid var(--line);
-    background: rgba(23, 25, 28, 0.95); color: var(--fg); font: 600 14px system-ui, sans-serif;
+  #couplingMenu button { min-width: 88px; min-height: 44px; border-radius: 12px; border: 1px solid var(--line);
+    background: var(--overlay); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); color: var(--fg); font: 600 14px system-ui, sans-serif;
     touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
   #couplingMenu button:active { background: var(--button-down); }
   /* A phone on its side has little height to spare: the controls move to the
@@ -861,17 +864,17 @@
   // its own colours in WORLD DATA.
   const PALETTE = {
     bg: "#000",
-    trackFar: "#86837b",   // track as one line, zoomed out; lifted for black
-    ties: "#5e5447",       // lifted for black
-    rails: "#a9a59c",
-    buffer: "#b9b2a4",
+    trackFar: "#6f7378",   // track as one line, zoomed out: cool steel grey
+    ties: "#40392f",       // dark, so the rails lead and the ties are texture
+    rails: "#b7bbc0",
+    buffer: "#d9d6cf",
     switchEdge: "#000",
-    switchNormal: "#3fae5a",
-    switchReversed: "#f0c419",
-    light: "#f2e6d0",      // cab, hand-brake band, notices
-    accent: "#e3c55a",     // reverser arrow, Paused
-    air: "#6fa8dc",
-    north: "#d8d4cc",
+    switchNormal: "#34c06a",
+    switchReversed: "#f5c400",
+    light: "#f4efe6",      // cab, hand-brake band, notices
+    accent: "#f2b13c",     // reverser arrow, Paused; the CSS --accent
+    air: "#5aa9ff",
+    north: "#7a7b80",      // the CSS --muted
   };
   const canvas = document.getElementById("yard");
   const ctx = canvas.getContext("2d");
@@ -1088,7 +1091,7 @@
       const o = view.toScreen(0, 0), n = view.toScreen(NORTH.x, NORTH.y);
       const len = Math.hypot(n.x - o.x, n.y - o.y) || 1, ux = (n.x - o.x) / len, uy = (n.y - o.y) / len;
       const cx = screenW - 26, cy = 34, size = 10;
-      ctx.fillStyle = PALETTE.north; ctx.globalAlpha = 0.7;
+      ctx.fillStyle = PALETTE.north;
       ctx.beginPath();
       ctx.moveTo(cx + ux * size, cy + uy * size);
       ctx.lineTo(cx - ux * size * 0.6 - uy * size * 0.5, cy - uy * size * 0.6 + ux * size * 0.5);
