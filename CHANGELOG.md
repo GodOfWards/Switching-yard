@@ -2,6 +2,15 @@
 
 Newest first. One entry per version bump.
 
+## 0.1.1
+
+**Changed**
+- Built for a phone held upright. The yard fills the screen and, in
+  portrait, is turned so it runs up the screen; landscape shows it as laid
+  out. The canvas is sharp on high-density screens.
+- On-screen − / Stop / + buttons along the bottom, in thumb reach; tapping
+  near a switch throws it. The keyboard still works.
+
 ## 0.1.0
 
 **New**
