@@ -2,6 +2,14 @@
 
 Newest first. One entry per version bump.
 
+## 0.6.2
+
+**Changed**
+- Dark palette: the yard and controls sit on black, with cool grey track
+  and chrome, one amber accent and red kept for Emergency.
+- Buttons are 10% smaller; in landscape the controls stack in two columns
+  so the yard gets more width.
+
 ## 0.6.1
 
 **Fixed**
