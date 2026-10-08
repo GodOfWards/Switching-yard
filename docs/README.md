@@ -3,6 +3,7 @@
 | Where | What |
 |---|---|
 | [reference/](reference/README.md) | Real-world facts, with sources, dates and status. Its README holds the rules for adding to it. |
+| [design/](design/README.md) | The game's rules, one file per area, each linking the reference behind it |
 | [decisions.md](decisions.md) | Tom's design calls, newest first, and the questions still open |
 | [issues.md](issues.md) | How GitHub Issues are labelled, written, filed and closed |
 | [screenshots/](screenshots/) | Game screenshots, named `vX.Y.Z-<what>-<orientation>.png` |
