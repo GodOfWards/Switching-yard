@@ -3,6 +3,14 @@
 Design calls Tom has made, newest first, with where they were made. The
 values these produced live in CONFIG and WORLD DATA in `index.html`.
 
+## 2026-10-08: Saving
+
+- **The whole yard is saved as it stands**, mid-move included, every 5 s
+  of play and on leaving the page; no save button (#13).
+- **New yard** (↺, under Pause) starts over, after asking.
+- **A restored yard opens paused.** A save that no longer fits the yard
+  is dropped for a fresh one.
+
 ## 2026-10-08: Slack
 
 - **Each vehicle moves on its own**, joined by couplings with about 5 cm of
