@@ -2,6 +2,13 @@
 
 Newest first. One entry per version bump.
 
+## 0.7.0
+
+**New**
+- The yard is saved as you leave it and comes back on your next visit,
+  paused, with every car where it stood.
+- New yard (↺, under Pause) starts over with a fresh yard, after asking.
+
 ## 0.6.2
 
 **Changed**
