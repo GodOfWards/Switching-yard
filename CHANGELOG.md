@@ -2,18 +2,6 @@
 
 Newest first. One entry per version bump.
 
-## Unreleased
-
-**New**
-- Curved track. A segment can be a circular curve of a given radius;
-  trains run along it and cars are drawn as chords across it.
-- A bigger yard. A 50 m headshunt at the west end leads to a ladder of
-  four sidings (157, 121, 86 and 50 m), a run-around loop north of the main
-  and an industry spur curving south off the east end. Seven switches. Eight
-  cars start spread over three sidings and the spur.
-- Every curve is 50 m radius. Turnouts leave at 25° with tracks 12 m apart:
-  wider than a real yard so it reads on a phone.
-
 ## 0.2.1
 
 **Changed**
