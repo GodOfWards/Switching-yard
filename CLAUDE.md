@@ -5,6 +5,8 @@ build step, no dependencies. Open it in a browser to run it.
 
 ## Rules that bind
 
+- **Mobile first, portrait first.** The target is a phone held upright;
+  landscape and desktop must still work. Touch targets are thumb-sized.
 - **Nothing is edited, committed or pushed without being asked.** A question
   is a question: propose and wait.
 - **Design decisions are Tom's; implementation choices are made and named.**
