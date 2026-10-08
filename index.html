@@ -19,20 +19,30 @@
   canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; display: block; }
   #bar { display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--line);
     padding: 8px 16px calc(10px + env(safe-area-inset-bottom)); }
+  /* Zoom sits over the yard's top-left corner. */
+  #zoom { position: absolute; top: 8px; left: 8px; display: flex; flex-direction: column; gap: 6px; }
+  #zoom button { width: 40px; height: 40px; border-radius: 8px; border: 1px solid var(--line);
+    background: rgba(38, 42, 48, 0.85); color: var(--fg); font: 600 20px system-ui, sans-serif; padding: 0;
+    touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+  #zoom button:active { background: #343a42; }
+  #zoom #followBtn { font-size: 16px; }
+  #zoom #followBtn.on { color: #e3c55a; }
   #readout { font-variant-numeric: tabular-nums; display: flex; justify-content: space-between; }
   #readout small { color: var(--muted); font-size: 12px; align-self: center; }
-  /* Three notched levers (throttle, loco brake, train brake), each a + and a
-     − with its notch between them, then Release over Emergency. */
-  #controls { display: grid; grid-template-columns: repeat(4, minmax(56px, 1fr)); gap: 6px 10px;
+  /* The reverser and three notched levers (throttle, loco brake, train
+     brake), each an up and a down with its setting between them, then
+     Release over Emergency. Buttons are 44 px tall, the smallest
+     comfortable thumb target; retunable. */
+  #controls { display: grid; grid-template-columns: repeat(5, minmax(48px, 1fr)); gap: 4px 8px;
     max-width: 420px; width: 100%; margin: 0 auto; }
-  #controls button { min-height: 56px; border-radius: 10px; border: 1px solid var(--line);
-    background: #262a30; color: var(--fg); font: 600 22px system-ui, sans-serif;
+  #controls button { min-height: 44px; border-radius: 8px; border: 1px solid var(--line);
+    background: #262a30; color: var(--fg); font: 600 18px system-ui, sans-serif;
     touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
   #controls button:active { background: #343a42; }
-  #controls .word { font-size: 14px; }
+  #controls .word { font-size: 13px; }
   #controls #emergBtn { background: #6b2620; border-color: #8a3a30; }
   #controls #emergBtn:active { background: #84302a; }
-  .lever { text-align: center; font-size: 12px; line-height: 1.25; color: var(--muted);
+  .lever { text-align: center; font-size: 11px; line-height: 1.25; color: var(--muted);
     font-variant-numeric: tabular-nums; }
   .lever b { display: block; color: var(--fg); font-size: 14px; }
   .meter { height: 3px; margin: 2px 6px 0; background: var(--line); border-radius: 2px; overflow: hidden; }
@@ -42,23 +52,32 @@
   @media (orientation: landscape) and (max-height: 520px) {
     body { flex-direction: row; padding-bottom: env(safe-area-inset-bottom); }
     #bar { border-top: 0; border-left: 1px solid var(--line); justify-content: center;
-      padding: 8px calc(12px + env(safe-area-inset-right)) 8px 12px; width: 340px; box-sizing: border-box; }
+      padding: 8px calc(12px + env(safe-area-inset-right)) 8px 12px; width: 360px; box-sizing: border-box; }
   }
 </style>
 </head>
 <body>
-<div id="view"><canvas id="yard"></canvas></div>
+<div id="view"><canvas id="yard"></canvas>
+  <div id="zoom">
+    <button id="zoomIn" aria-label="Zoom in">+</button>
+    <button id="zoomOut" aria-label="Zoom out">−</button>
+    <button id="followBtn" aria-label="Follow the loco">◎&#xFE0E;</button>
+  </div>
+</div>
 <div id="bar">
   <div id="readout"></div>
   <div id="controls">
+    <button id="revUp" aria-label="Reverser toward forward">▲&#xFE0E;</button>
     <button id="thrUp" aria-label="Throttle up">+</button>
     <button id="lbUp" aria-label="Loco brake on">+</button>
     <button id="tbUp" aria-label="Train brake on">+</button>
     <button id="releaseBtn" class="word">Release</button>
+    <div class="lever" id="revLever"></div>
     <div class="lever" id="thrLever"></div>
     <div class="lever" id="lbLever"></div>
     <div class="lever" id="tbLever"></div>
     <div></div>
+    <button id="revDown" aria-label="Reverser toward reverse">▼&#xFE0E;</button>
     <button id="thrDown" aria-label="Throttle down">−</button>
     <button id="lbDown" aria-label="Loco brake off">−</button>
     <button id="tbDown" aria-label="Train brake off">−</button>
@@ -87,12 +106,14 @@
   //                rules live here: forces, brakes, contact, coupling. The
   //                loop calls it at a fixed rate, so behaviour never depends
   //                on the display's frame rate.
-  //   ACTIONS      what the player can do (levers, Emergency, Release, throw
-  //                a switch, uncouple). They change STATE; they never draw.
+  //   ACTIONS      what the player can do (reverser, levers, Emergency,
+  //                Release, throw a switch, uncouple), and the rules on when
+  //                they may. They change STATE; they never draw.
   //   PERSISTENCE  none yet. When saving arrives, SAVE_KEY changes with every
   //                change to the saved shape.
-  //   RENDERING    draws STATE to the canvas and the controls. It never holds
-  //                rules.
+  //   RENDERING    draws STATE to the canvas and the controls, through a
+  //                camera (zoom, follow or pan) that is display only. It
+  //                never holds rules.
   //   INPUT / LOOP keyboard, buttons and taps to ACTIONS; the fixed-step loop.
   //
   // Coordinates are metres, +x east, +y south. They are the world's, not the
@@ -114,13 +135,16 @@
   const STEP_SECONDS = 1 / 60;          // fixed simulation step
   const MAX_STEPS_PER_FRAME = 5;        // drop time rather than spiral after a stall
   const VIEW_MARGIN = 8;                // metres of ground kept around the yard
+  const ZOOM_LEVELS = [1, 1.5, 2, 3, 4]; // × the whole-yard fit; retunable
+  const DRAG_START_PX = 8;              // CSS px a press moves before it pans instead of tapping
   const TAP_RADIUS_PX = 32;             // CSS px from a switch or coupling that a tap counts; retunable (a fingertip)
   const G = 9.81;                       // m/s²
 
-  // Locomotive pull, modelled on a GM G12 as run in Argentina. Each throttle
-  // notch gives an equal share of the pull; above LOCO_POWER / LOCO_MAX_FORCE
-  // (about 4.3 m/s) the engine's power limits it.
-  const THROTTLE_NOTCHES = 4;           // per direction; retunable
+  // Locomotive pull, modelled on a GM G12 as run in Argentina. The reverser
+  // sets its direction (cab end first is forward); each throttle notch gives
+  // an equal share of the pull; above LOCO_POWER / LOCO_MAX_FORCE (about
+  // 4.3 m/s) the engine's power limits it.
+  const THROTTLE_NOTCHES = 4;           // retunable
   const LOCO_MAX_FORCE = 187e3;         // N at full notch; the G12's rated tractive effort
   const LOCO_POWER = 977e3 * 0.8;       // W at the rail: the G12's 977 kW engine less an estimated fifth lost on the way; retunable
   const LOCO_MAX_SPEED = 8;             // m/s (29 km/h); a yard limit, not the G12's own; pull fades to nothing over the last GOVERNOR_BAND
@@ -280,7 +304,7 @@
         const c = walk(end.seg, end.s, end.travel, half);
         const veh = { id: v.id, type: v.type, train: train.id, seg: c.seg, s: c.s, dir: -c.travel,
                       flip: v.flip || 1 };
-        if (VEHICLE_TYPES[v.type].loco) veh.controls = { throttle: 0, locoBrake: 0, trainBrake: 0,
+        if (VEHICLE_TYPES[v.type].loco) veh.controls = { reverser: 0, throttle: 0, locoBrake: 0, trainBrake: 0,
           locoApplied: 0, trainApplied: 0, emergency: false };
         st.vehicles[v.id] = veh;
         train.vehicles.push(v.id);
@@ -422,10 +446,10 @@
     for (const id of t.vehicles) {
       const v = state.vehicles[id], c = v.controls;
       if (!c) continue;
-      if (c.throttle) {
-        const sense = Math.sign(c.throttle) * v.flip;            // toward the head, or not
+      if (c.throttle && c.reverser) {
+        const sense = c.reverser * v.flip;                        // toward the head, or not
         const along = t.speed * sense;                            // speed in the direction of pull
-        const share = Math.abs(c.throttle) / THROTTLE_NOTCHES;
+        const share = c.throttle / THROTTLE_NOTCHES;
         const force = Math.min(LOCO_MAX_FORCE, LOCO_POWER / Math.max(Math.abs(along), EPS));
         const governor = Math.max(0, Math.min(1, (LOCO_MAX_SPEED - along) / GOVERNOR_BAND));
         pull += sense * share * force * governor;
@@ -554,9 +578,23 @@
   // ACTIONS
   // ==================================================
   const clampNotch = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
+  // The reverser: forward (+1), neutral (0) or reverse (−1), one position a
+  // press. It moves only with the throttle shut and the train stopped.
+  // Retunable: both rules are design choices.
+  function moveReverser(delta) {
+    const v = playerLoco(), c = v.controls;
+    const next = clampNotch(c.reverser + delta, -1, 1);
+    if (next === c.reverser) return false;
+    if (c.throttle) { setNotice("Shut the throttle first"); return false; }
+    if (trainOf(v).speed !== 0) { setNotice("Stop before moving the reverser"); return false; }
+    c.reverser = next;
+    return true;
+  }
+  // The throttle opens only with the reverser in forward or reverse.
   function moveThrottle(delta) {
     const c = playerLoco().controls;
-    c.throttle = clampNotch(c.throttle + delta, -THROTTLE_NOTCHES, THROTTLE_NOTCHES);
+    if (delta > 0 && !c.reverser) { setNotice("Reverser is in neutral"); return; }
+    c.throttle = clampNotch(c.throttle + delta, 0, THROTTLE_NOTCHES);
   }
   function moveLocoBrake(delta) {
     const c = playerLoco().controls;
@@ -602,7 +640,8 @@
   const canvas = document.getElementById("yard");
   const ctx = canvas.getContext("2d");
   const readout = document.getElementById("readout");
-  const levers = { thr: document.getElementById("thrLever"), lb: document.getElementById("lbLever"),
+  const followBtn = document.getElementById("followBtn");
+  const levers = { rev: document.getElementById("revLever"), thr: document.getElementById("thrLever"), lb: document.getElementById("lbLever"),
                    tb: document.getElementById("tbLever") };
 
   // Points every few metres along a stretch of a segment, from `s0` to `s1`,
@@ -621,30 +660,39 @@
              minY: Math.min(...ys) - VIEW_MARGIN, maxY: Math.max(...ys) + VIEW_MARGIN };
   })();
 
+  // What the screen shows. Zoomed out it fits the whole yard; zoomed in it
+  // follows the player's loco until a drag pans it to (cx, cy).
+  const camera = { zoom: 0, follow: true, cx: 0, cy: 0 };
+
   // The world→screen mapping for a canvas of w×h CSS px. A yard wider than
   // it is tall, on a screen taller than it is wide, is turned a quarter
-  // anticlockwise: east runs up the screen and south runs right.
+  // anticlockwise: east runs up the screen and south runs right. The view
+  // centres on the camera's point, kept so the yard never leaves the screen.
   function makeView(w, h) {
     const ww = BOUNDS.maxX - BOUNDS.minX, wh = BOUNDS.maxY - BOUNDS.minY;
     const turned = (h > w) === (ww > wh);
     const sw = turned ? wh : ww, sh = turned ? ww : wh;   // yard's extent on screen axes
-    const k = Math.min(w / sw, h / sh);
-    const ox = (w - sw * k) / 2, oy = (h - sh * k) / 2;
+    const k = Math.min(w / sw, h / sh) * ZOOM_LEVELS[camera.zoom];
+    let cx = camera.cx, cy = camera.cy;
+    if (camera.follow) { const p = pointOn(playerLoco().seg, playerLoco().s); cx = p.x; cy = p.y; }
+    const fit = (c, lo, hi, seen) => hi - lo <= seen ? (lo + hi) / 2 : Math.max(lo + seen / 2, Math.min(hi - seen / 2, c));
+    cx = fit(cx, BOUNDS.minX, BOUNDS.maxX, (turned ? h : w) / k);
+    cy = fit(cy, BOUNDS.minY, BOUNDS.maxY, (turned ? w : h) / k);
     return {
-      k,
+      k, turned, cx, cy,
       toScreen: turned
-        ? (x, y) => ({ x: ox + (y - BOUNDS.minY) * k, y: oy + (BOUNDS.maxX - x) * k })
-        : (x, y) => ({ x: ox + (x - BOUNDS.minX) * k, y: oy + (y - BOUNDS.minY) * k }),
+        ? (x, y) => ({ x: w / 2 + (y - cy) * k, y: h / 2 - (x - cx) * k })
+        : (x, y) => ({ x: w / 2 + (x - cx) * k, y: h / 2 + (y - cy) * k }),
     };
   }
-  let view = makeView(1, 1);
+  let screenW = 1, screenH = 1, view = makeView(1, 1);
 
   function resize() {
     const r = canvas.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
     canvas.width = Math.round(r.width * dpr);
     canvas.height = Math.round(r.height * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    view = makeView(r.width, r.height);
+    screenW = r.width; screenH = r.height;
   }
   new ResizeObserver(resize).observe(canvas);
 
@@ -679,6 +727,7 @@
   }
 
   function render() {
+    view = makeView(screenW, screenH);
     const k = view.k;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.lineCap = "round";
@@ -715,6 +764,19 @@
         const c1 = toward(cabEnd, other, 0.6), c2 = toward(cabEnd, other, 3);
         line(c1.x, c1.y, c2.x, c2.y, "#f2e6d0", bodyWidth * 0.6);
       }
+      if (v.controls && v.controls.reverser) {            // arrow off the end the reverser points to
+        const toHead = v.controls.reverser * v.flip > 0;
+        const pe = toHead ? head : tail, po = toHead ? tail : head;
+        const e = view.toScreen(pe.x, pe.y), o = view.toScreen(po.x, po.y);
+        const len = Math.hypot(e.x - o.x, e.y - o.y) || 1, ux = (e.x - o.x) / len, uy = (e.y - o.y) / len;
+        const size = Math.max(7, k * 1.5), bx = e.x + ux * size * 0.4, by = e.y + uy * size * 0.4;
+        ctx.fillStyle = "#e3c55a";
+        ctx.beginPath();
+        ctx.moveTo(bx + ux * size * 1.2, by + uy * size * 1.2);
+        ctx.lineTo(bx - uy * size * 0.8, by + ux * size * 0.8);
+        ctx.lineTo(bx + uy * size * 0.8, by - ux * size * 0.8);
+        ctx.fill();
+      }
     }
     for (const c of couplings()) {
       const p = view.toScreen(c.at.x, c.at.y);
@@ -726,7 +788,7 @@
       ctx.globalAlpha = Math.min(1, state.notice.time);
       ctx.font = "600 15px system-ui, sans-serif"; ctx.textAlign = "center";
       ctx.fillStyle = "#f2e6d0";
-      ctx.fillText(state.notice.text, canvas.clientWidth / 2, 24);
+      ctx.fillText(state.notice.text, screenW / 2, 24);
       ctx.globalAlpha = 1; ctx.textAlign = "start";
     }
 
@@ -734,7 +796,9 @@
     const cars = t.vehicles.length - 1;
     readout.innerHTML = `<span>${(Math.abs(t.speed) * 3.6).toFixed(1)} km/h · ` +
       `${cars} car${cars === 1 ? "" : "s"}</span><small>v${GAME_CONFIG.VERSION}</small>`;
-    levers.thr.innerHTML = `Throttle<b>${c.throttle > 0 ? "+" : ""}${c.throttle}</b>`;
+    followBtn.classList.toggle("on", camera.follow);
+    levers.rev.innerHTML = `Reverser<b>${c.reverser > 0 ? "Fwd" : c.reverser < 0 ? "Rev" : "N"}</b>`;
+    levers.thr.innerHTML = `Throttle<b>${c.throttle}/${THROTTLE_NOTCHES}</b>`;
     levers.lb.innerHTML = `Loco brake<b>${c.locoBrake}/${LOCO_BRAKE_NOTCHES}</b>` +
       `<div class="meter"><i style="width:${c.locoApplied * 100}%"></i></div>`;
     levers.tb.innerHTML = `Train brake<b>${c.emergency ? "EMERG" : c.trainBrake + "/" + TRAIN_BRAKE_NOTCHES}</b>` +
@@ -744,9 +808,10 @@
   // ==================================================
   // INPUT / LOOP
   // ==================================================
-  // Keyboard: W/S or ↑/↓ throttle, R/F loco brake, E/D train brake,
+  // Keyboard: +/− zoom, Q/A reverser, W/S or ↑/↓ throttle, R/F loco brake, E/D train brake,
   // Space emergency, X release.
   const KEYS = {
+    q: () => moveReverser(1), a: () => moveReverser(-1),
     w: () => moveThrottle(1), ArrowUp: () => moveThrottle(1),
     s: () => moveThrottle(-1), ArrowDown: () => moveThrottle(-1),
     r: () => moveLocoBrake(1), f: () => moveLocoBrake(-1),
@@ -763,6 +828,8 @@
   const onPress = (id, fn) => document.getElementById(id).addEventListener("pointerdown", e => {
     e.preventDefault(); fn();
   });
+  onPress("revUp", () => moveReverser(1));
+  onPress("revDown", () => moveReverser(-1));
   onPress("thrUp", () => moveThrottle(1));
   onPress("thrDown", () => moveThrottle(-1));
   onPress("lbUp", () => moveLocoBrake(1));
@@ -772,9 +839,44 @@
   onPress("releaseBtn", release);
   onPress("emergBtn", emergency);
 
+  // Zoom steps through ZOOM_LEVELS; zooming in follows the loco again.
+  function zoomBy(delta) {
+    camera.zoom = clampNotch(camera.zoom + delta, 0, ZOOM_LEVELS.length - 1);
+    if (delta > 0 && camera.zoom === 1) camera.follow = true;
+  }
+  onPress("zoomIn", () => zoomBy(1));
+  onPress("zoomOut", () => zoomBy(-1));
+  onPress("followBtn", () => { camera.follow = true; });
+  Object.assign(KEYS, { "+": () => zoomBy(1), "=": () => zoomBy(1), "-": () => zoomBy(-1) });
+
+  // A press on the yard that moves more than DRAG_START_PX pans it; one that
+  // doesn't is a tap, acted on when it lifts.
+  let press = null;
+  canvas.addEventListener("pointerdown", e => {
+    canvas.setPointerCapture(e.pointerId);
+    press = { id: e.pointerId, x: e.clientX, y: e.clientY, dragging: false, cx: view.cx, cy: view.cy };
+  });
+  canvas.addEventListener("pointermove", e => {
+    if (!press || e.pointerId !== press.id) return;
+    const dx = e.clientX - press.x, dy = e.clientY - press.y;
+    if (!press.dragging && Math.hypot(dx, dy) < DRAG_START_PX) return;
+    press.dragging = true;
+    camera.follow = false;
+    // Screen motion back into world metres, undoing makeView's turn.
+    camera.cx = press.cx - (view.turned ? -dy : dx) / view.k;
+    camera.cy = press.cy - (view.turned ? dx : dy) / view.k;
+  });
+  canvas.addEventListener("pointercancel", () => { press = null; });
+  canvas.addEventListener("pointerup", e => {
+    if (!press || e.pointerId !== press.id) return;
+    const tapped = !press.dragging;
+    press = null;
+    if (tapped) tap(e);
+  });
+
   // A tap acts on the nearest switch (throws it) or coupling (uncouples it)
   // within TAP_RADIUS_PX on screen.
-  canvas.addEventListener("pointerdown", e => {
+  function tap(e) {
     const r = canvas.getBoundingClientRect();
     const tx = e.clientX - r.left, ty = e.clientY - r.top;
     let best = null, bestD = TAP_RADIUS_PX;
@@ -785,7 +887,7 @@
     for (const id in SWITCHES) consider(NODES[id].x, NODES[id].y, () => throwSwitch(id));
     for (const c of couplings()) consider(c.at.x, c.at.y, () => uncouple(c.vehicle));
     if (best) best();
-  });
+  }
 
   let last = performance.now(), acc = 0;
   function frame(now) {
@@ -798,7 +900,7 @@
   requestAnimationFrame(frame);
 
   // Exposed for testing in a browser console or headless check.
-  window.switching = { get state() { return state; }, step, throwSwitch, uncouple, moveThrottle,
+  window.switching = { get state() { return state; }, step, throwSwitch, uncouple, moveReverser, moveThrottle,
     moveLocoBrake, moveTrainBrake, emergency, release, trainEnds, CONFIG: { ROLLING_RESISTANCE } };
 })();
 </script>

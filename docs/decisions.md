@@ -32,7 +32,12 @@ values these produced live in CONFIG and WORLD DATA in `index.html`.
 - **Curves and a bigger yard (PR #6).** Turnouts at 25° and tracks 12 m
   apart, against a real yard's ~7° and ~5 m, so it reads on a phone. All
   curves 50 m radius. A 50 m headshunt that fits the loco and two cars.
-- **Zoom, pan and follow-loco (PR #4).**
+- **Controls (PR #4).** A reverser (Fwd / N / Rev, cab end first is
+  forward) sets direction; the throttle runs 0–4. Tom chose strict rules:
+  the reverser moves only when stopped with the throttle shut, the throttle
+  won't open in N, and the loco starts in N. An arrow on the loco shows the
+  set direction. Control buttons a bit smaller (44 px). Zoom buttons at the
+  top left; zoomed in, the view follows the loco and a drag pans.
 
 ## Open questions
 
