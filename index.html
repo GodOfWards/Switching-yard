@@ -50,6 +50,14 @@
   .lever b { display: block; color: var(--fg); font-size: 14px; }
   .meter { height: 3px; margin: 2px 6px 0; background: var(--line); border-radius: 2px; overflow: hidden; }
   .meter i { display: block; height: 100%; width: 0; background: #e3c55a; }
+  /* The coupling menu: two thumb-sized buttons over the yard, next to the
+     coupling tapped. */
+  #couplingMenu { position: absolute; display: none; gap: 6px; }
+  #couplingMenu.open { display: flex; }
+  #couplingMenu button { min-width: 88px; min-height: 44px; border-radius: 8px; border: 1px solid var(--line);
+    background: rgba(38, 42, 48, 0.95); color: var(--fg); font: 600 14px system-ui, sans-serif;
+    touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+  #couplingMenu button:active { background: #343a42; }
   /* A phone on its side has little height to spare: the controls move to the
      right-hand edge instead. */
   @media (orientation: landscape) and (max-height: 520px) {
@@ -66,6 +74,10 @@
     <button id="zoomOut" aria-label="Zoom out">−</button>
     <button id="followBtn" aria-label="Follow the loco">◎&#xFE0E;</button>
     <button id="pauseBtn" aria-label="Pause">❚❚</button>
+  </div>
+  <div id="couplingMenu">
+    <button id="airBtn">Air</button>
+    <button id="uncoupleBtn">Uncouple</button>
   </div>
 </div>
 <div id="bar">
@@ -111,8 +123,9 @@
   //                loop calls it at a fixed rate, so behaviour never depends
   //                on the display's frame rate.
   //   ACTIONS      what the player can do (reverser, levers, Emergency,
-  //                Release, throw a switch, uncouple), and the rules on when
-  //                they may. They change STATE; they never draw.
+  //                Release, throw a switch, connect or part the air,
+  //                uncouple, set a hand brake), and the rules on when they
+  //                may. They change STATE; they never draw.
   //   PERSISTENCE  none yet. When saving arrives, SAVE_KEY changes with every
   //                change to the saved shape.
   //   RENDERING    draws STATE to the canvas and the controls, through a
@@ -163,13 +176,25 @@
   const LOCO_MAX_SPEED = 8;             // m/s (29 km/h); a yard limit, not the G12's own; pull fades to nothing over the last GOVERNOR_BAND
   const GOVERNOR_BAND = 1;              // m/s
 
-  // Rolling resistance, as a share of weight. Tuned for a small yard: a car
-  // cut loose at CUT_ROLL_SPEED rolls CUT_ROLL_DISTANCE before it stops.
-  // Real freight cars roll about three times as far (a share near 0.002).
-  const CUT_ROLL_SPEED = 10 / 3.6;      // m/s; retunable
-  const CUT_ROLL_DISTANCE = 60;         // m; retunable
-  const ROLLING_RESISTANCE = CUT_ROLL_SPEED ** 2 / (2 * CUT_ROLL_DISTANCE * G);
-  const STARTING_RESISTANCE = 0.012;    // share of weight to get a standing vehicle moving; retunable
+  // Rolling resistance, from the constant part of the Davis equation:
+  // 1.3 lb per short ton of weight plus a fixed drag per axle that depends
+  // on the bearings (29 lb plain, 18 lb roller; AAR RP-548). The speed terms
+  // add little at yard speeds and are left out. A loaded 60 t box car on
+  // plain bearings comes to about 0.0015 of its weight and rolls about 255 m
+  // from 10 km/h; an empty one about 0.0028, 145 m.
+  // See docs/reference/train-physics.md.
+  const LBF = 4.448;                    // N per pound-force
+  const SHORT_TON = 907.2;              // kg
+  const DAVIS_WEIGHT_SHARE = 1.3 * LBF / (SHORT_TON * G);  // share of weight, ≈ 0.00065
+  const BEARING_AXLE_DRAG = { plain: 29 * LBF, roller: 18 * LBF };  // N per axle
+  const STARTING_RESISTANCE = { plain: 0.01, roller: 0.0025 };     // share of weight to get a standing vehicle moving; Unconfirmed, retunable
+
+  // Curve resistance: about 0.7 lb per short ton per degree of curve, where
+  // a curve of radius R metres is 1746.4 / R degrees (100 ft chord
+  // definition). A vehicle on a curve adds CURVE_RESISTANCE / R of its
+  // weight: about 0.004 at 150 m, 0.0075 at 82 m.
+  const CURVE_LB_PER_TON_DEGREE = 0.7;  // Secondary; retunable
+  const CURVE_RESISTANCE = CURVE_LB_PER_TON_DEGREE * LBF / (SHORT_TON * G) * 1746.4;  // m
 
   // Brakes. Each is a notched lever; the force builds toward the lever's
   // setting at its rate, as a share of full per second.
@@ -181,9 +206,21 @@
   const TRAIN_BRAKE_APPLY_RATE = 1 / 4; // full in 4 s; retunable
   const TRAIN_BRAKE_RELEASE_RATE = 1 / 5; // off in 5 s; retunable
   const EMERGENCY_RATE = 1;             // full train brake in 1 s; retunable
+  // The train brake works only on cars whose air is connected all the way
+  // back to the loco. A coupling's air, once connected, charges over
+  // AIR_CHARGE_SECONDS; a real brake pipe takes minutes.
+  const AIR_CHARGE_SECONDS = 15;        // retunable
+  // A hand brake: about a tenth of a loaded car's weight pressed on the
+  // shoes, at a shoe friction near 0.3. The same force on every car, so an
+  // empty stops sooner than a load. Unconfirmed; retunable.
+  const HAND_BRAKE_FORCE = 0.1 * 0.3 * 60e3 * G;  // N, ≈ 17.7 kN
 
-  // Contact. Ends meeting at or below COUPLE_MAX_SPEED couple; faster is a
-  // hard hit: a jolt, and the two bounce apart by HARD_HIT_RESTITUTION.
+  // Contact. Ends meeting between COUPLE_MIN_SPEED and COUPLE_MAX_SPEED
+  // couple. Slower, they touch and push without coupling, unless one presses
+  // on the other with COUPLE_PUSH_FORCE (shoving a cut to couple it). Faster
+  // is a hard hit: a jolt, and the two bounce apart by HARD_HIT_RESTITUTION.
+  const COUPLE_MIN_SPEED = 1.5 / 3.6;   // m/s closing speed; estimated, retunable
+  const COUPLE_PUSH_FORCE = 40e3;       // N; estimated, retunable
   const COUPLE_MAX_SPEED = 5 / 3.6;     // m/s closing speed; retunable
   const HARD_HIT_RESTITUTION = 0.3;     // retunable
   const NOTICE_SECONDS = 2;             // how long a message stays up
@@ -288,11 +325,12 @@
     J7: { trunk: "J6J7", legs: ["track6Curve", "track5Curve"], normal: "track6Curve" },
   };
 
-  // Kinds of rolling stock. Lengths are over the couplers.
+  // Kinds of rolling stock. Lengths are over the couplers. FA-era cars run
+  // on plain bearings (Unconfirmed); the G12 on roller bearings.
   const VEHICLE_TYPES = {
-    g12:       { loco: true,  length: 14, mass: 109e3, colour: "#c0533a" }, // GM G12; length approximate
-    boxLoaded: { loco: false, length: 15, mass: 60e3, colour: "#7a5236" },
-    boxEmpty:  { loco: false, length: 15, mass: 25e3, colour: "#a88a62" },
+    g12:       { loco: true,  length: 14, mass: 109e3, axles: 4, bearing: "roller", colour: "#c0533a" }, // GM G12; length approximate
+    boxLoaded: { loco: false, length: 15, mass: 60e3,  axles: 4, bearing: "plain",  colour: "#7a5236" },
+    boxEmpty:  { loco: false, length: 15, mass: 25e3,  axles: 4, bearing: "plain",  colour: "#a88a62" },
   };
   // Each starting train is laid out back from its head end, which stands `s`
   // metres along `segment` and faces `dir` (+1 toward the segment's `b`).
@@ -313,7 +351,9 @@
   // STATE
   // ==================================================
   function makeState() {
-    const st = { switches: {}, vehicles: {}, trains: {}, nextTrain: 1, notice: null };
+    // `air` holds each coupling whose air is connected, by its pair key, with
+    // how far its charge has come (0 to 1).
+    const st = { switches: {}, vehicles: {}, trains: {}, air: {}, nextTrain: 1, notice: null };
     for (const id in SWITCHES) st.switches[id] = { set: SWITCHES[id].normal };
     state = st;                           // walk() reads the switches as it lays trains out
     for (const t of START_TRAINS) {
@@ -323,7 +363,7 @@
         const half = VEHICLE_TYPES[v.type].length / 2;
         const c = walk(end.seg, end.s, end.travel, half);
         const veh = { id: v.id, type: v.type, train: train.id, seg: c.seg, s: c.s, dir: -c.travel,
-                      flip: v.flip || 1 };
+                      flip: v.flip || 1, handBrake: false };
         if (VEHICLE_TYPES[v.type].loco) veh.controls = { reverser: 0, throttle: 0, locoBrake: 0, trainBrake: 0,
           locoApplied: 0, trainApplied: 0, emergency: false };
         st.vehicles[v.id] = veh;
@@ -429,6 +469,8 @@
     return m;
   }
   const playerLoco = () => state.vehicles[PLAYER_LOCO];
+  // A coupling's identity: the ids of the two vehicles it joins, in order.
+  const pairKey = (a, b) => a < b ? a + "|" + b : b + "|" + a;
   const trainOf = v => state.trains[v.train];
 
   // ==================================================
@@ -457,16 +499,60 @@
       c.emergency ? EMERGENCY_RATE : TRAIN_BRAKE_APPLY_RATE, TRAIN_BRAKE_RELEASE_RATE);
   }
 
-  // Changes a train's speed by the forces on it: locos pull; rolling
-  // resistance and brakes hold back, never more than it takes to stop.
-  // Cars not coupled to a loco have no brakes: they are bled off and roll free.
+  // Charges the air at each coupling linked to a loco by connected air all
+  // the way; any other coupling's air is bled off.
+  function stepAir(t, dt) {
+    const ids = t.vehicles, linked = new Set();
+    for (const order of [ids, [...ids].reverse()]) {
+      let on = false;
+      order.forEach((id, i) => {
+        if (state.vehicles[id].controls) { on = true; return; }
+        const k = i > 0 ? pairKey(order[i - 1], id) : null;
+        on = on && k in state.air;
+        if (on) linked.add(k);
+      });
+    }
+    for (let i = 1; i < ids.length; i++) {
+      const k = pairKey(ids[i - 1], ids[i]);
+      if (k in state.air) state.air[k] = linked.has(k) ? Math.min(1, state.air[k] + dt / AIR_CHARGE_SECONDS) : 0;
+    }
+  }
+
+  // How much of the train brake reaches each vehicle, by id: all of it on a
+  // loco; on a car, the weakest charge between it and a loco; 0 when the air
+  // is not connected all the way.
+  function brakeReach(t) {
+    const ids = t.vehicles, reach = {};
+    for (const order of [ids, [...ids].reverse()]) {
+      let carry = 0;
+      order.forEach((id, i) => {
+        if (state.vehicles[id].controls) carry = 1;
+        else carry = i > 0 ? Math.min(carry, state.air[pairKey(order[i - 1], id)] || 0) : 0;
+        reach[id] = Math.max(reach[id] || 0, carry);
+      });
+    }
+    return reach;
+  }
+
+  // Each train's pull (+ toward its head) and the force holding it back, as
+  // worked out by accelerate() this step; contact() reads them.
+  const forces = {};
+
+  // Changes a train's speed by the forces on it: locos pull; rolling and
+  // curve resistance and brakes hold back, never more than it takes to stop.
+  // The train brake reaches only cars with their air connected and charged;
+  // a hand brake holds whatever train its car is in.
   function accelerate(t, dt) {
-    const mass = trainMass(t);
-    let pull = 0, brake = 0;
+    const mass = trainMass(t), reach = brakeReach(t);
+    let trainApplied = 0;
     for (const id of t.vehicles) {
-      const v = state.vehicles[id], c = v.controls;
-      if (!c) continue;
-      if (c.throttle && c.reverser) {
+      const c = state.vehicles[id].controls;
+      if (c) trainApplied = Math.max(trainApplied, c.trainApplied);
+    }
+    let pull = 0, brake = 0, roll = 0, start = 0;
+    for (const id of t.vehicles) {
+      const v = state.vehicles[id], type = vehicleType(v), c = v.controls, weight = type.mass * G;
+      if (c && c.throttle && c.reverser) {
         const sense = c.reverser * v.flip;                        // toward the head, or not
         const along = t.speed * sense;                            // speed in the direction of pull
         const share = c.throttle / THROTTLE_NOTCHES;
@@ -474,16 +560,22 @@
         const governor = Math.max(0, Math.min(1, (LOCO_MAX_SPEED - along) / GOVERNOR_BAND));
         pull += sense * share * force * governor;
       }
-      brake += c.locoApplied * LOCO_BRAKE_RATIO * vehicleType(v).mass * G;
-      brake += c.trainApplied * TRAIN_BRAKE_RATIO * mass * G;
+      if (c) brake += c.locoApplied * LOCO_BRAKE_RATIO * weight;
+      brake += trainApplied * TRAIN_BRAKE_RATIO * weight * reach[id];
+      if (v.handBrake) brake += HAND_BRAKE_FORCE;
+      const radius = SHAPES[v.seg].radius;
+      const curve = radius ? CURVE_RESISTANCE / radius * weight : 0;
+      roll += DAVIS_WEIGHT_SHARE * weight + type.axles * BEARING_AXLE_DRAG[type.bearing] + curve;
+      start += STARTING_RESISTANCE[type.bearing] * weight + curve;
     }
+    forces[t.id] = { pull, hold: brake + (t.speed === 0 ? start : roll) };
     if (t.speed === 0) {
       // Standing: it stays put unless the pull beats brakes and starting resistance.
-      if (Math.abs(pull) <= brake + STARTING_RESISTANCE * mass * G) return;
-      t.speed = Math.sign(pull) * (Math.abs(pull) - brake - ROLLING_RESISTANCE * mass * G) / mass * dt;
+      if (Math.abs(pull) <= brake + start) return;
+      t.speed = Math.sign(pull) * (Math.abs(pull) - brake - roll) / mass * dt;
       return;
     }
-    const hold = brake + ROLLING_RESISTANCE * mass * G;
+    const hold = brake + roll;
     const next = t.speed + (pull - Math.sign(t.speed) * hold) / mass * dt;
     t.speed = Math.sign(next) === Math.sign(t.speed) ? next : 0;
   }
@@ -540,13 +632,24 @@
     if (closing <= 0) return;                                   // already parting
     const mX = trainMass(X), mY = trainMass(Y);
     const shared = (mX * uX + mY * uY) / (mX + mY);              // momentum is kept
-    if (closing <= COUPLE_MAX_SPEED) {
+    if (closing > COUPLE_MAX_SPEED) {
+      X.speed = (shared + HARD_HIT_RESTITUTION * (shared - uX)) * xs;
+      Y.speed = (shared + HARD_HIT_RESTITUTION * (shared - uY)) * ys;
+      setNotice(`Hard hit at ${(closing * 3.6).toFixed(0)} km/h`);
+      return;
+    }
+    // How hard the two press together, from this step's forces: each one's
+    // net force along the axis, shared out by mass as they move as one.
+    const none = { pull: 0, hold: 0 }, fX = forces[X.id] || none, fY = forces[Y.id] || none;
+    const netX = fX.pull * xs - fX.hold, netY = fY.pull * ys - fY.hold;
+    const press = (mY * netX - mX * netY) / (mX + mY);
+    if (closing >= COUPLE_MIN_SPEED || press >= COUPLE_PUSH_FORCE) {
       couple(X, xEnd, Y, yEnd, shared);
       return;
     }
-    X.speed = (shared + HARD_HIT_RESTITUTION * (shared - uX)) * xs;
-    Y.speed = (shared + HARD_HIT_RESTITUTION * (shared - uY)) * ys;
-    setNotice(`Hard hit at ${(closing * 3.6).toFixed(0)} km/h`);
+    // A gentle touch: they move on together, still apart.
+    X.speed = shared * xs;
+    Y.speed = shared * ys;
   }
 
   // Joins Y onto X. X's coupling end becomes its tail and Y's its head, so
@@ -577,6 +680,7 @@
 
   function step(dt) {
     for (const id in state.vehicles) if (state.vehicles[id].controls) stepBrakes(state.vehicles[id].controls, dt);
+    for (const id in state.trains) stepAir(state.trains[id], dt);
     for (const id in state.trains) accelerate(state.trains[id], dt);
     for (const id of Object.keys(state.trains)) if (state.trains[id]) advance(state.trains[id], dt);
     if (state.notice && (state.notice.time -= dt) <= 0) state.notice = null;
@@ -642,11 +746,33 @@
     cur.set = cur.set === sw.legs[0] ? sw.legs[1] : sw.legs[0];
     return true;
   }
-  // Uncouples a train behind its vehicle `vehicleId`. Both parts keep moving;
-  // the part without the loco has no brakes.
+  // The vehicle coupled behind `vehicleId` in its train, or null.
+  function behind(vehicleId) {
+    const t = trainOf(state.vehicles[vehicleId]), i = t.vehicles.indexOf(vehicleId);
+    return i >= 0 && i < t.vehicles.length - 1 ? t.vehicles[i + 1] : null;
+  }
+  // Connects or parts the air at the coupling behind `vehicleId`. Newly
+  // connected air starts uncharged.
+  function toggleAir(vehicleId) {
+    const next = behind(vehicleId);
+    if (!next) return false;
+    const k = pairKey(vehicleId, next);
+    if (k in state.air) delete state.air[k]; else state.air[k] = 0;
+    return true;
+  }
+  // Sets or releases a car's hand brake. A loco has none; it has its own brake.
+  function toggleHandBrake(vehicleId) {
+    const v = state.vehicles[vehicleId];
+    if (!v || v.controls) return false;
+    v.handBrake = !v.handBrake;
+    return true;
+  }
+  // Uncouples a train behind its vehicle `vehicleId`, parting the air there
+  // too. Both parts keep moving; a part without a loco has its air bled off.
   function uncouple(vehicleId) {
     const v = state.vehicles[vehicleId], t = trainOf(v), i = t.vehicles.indexOf(vehicleId);
     if (i < 0 || i === t.vehicles.length - 1) return false;
+    delete state.air[pairKey(vehicleId, t.vehicles[i + 1])];
     const rest = { id: "t" + state.nextTrain++, vehicles: t.vehicles.slice(i + 1), speed: t.speed };
     t.vehicles = t.vehicles.slice(0, i + 1);
     for (const id of rest.vehicles) state.vehicles[id].train = rest.id;
@@ -741,7 +867,7 @@
       const t = state.trains[id];
       for (let i = 0; i < t.vehicles.length - 1; i++) {
         const v = state.vehicles[t.vehicles[i]];
-        out.push({ vehicle: v.id, at: endPoint(vehicleEnds(v).tail) });
+        out.push({ vehicle: v.id, key: pairKey(v.id, t.vehicles[i + 1]), at: endPoint(vehicleEnds(v).tail) });
       }
     }
     return out;
@@ -836,6 +962,10 @@
         const c1 = toward(cabEnd, other, 0.6), c2 = toward(cabEnd, other, 3);
         line(c1.x, c1.y, c2.x, c2.y, "#f2e6d0", bodyWidth * 0.6);
       }
+      if (v.handBrake) {                                  // a hand brake set: a light band at the middle
+        const mid = toward(head, tail, type.length / 2), along = toward(head, tail, type.length / 2 + 1.5);
+        line(mid.x, mid.y, along.x, along.y, "#f2e6d0", bodyWidth * 1.3);
+      }
       if (v.controls && v.controls.reverser) {            // arrow off the end the reverser points to
         const toHead = v.controls.reverser * v.flip > 0;
         const pe = toHead ? head : tail, po = toHead ? tail : head;
@@ -850,11 +980,18 @@
         ctx.fill();
       }
     }
+    // Couplings: dark with no air; with air connected, a larger dot that
+    // fills in blue as the air charges.
     for (const c of couplings()) {
-      const p = view.toScreen(c.at.x, c.at.y);
+      const p = view.toScreen(c.at.x, c.at.y), air = state.air[c.key], r = Math.max(2.5, k * 0.5);
       ctx.fillStyle = "#1b1d1f";
-      ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(2.5, k * 0.5), 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(p.x, p.y, air === undefined ? r : r * 1.6, 0, Math.PI * 2); ctx.fill();
+      if (air === undefined) continue;
+      ctx.fillStyle = "#6fa8dc"; ctx.globalAlpha = 0.35 + 0.65 * air;
+      ctx.beginPath(); ctx.arc(p.x, p.y, r * 1.1, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 1;
     }
+    placeCouplingMenu();
 
     // North arrow in the top right corner, turned with the view.
     {
@@ -888,9 +1025,11 @@
     }
 
     const loco = playerLoco(), c = loco.controls, t = trainOf(loco);
-    const cars = t.vehicles.length - 1;
+    const cars = t.vehicles.length - 1, reach = brakeReach(t);
+    const braked = t.vehicles.filter(id => !state.vehicles[id].controls && reach[id] >= 1).length;
     readout.innerHTML = `<span>${(Math.abs(t.speed) * 3.6).toFixed(1)} km/h · ` +
-      `${cars} car${cars === 1 ? "" : "s"}</span><small>v${GAME_CONFIG.VERSION}</small>`;
+      `${cars} car${cars === 1 ? "" : "s"}${cars ? ` · air ${braked}/${cars}` : ""}</span>` +
+      `<small>v${GAME_CONFIG.VERSION}</small>`;
     followBtn.classList.toggle("on", camera.follow);
     pauseBtn.classList.toggle("on", paused);
     pauseBtn.innerHTML = paused ? "▶&#xFE0E;" : "❚❚";
@@ -987,8 +1126,9 @@
     if (tapped) tap(e);
   });
 
-  // A tap acts on the nearest switch (throws it) or coupling (uncouples it)
-  // within TAP_RADIUS_PX on screen.
+  // A tap acts on the nearest thing within TAP_RADIUS_PX on screen: a
+  // switch (throws it), a coupling (opens its menu) or a car's middle (sets
+  // or releases its hand brake). Any tap closes an open coupling menu.
   function tap(e) {
     const r = canvas.getBoundingClientRect();
     const tx = e.clientX - r.left, ty = e.clientY - r.top;
@@ -998,9 +1138,41 @@
       if (d < bestD) { best = act; bestD = d; }
     };
     for (const id in SWITCHES) consider(NODES[id].x, NODES[id].y, () => throwSwitch(id));
-    for (const c of couplings()) consider(c.at.x, c.at.y, () => uncouple(c.vehicle));
+    for (const c of couplings()) consider(c.at.x, c.at.y, () => { menuFor = c.key; });
+    for (const id in state.vehicles) {
+      const v = state.vehicles[id];
+      if (!v.controls) { const p = pointOn(v.seg, v.s); consider(p.x, p.y, () => toggleHandBrake(id)); }
+    }
+    menuFor = null;
     if (best) unlessPaused(best)();
   }
+
+  // The coupling menu, open over the coupling `menuFor` (its pair key) until
+  // a button or another tap closes it, or the coupling is gone.
+  const couplingMenu = document.getElementById("couplingMenu");
+  const airBtn = document.getElementById("airBtn");
+  let menuFor = null;
+  const menuCoupling = () => menuFor && couplings().find(c => c.key === menuFor);
+  function placeCouplingMenu() {
+    const c = menuCoupling();
+    if (!c) menuFor = null;
+    couplingMenu.classList.toggle("open", !!c);
+    if (!c) return;
+    const p = view.toScreen(c.at.x, c.at.y);
+    // Above the coupling, or below it near the top; clear of the zoom buttons.
+    couplingMenu.style.left = `${Math.max(150, Math.min(screenW - 96, p.x))}px`;
+    couplingMenu.style.top = `${p.y}px`;
+    couplingMenu.style.transform = `translate(-50%, ${p.y < 80 ? "40%" : "-140%"})`;
+    airBtn.textContent = menuFor in state.air ? "Part air" : "Connect air";
+  }
+  const onMenuPress = (id, fn) => document.getElementById(id).addEventListener("pointerdown", e => {
+    e.preventDefault(); e.stopPropagation();
+    const c = menuCoupling();
+    if (c) unlessPaused(fn)(c.vehicle);
+    menuFor = null;
+  });
+  onMenuPress("airBtn", toggleAir);
+  onMenuPress("uncoupleBtn", uncouple);
 
   let last = performance.now(), acc = 0;
   function frame(now) {
@@ -1014,8 +1186,8 @@
 
   // Exposed for testing in a browser console or headless check.
   window.switching = { get state() { return state; }, step, throwSwitch, uncouple, moveReverser, moveThrottle,
-    moveLocoBrake, moveTrainBrake, emergency, release, trainEnds,
-    get paused() { return paused; }, togglePause, CONFIG: { ROLLING_RESISTANCE } };
+    moveLocoBrake, moveTrainBrake, emergency, release, trainEnds, toggleAir, toggleHandBrake, brakeReach,
+    get paused() { return paused; }, togglePause };
 })();
 </script>
 </body>

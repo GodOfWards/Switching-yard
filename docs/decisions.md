@@ -3,6 +3,23 @@
 Design calls Tom has made, newest first, with where they were made. The
 values these produced live in CONFIG and WORLD DATA in `index.html`.
 
+## 2026-10-08: Physics update, first part
+
+Made in the "Realistic physics update design" thread. These replace
+Physics D, F and G below.
+
+- **Real drag per car** from load and bearings (Davis equation), not the
+  tight yard setting (#25).
+- **Real curve drag** on the Junín curves (#16).
+- **Air isn't connected on coupling.** The train brake works only on cars
+  whose air runs back to the loco and has charged (#17).
+- **Tapping a coupling opens a small menu**, Air and Uncouple (#17).
+- **Hand brakes on every car**, set or released by tapping the car (#15).
+- **Coupling needs a minimum closing speed**, or a shove hard enough. A
+  gentle touch only pushes (#30).
+- Next: slack (#26). Later: derailment (#14), hook-and-screw couplings
+  (#33).
+
 ## 2026-10-08: Switch indicators and track look
 
 - **Switches show their position after FA practice** (RGF art. 100): a

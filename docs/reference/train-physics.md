@@ -4,40 +4,70 @@ Real-world figures for resistance and braking, to compare against the
 game's tuned values. Researched 2026-10-08.
 
 **Decided (Tom):**
-- **Drag uses the tight yard setting** (2026-10-08): a 10 km/h cut rolls
-  about 60 m, not the real 200–400 m. Retunable as the yard grows.
+- **Real drag per car** (2026-10-08, #25), replacing the tight yard
+  setting: a loaded box car rolls about 255 m from 10 km/h, an empty one
+  about 145 m.
+- **Real curve drag** on the Junín curves (2026-10-08, #16).
+- **Air not connected by default**; the train brake works only on cars
+  with their air connected and charged (2026-10-08, #17).
+- **Hand brakes on every car** (2026-10-08, #15).
 
-**Status:** every figure here is **Unconfirmed**: general railway values
-with no source recorded. A rolling-resistance study (Davis-type
-coefficients) or an AAR or FA braking standard would confirm them.
+**Status:** marked per figure. **Secondary** figures come from patents,
+forum posts quoting AAR material, or a railroad's own rule; an AAR or FA
+standard would confirm them.
 
 ## Rolling resistance
 
-- Modern roller-bearing freight cars have drag of about **0.001–0.002 of
-  their weight**.
-- At that drag, a cut released at 10 km/h rolls **200–400 m**, longer than
-  the game's yard.
-- The game rolls it about 60 m instead (see Decided above). It's one number,
-  `CUT_ROLL_DISTANCE`. Realistic drag would call for hand brakes or very
-  careful speeds, and suits a bigger yard.
+Updated 2026-10-08.
+
+- The **Davis equation**'s constant part, in lb per short ton with w the
+  tons per axle: **plain bearings `1.3 + 29/w`**, **roller bearings
+  `1.3 + 18/w`** (AAR RP-548). Put another way: 1.3 lb per ton of weight,
+  plus a fixed 29 lb (plain) or 18 lb (roller) per axle. The speed terms
+  add little below 30 km/h. **Secondary**.
+- Worked through, with plain bearings: a **loaded 60 t box car about
+  0.0015 of its weight**, rolling about **255 m** from 10 km/h; an **empty
+  25 t one about 0.0028**, about **145 m**. Empties stop sooner.
+- FA-era freight cars were likely mostly on plain bearings. **Unconfirmed**.
+- The G12 is taken as roller bearings. **Unconfirmed**.
 
 ## Starting resistance
 
-- The game's 0.012 of weight is a **plain-bearing** figure.
-- Modern roller-bearing cars need about **0.0025**.
-
-## Brakes
-
-- The game's train brake, 0.1 g at full, is about **twice** what a real
-  freight train gets in a service application.
-- In real switching the air hoses between cars often **aren't connected**,
-  so a move stops on the loco brake alone. With a heavy cut behind the loco
-  that makes braking a skill. Not built; a possible mechanic and Tom's call.
+- About **0.01 of weight** for plain bearings when cold, and **0.0025** for
+  roller bearings. **Unconfirmed**.
 
 ## Curves
 
-- Real stock slows more on a tight curve. The game has no curve drag yet;
-  adding it would be a new rule and is Tom's call.
+Researched 2026-10-08.
+
+- About **0.7–0.8 lb per short ton per degree of curve**; the game uses
+  0.7, the figure with a source. **Secondary**.
+- A curve's degree, by the 100 ft chord definition, is about
+  **1746.4 / R** for a radius R in metres.
+- So **~0.004 of weight at 150 m** and **~0.0075 at 82 m**, the Junín
+  curves: three to five times a loaded car's drag on straight track.
+
+## Brakes
+
+- **Net braking ratio** at full service, as AAR sets it for cars built
+  today: **loaded 8.5–14 %** of weight, **empty 15–38 %**. The shoe force
+  is fixed, so empties brake harder for their weight. **Secondary**.
+- The game's train brake, 0.1 of weight at full on every braked vehicle,
+  sits inside the loaded range. Retunable.
+- In real switching the air hoses between cars often **aren't connected**,
+  so a move stops on the loco brake alone. Charging a real brake pipe takes
+  minutes; the game takes 15 s. **Unconfirmed** as an FA rule.
+- FA standards cover **vacuum brake** equipment for freight cars (FAT
+  V-1412, V-1413), so some FA stock was vacuum braked. Which, and when, is
+  **Unconfirmed**. The game models air.
+
+## Hand brakes
+
+- **One per car** (US rule, 49 CFR 231). **Secondary**.
+- A railroad rule quoted for cars left standing on a yard track: about
+  **10 % of the cut plus one**. **Unconfirmed**.
+- The game's hand brake force is a guess: a tenth of a loaded car's weight
+  on the shoes at a shoe friction near 0.3, about 17.7 kN. **Unconfirmed**.
 
 ## Couplers
 
@@ -59,9 +89,13 @@ Researched 2026-10-08.
 
 ## Sources
 
+- Davis and AAR RP-548 forms: [Trains forum, train resistance](https://forum.trains.com/t/train-resistance-for-oltmannd/140048);
+  [FRA/DOT report](https://rosap.ntl.bts.gov/view/dot/79083/dot_79083_DS1.pdf)
+- Curves, 0.7 lb/ton/degree: [Trains forum](https://cs.trains.com/trn/f/741/t/220779.aspx?page=1)
+- Braking ratios: [US patent 5927822](https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/5927822);
+  [Railinc UMLER release notes](https://public.railinc.com/sites/default/files/documents/UmlerReleaseNotes120717.pdf)
+- Hand brakes: [49 CFR 232.103](https://www.govinfo.gov/content/pkg/CFR-2006-title49-vol4/html/CFR-2006-title49-vol4-sec232-103.htm);
+  [Trains forum](https://cs.trains.com/mrr/f/13/t/292780.aspx)
+- Vacuum brakes: [CNRT FAT specifications](https://www.argentina.gob.ar/cnrt/especificaciones-fat)
 - Couplers: [FAT E-726, Alturas de enganches de vehículos en Ferrocarriles
   Argentinos, Nov 1982 (CNRT copy)](https://argentina.gob.ar/sites/default/files/normas_fat/FAT_E_726.pdf)
-
-Otherwise none recorded. The figures came from the switcher research thread, whose
-cited sources ([locomotives.md](locomotives.md)) cover the locos, not these
-values.
