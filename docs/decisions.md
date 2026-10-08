@@ -46,8 +46,9 @@ values these produced live in CONFIG and WORLD DATA in `index.html`.
 
 ## Open questions
 
-- Curve drag: add extra resistance on tight curves?
-- Switching without air: should moves stop on the loco brake alone?
+Pending work and open designs are GitHub Issues ([issues.md](issues.md)):
+saving #13, derailment #14, hand brakes #15, curve drag #16, switching
+without air #17, freight cars #18, phone playtest #19. Not yet filed:
+
 - Realistic drag once the yard is big enough?
-- Saving.
 - Recreating a real yard such as Junín (its own thread).
