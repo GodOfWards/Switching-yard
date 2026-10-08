@@ -29,6 +29,11 @@ three stages (#48, #49, #50).
 - **Stages**: 1. clock, board, sheet and "sort the yard" on the fan;
   2. bigger map (#44), road trains, consists; 3. industries and waybills.
 - **How yards work** is researched from real FA practice (#45).
+- **Stage 1 on the fan** (#48): tracks get destination blocks (1 Retiro,
+  7 Mendoza, 2–3 local, 4 repair, 5–6 storage); a sort job puts named cars
+  on their block tracks by a time, the Retiro block in order; three 8-hour
+  shifts from 06:00; a history log per car; clock and Skip at the top, the
+  sheet sliding up from the bottom.
 - **The map grows by only what jobs need** (#44); mapping every active
   rail is the long-term aim (#52). Play happens zoomed in, following the
   loco, with zoomed out as an overview (#53).
