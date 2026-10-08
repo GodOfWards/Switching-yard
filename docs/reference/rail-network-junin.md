@@ -14,6 +14,9 @@ Researched 2026-10-08 from OpenStreetMap (#52). The yard itself is in
   yards that are played.
 - **2026-10-08: First area: every line out of Junín to its next
   junction.**
+- **2026-10-08: The game is set in 1977 or later** (#66), so SM-5
+  (Pergamino–Junín, stopped 1977) counts as closed. No exact year is
+  fixed.
 - **2026-10-08: The graph goes in WORLD DATA**, simplified, made by
   `tools/rail_network.py`, so the game stays one file. It goes in when the
   overview (#53) or main-line traffic (#56) needs it.
@@ -35,22 +38,55 @@ contributors, ODbL). The same refs are what OpenRailwayMap labels the lines
 with. The lines' geometry and these figures are in
 [rail-network-junin.geojson](rail-network-junin.geojson).
 
-What the table doesn't settle (research: #66):
+Notes on the table:
 
-- **The refs** (SM-B, SM-C, SM-5, …) are OSM's; what scheme they come
-  from isn't recorded with them. Unconfirmed; a Trenes Argentinos Cargas
-  or ADIF line list would confirm it.
-- **SM-5 is tagged "FC Mitre"**, the line of the former Central
-  Argentino, while the others are San Martín. Which railway built and ran
-  it in the FA era: unconfirmed.
-- **Whether each line was open in the 1970s–80s**, the disused SM-5 above
-  all. Unconfirmed; a line history (closure dates) would confirm it.
 - **SM-C and SM-7 leave Junín side by side** on separate tracks and part
   at Saforcada, 10 km out. They have no connection there in OSM, so in
   the graph they are two lines from Junín, not a junction at Saforcada.
   Secondary.
 - **No abandoned line** reaches Junín in OSM. Lines lifted before OSM
   mapped them may be missing altogether.
+
+## History of the lines
+
+Researched 2026-10-08 (#66), from Spanish Wikipedia's articles on the
+lines and their stations. All Secondary: most dates there carry "citation
+needed", and where two articles disagree both are given.
+
+| Line | Real name | Built by, opened | In the 1970s–80s | Today |
+|---|---|---|---|---|
+| SM-B | Retiro–Junín, part of the Retiro–San Luis–Mendoza main line | Buenos Aires al Pacífico (BAP); Junín station 1884, Membrillar 1886 | Open: the BAP main line, San Martín under FA. The long-distance *Aconcagua* (Retiro–Mendoza–San Juan) ran until suspended in 1993 | Freight (Trenes Argentinos Cargas) and Retiro–Junín passenger trains |
+| SM-C | Junín westward on the same main line | BAP; Saforcada station 1886 | Open, as SM-B | Freight as far as Villa Mercedes |
+| SM-7 | Ramal Saforcada–Santa Isabel, 103 km | BAP, 1901–02; joined to a Mitre branch towards Rosario in 1954 | Not stated in the sources found. Unconfirmed | OSM tags it in use; Wikipedia's infobox says "no operations". They disagree |
+| SM-5 | Ramal Pergamino–Junín, 88 km | Ferrocarril de la Provincia de Buenos Aires (the Oeste), reaching Junín on 3 February 1885; later Central Argentino | Open with heavy freight under FA ("more than 50 freight trains", Agustín Roca article) until it **stopped in 1977** (Agustín Roca; Rafael Obligado's infobox). Rafael Obligado's text says instead it closed in 1961 and reopened for freight under Illia (1963–66) | Rojas–Junín abandoned, track damaged by a flood between Junín and Agustín Roca; Pergamino–Rojas occasional freight (Nuevo Central Argentino) |
+
+- **SM-5's railway under FA** is given as Mitre (the branch's article)
+  and as San Martín (Rafael Obligado's article). OSM's "FC Mitre" with an
+  SM ref carries the same ambiguity. Unconfirmed.
+- **The branches at the line ends**, matched by route: SM-8 at Juan
+  Bautista Alberdi is the Ramal Alberdi–Hipólito Bouchard (opened
+  1903–06, closed 1976 per its article, now listed under Trenes
+  Argentinos Cargas). SM-4 at Arribeños is probably the Ramal
+  Rawson–Arribeños (BAP, 1912, 132 km, abandoned by 2014), an inference
+  from where it runs. Which branch SM-6 at Membrillar is was not found.
+- **The SM codes** are freight ramal codes in use today: Trenes
+  Argentinos Cargas wrote of rehabilitating "54 kilómetros del ramal
+  SM12" (argentina.gob.ar, 15 July 2021). Secondary, one instance; OSM's
+  SM-B, SM-C… appear to follow that scheme. Whether FA used the same
+  codes: unconfirmed; an FA ramal list or a CNRT network table would
+  settle it.
+- **What it means for "active"**: SM-B and SM-C were certainly open in
+  the FA era and SM-7 probably. SM-5 was open until 1977; with the game
+  set in 1977 or later (Tom, above), it is closed, leaving three active
+  lines out of Junín.
+
+Sources: es.wikipedia.org articles "Ramal ferroviario Pergamino-Junín",
+"Ramal ferroviario Saforcada-Santa Isabel", "Ramal ferroviario
+Retiro-San Luis-Mendoza", "Ramal ferroviario Alberdi-Hipólito Bouchard",
+"Ramal ferroviario Rawson-Arribeños", "Estación Junín", "Estación
+Saforcada", "Estación Membrillar", "Estación Arribeños", "Estación
+Agustín Roca", "Estación Rafael Obligado", all read 2026-10-08;
+argentina.gob.ar/node/267687 (Trenes Argentinos Cargas, 2021).
 
 ## Method
 
