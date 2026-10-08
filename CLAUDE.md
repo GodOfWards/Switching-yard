@@ -29,15 +29,18 @@ build step, no dependencies. Open it in a browser to run it.
 
 Work lands through a pull request from a branch, never a commit to `main`.
 
-**A version number is picked only when Tom confirms the merge**, so two
-pull requests open at once never claim the same one.
+**A version number is picked only when Tom marks the pull request ready
+for review**, so drafts open at once never claim the same one. Tom merges
+on GitHub himself.
 
-- While open, a pull request that changes `index.html` leaves
+- While a draft, a pull request that changes `index.html` leaves
   `GAME_CONFIG.VERSION` and `CHANGELOG.md` alone. It drafts its changelog
   entry in the description's **Changelog** section and declares its bump
   type up front, but never the number: PATCH for fixes and content, MINOR
   for a new mechanic or saved state, MAJOR only when Tom says so.
-- Once Tom confirms the merge, one last commit on that branch merges `main`
-  in, bumps `GAME_CONFIG.VERSION` from the version on `main`, and adds the
-  drafted entry to `CHANGELOG.md` under it. Then it merges.
+- When Tom marks it ready for review, one commit on that branch merges
+  `main` in, bumps `GAME_CONFIG.VERSION` from the version on `main`, and
+  adds the drafted entry to `CHANGELOG.md` under it.
+- If another pull request takes that number first, the version commit is
+  redone from the new `main`.
 - A pull request that doesn't change `index.html` gets no version.

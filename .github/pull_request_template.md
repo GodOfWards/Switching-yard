@@ -8,7 +8,7 @@ Closes #
 
 ## Version
 
-- [ ] `index.html` changed, bump type: PATCH / MINOR / MAJOR (the type only, not the number). The version and `CHANGELOG.md` entry are added in the last commit, once Tom confirms the merge
+- [ ] `index.html` changed, bump type: PATCH / MINOR / MAJOR (the type only, not the number). The version and `CHANGELOG.md` entry are added when Tom marks the PR ready for review
 - [ ] `index.html` unchanged: no version, no changelog entry
 
 ## Changelog
