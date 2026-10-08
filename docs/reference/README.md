@@ -31,3 +31,4 @@ and WORLD DATA in `index.html`; this folder is where they came from.
 | [locomotives.md](locomotives.md) | Switcher candidates (Class 08, SW1500, GM G12, GAIA) and why the G12 |
 | [train-physics.md](train-physics.md) | Rolling and starting resistance, brake rates, switching without air, curves |
 | [argentine-rolling-stock-naming.md](argentine-rolling-stock-naming.md) | Line initials, FA loco numbers, Spanish car type names, current operators |
+| [junin-yard.md](junin-yard.md) | Junín yard from OpenStreetMap, the depot fan section and how it became game track |
