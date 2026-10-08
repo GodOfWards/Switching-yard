@@ -2,7 +2,7 @@
 
 Newest first. One entry per version bump.
 
-## 0.2.2
+## Unreleased
 
 **New**
 - Curved track. A segment can be a circular curve of a given radius;
