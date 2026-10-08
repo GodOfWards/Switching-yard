@@ -110,19 +110,20 @@
   // ==================================================
   // CONFIG
   // ==================================================
-  const GAME_CONFIG = { VERSION: "0.2.1" };
+  const GAME_CONFIG = { VERSION: "0.2.2" };
   const STEP_SECONDS = 1 / 60;          // fixed simulation step
   const MAX_STEPS_PER_FRAME = 5;        // drop time rather than spiral after a stall
   const VIEW_MARGIN = 8;                // metres of ground kept around the yard
   const TAP_RADIUS_PX = 32;             // CSS px from a switch or coupling that a tap counts; retunable (a fingertip)
   const G = 9.81;                       // m/s²
 
-  // Locomotive pull. Each throttle notch gives an equal share of the pull;
-  // above LOCO_POWER / LOCO_MAX_FORCE (2.5 m/s) the engine's power limits it.
+  // Locomotive pull, modelled on a GM G12 as run in Argentina. Each throttle
+  // notch gives an equal share of the pull; above LOCO_POWER / LOCO_MAX_FORCE
+  // (about 4.3 m/s) the engine's power limits it.
   const THROTTLE_NOTCHES = 4;           // per direction; retunable
-  const LOCO_MAX_FORCE = 160e3;         // N at full notch; retunable
-  const LOCO_POWER = 400e3;             // W at full notch; retunable
-  const LOCO_MAX_SPEED = 8;             // m/s (29 km/h); pull fades to nothing over the last GOVERNOR_BAND
+  const LOCO_MAX_FORCE = 187e3;         // N at full notch; the G12's rated tractive effort
+  const LOCO_POWER = 977e3 * 0.8;       // W at the rail: the G12's 977 kW engine less an estimated fifth lost on the way; retunable
+  const LOCO_MAX_SPEED = 8;             // m/s (29 km/h); a yard limit, not the G12's own; pull fades to nothing over the last GOVERNOR_BAND
   const GOVERNOR_BAND = 1;              // m/s
 
   // Rolling resistance, as a share of weight. Tuned for a small yard: a car
@@ -245,7 +246,7 @@
 
   // Kinds of rolling stock. Lengths are over the couplers.
   const VEHICLE_TYPES = {
-    shunter:   { loco: true,  length: 14, mass: 80e3, colour: "#c0533a" },
+    g12:       { loco: true,  length: 14, mass: 109e3, colour: "#c0533a" }, // GM G12; length approximate
     boxLoaded: { loco: false, length: 15, mass: 60e3, colour: "#7a5236" },
     boxEmpty:  { loco: false, length: 15, mass: 25e3, colour: "#a88a62" },
   };
@@ -253,7 +254,7 @@
   // metres along `segment` and faces `dir` (+1 toward the segment's `b`).
   // A loco's cab faces the head unless it has `flip: -1`.
   const START_TRAINS = [
-    { segment: "headshunt", s: 32, dir: 1, vehicles: [{ id: "loco1", type: "shunter" }] },
+    { segment: "headshunt", s: 32, dir: 1, vehicles: [{ id: "loco1", type: "g12" }] },
     { segment: "siding1", s: 155, dir: 1, vehicles: [
       { id: "car1", type: "boxLoaded" }, { id: "car2", type: "boxLoaded" }, { id: "car3", type: "boxEmpty" }] },
     { segment: "siding2", s: 119, dir: 1, vehicles: [

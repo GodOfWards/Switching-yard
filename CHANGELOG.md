@@ -2,7 +2,7 @@
 
 Newest first. One entry per version bump.
 
-## 0.2.1
+## 0.2.2
 
 **New**
 - Curved track. A segment can be a circular curve of a given radius;
@@ -13,6 +13,14 @@ Newest first. One entry per version bump.
   cars start spread over three sidings and the spur.
 - Every curve is 50 m radius. Turnouts leave at 25° with tracks 12 m apart:
   wider than a real yard so it reads on a phone.
+
+## 0.2.1
+
+**Changed**
+- The loco is now modelled on a GM G12, as run on Argentina's Sarmiento
+  line: 109 t, 187 kN of pull and about 780 kW at the rail. It's heavier
+  and stronger than before, and holds its full pull up to about 15 km/h.
+  Yard speed stays capped at 29 km/h.
 
 ## 0.2.0
 
