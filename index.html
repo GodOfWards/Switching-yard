@@ -378,33 +378,40 @@
 
   // Kinds of rolling stock. Lengths are over the couplers. FA-era cars run
   // on plain bearings (Unconfirmed); the G12 on roller bearings.
-  // A freight car kind has its Spanish name, its stencilled tare and load
-  // limit (`carga`) in tonnes, and its body colour. Figures, their status
-  // and sources: docs/reference/fa-freight-cars.md. Every car length, and
-  // the tares and loads marked there as estimates, are Unconfirmed;
-  // retunable.
+  // A freight car kind has its Spanish name, its FA type code (type and
+  // sub-type, NEFA 958), its stencilled tare and load limit (`carga`) in
+  // tonnes, and FA's paint for it (NEFA 560–562): a body colour, and a
+  // tank's band. Figures, their status and sources:
+  // docs/reference/fa-freight-cars.md. Every car length, and the tares and
+  // loads marked there as estimates, are Unconfirmed; retunable. Colours
+  // are FA's, lightened where FA's black would vanish on the black yard.
   const VEHICLE_TYPES = {
     g12:       { loco: true, name: "GM G12", length: 14, mass: 109e3, axles: 4, bearing: "roller", colour: "#c0533a" }, // length approximate
-    cubierto:  { name: "Vagón cubierto",  length: 15.5, tare: 21, carga: 50, axles: 4, bearing: "plain", colour: "#8a5a3a" },
-    tolva:     { name: "Tolva cerealera", length: 15,   tare: 21, carga: 58, axles: 4, bearing: "plain", colour: "#9a9488" },
-    bordeAlto: { name: "Borde alto",      length: 14,   tare: 20, carga: 60, axles: 4, bearing: "plain", colour: "#6e4a3a" },
-    plataforma: { name: "Plataforma",     length: 19.5, tare: 19, carga: 61, axles: 4, bearing: "plain", colour: "#7f7466" },
-    tanque:    { name: "Vagón tanque",    length: 14,   tare: 21, carga: 50, axles: 4, bearing: "plain", colour: "#5d6168" },
+    cubierto:  { name: "Vagón cubierto",  code: "26", length: 15.5, tare: 21, carga: 50, axles: 4, bearing: "plain", colour: "#a2a5a3" },
+    tolva:     { name: "Tolva cerealera", code: "75", length: 15,   tare: 21, carga: 58, axles: 4, bearing: "plain", colour: "#a2a5a3" },
+    bordeAlto: { name: "Borde alto",      code: "54", length: 14,   tare: 20, carga: 60, axles: 4, bearing: "plain", colour: "#a2a5a3" },
+    plataforma: { name: "Plataforma",     code: "68", length: 19.5, tare: 19, carga: 61, axles: 4, bearing: "plain", colour: "#c9a634" },
+    tanque:    { name: "Vagón tanque",    code: "82", length: 14,   tare: 21, carga: 50, axles: 4, bearing: "plain", colour: "#3a3c40", band: "#e2b420" },
   };
-  // The cars, by id: the broad-gauge line whose initials each carries, its
-  // FA number and whether it is loaded (to its load limit). Junín is on the
-  // San Martín, so most cars are its own; the rest come from the other
-  // broad-gauge lines. FA numbered broad-gauge cars 40000–99999; which
-  // numbers go to which kind is the game's, not FA's.
+  // FA's operating digit for plains, low speed (NEFA 956): the third digit
+  // of every car's code here.
+  const FA_OPERATING_CODE = "3";
+  // The cars, by id: the FA number, and whether each is loaded (to its load
+  // limit). Most carry FA's unified panel (NEFA 555): the monogram and the
+  // type code. A car with `line` has not been repainted since: it keeps
+  // that broad-gauge line's initials and the older paint, LINE_PAINT. FA
+  // numbered broad-gauge cars 40000–99999; which numbers go to which kind,
+  // and which cars keep their line's marks, is the game's; retunable.
+  const LINE_PAINT = "#8a5a3a";
   const CARS = {
-    car1: { type: "tolva",      line: "FCGSM", number: "64218", loaded: true },
-    car2: { type: "tolva",      line: "FCGSM", number: "64377", loaded: true },
-    car3: { type: "cubierto",   line: "FCDFS", number: "47105", loaded: false },
-    car4: { type: "bordeAlto",  line: "FCGSM", number: "71842", loaded: false },
-    car5: { type: "plataforma", line: "FCGBM", number: "83016", loaded: false },
-    car6: { type: "tanque",     line: "FCGSM", number: "92260", loaded: true },
-    car7: { type: "cubierto",   line: "FCGSM", number: "45931", loaded: false },
-    car8: { type: "cubierto",   line: "FCGR",  number: "48570", loaded: true },
+    car1: { type: "tolva",      number: "64218", loaded: true },
+    car2: { type: "tolva",      number: "64377", loaded: true },
+    car3: { type: "cubierto",   number: "47105", loaded: false, line: "FCDFS" },
+    car4: { type: "bordeAlto",  number: "71842", loaded: false },
+    car5: { type: "plataforma", number: "83016", loaded: false },
+    car6: { type: "tanque",     number: "92260", loaded: true },
+    car7: { type: "cubierto",   number: "45931", loaded: false },
+    car8: { type: "cubierto",   number: "48570", loaded: true, line: "FCGR" },
   };
   // Each starting train is laid out back from its head end, which stands `s`
   // metres along `segment` and faces `dir` (+1 toward the segment's `b`).
@@ -1177,8 +1184,14 @@
       const head = endPoint(e.head), tail = endPoint(e.tail);
       const front = toward(head, tail, inset), back = toward(tail, head, inset);
       if (id === cardFor) line(back.x, back.y, front.x, front.y, PALETTE.accent, bodyWidth + 4);  // its card is open
-      line(back.x, back.y, front.x, front.y, type.colour, bodyWidth);
-      if (CARS[id] && !CARS[id].loaded) {                 // an empty car is drawn hollow
+      const car = CARS[id];
+      line(back.x, back.y, front.x, front.y, car && car.line ? LINE_PAINT : type.colour, bodyWidth);
+      if (car && type.band && !car.line)                  // a tank's band, across it at a quarter from each end
+        for (const at of [0.25, 0.75]) {
+          const p = toward(head, tail, type.length * at - 0.5), q = toward(head, tail, type.length * at + 0.5);
+          line(p.x, p.y, q.x, q.y, type.band, bodyWidth);
+        }
+      if (car && !car.loaded) {                           // an empty car is drawn hollow
         const f = toward(front, back, 1), b = toward(back, front, 1);
         line(b.x, b.y, f.x, f.y, PALETTE.bg, bodyWidth * 0.4);
       }
@@ -1410,8 +1423,9 @@
   onMenuPress("uncoupleBtn", uncouple);
 
   // The car card, open over the car `cardFor` (its id) until another tap
-  // closes it: the car's line and number, its kind and load, and its tare
-  // and load limit as stencilled (TARA, CARGA), with its hand brake.
+  // closes it: FA (or the line's initials, on a car not yet repainted) and
+  // the number, its kind and load, the type code, and its tare and load
+  // limit as stencilled, with its hand brake.
   const carCard = document.getElementById("carCard");
   const carText = document.getElementById("carText");
   const handBrakeBtn = document.getElementById("handBrakeBtn");
@@ -1422,8 +1436,10 @@
     carCard.classList.toggle("open", !!car);
     if (!car) return;
     const type = vehicleType(v), at = pointOn(v.seg, v.s), p = view.toScreen(at.x, at.y);
-    carText.innerHTML = `<b>${car.line} ${car.number}</b>${type.name} · ${car.loaded ? "loaded" : "empty"}` +
-      `<small>TARA ${type.tare} t · CARGA ${type.carga} t</small>`;
+    // FA's stencils (NEFA 771): T the tare and C the load limit, in kg.
+    const kg = (t, digits) => String(t * 1000).padStart(digits, "0");
+    carText.innerHTML = `<b>${car.line || "FA"} ${car.number}</b>${type.name} · ${car.loaded ? "loaded" : "empty"}` +
+      `<small>${car.line ? "" : `${type.code} ${FA_OPERATING_CODE} · `}T ${kg(type.tare, 5)} K · C ${kg(type.carga, 6)} K</small>`;
     handBrakeBtn.textContent = v.handBrake ? "Release hand brake" : "Set hand brake";
     handBrakeBtn.classList.toggle("on", v.handBrake);
     // Beside the car, kept on screen and clear of the zoom buttons.
