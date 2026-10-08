@@ -145,6 +145,12 @@
   const ZOOM_LEVELS = [1, 1.5, 2, 3, 4]; // × the whole-yard fit; retunable
   const DRAG_START_PX = 8;              // CSS px a press moves before it pans instead of tapping
   const TAP_RADIUS_PX = 32;             // CSS px from a switch or coupling that a tap counts; retunable (a fingertip)
+  const GAUGE = 1.676;                  // m, Argentine broad gauge (Junín's)
+  const TIE_SPACING = 0.65;             // m between tie centres; approximate
+  const TIE_LENGTH = 2.75;              // m; approximate
+  const TRACK_DETAIL_K = 4;             // px per metre at which track is drawn as rails and ties; retunable
+  const SWITCH_DIM_LENGTH = 25;         // m of the unset leg faded past a switch; retunable
+  const SWITCH_DIM_STEPS = 5;           // steps the fade is drawn in
   const G = 9.81;                       // m/s²
 
   // Locomotive pull, modelled on a GM G12 as run in Argentina. The reverser
@@ -747,7 +753,47 @@
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.lineCap = "round";
     const trackWidth = Math.max(3, k);
-    for (const id in SEGMENTS) polyline(trackPoints(id, 0, segmentLength(id)), "#6b6a64", trackWidth);
+    const detailed = k >= TRACK_DETAIL_K;
+    // A stretch of track, `s0` to `s1` along segment `id`: zoomed out a
+    // single line; zoomed in two rails on ties.
+    function drawTrack(id, s0, s1, alpha) {
+      const pts = trackPoints(id, s0, s1);
+      ctx.globalAlpha = alpha;
+      if (!detailed) { polyline(pts, "#6b6a64", trackWidth); ctx.globalAlpha = 1; return; }
+      const half = GAUGE / 2, len = Math.abs(s1 - s0), dir = Math.sign(s1 - s0) || 1;
+      ctx.lineCap = "butt";
+      ctx.strokeStyle = "#4a4239"; ctx.lineWidth = Math.max(1.5, k * 0.25);  // ties, in one path
+      ctx.beginPath();
+      for (let d = TIE_SPACING / 2; d < len; d += TIE_SPACING) {
+        const p = pointOn(id, s0 + dir * d), h = TIE_LENGTH / 2;
+        const e1 = view.toScreen(p.x - p.uy * h, p.y + p.ux * h), e2 = view.toScreen(p.x + p.uy * h, p.y - p.ux * h);
+        ctx.moveTo(e1.x, e1.y); ctx.lineTo(e2.x, e2.y);
+      }
+      ctx.stroke();
+      for (const side of [-1, 1])                                        // rails
+        polyline(pts.map(p => ({ x: p.x - p.uy * half * side, y: p.y + p.ux * half * side })), "#a9a59c", Math.max(1.2, k * 0.12));
+      ctx.lineCap = "round";
+      ctx.globalAlpha = 1;
+    }
+    // The leg a switch is not set to fades in from the switch, so the route
+    // through the points reads at a glance.
+    const dimmed = {};
+    for (const id in SWITCHES) for (const leg of SWITCHES[id].legs)
+      if (leg !== state.switches[id].set) (dimmed[leg] = dimmed[leg] || []).push(SEGMENTS[leg].a === id ? "a" : "b");
+    // Faded stretches go down first, so the set route draws over them where
+    // the legs still overlap. They fade in from the switch in a few steps.
+    const solid = [];
+    for (const id in SEGMENTS) {
+      const len = segmentLength(id), ends = dimmed[id] || [], reach = Math.min(SWITCH_DIM_LENGTH, len / 2);
+      const s0 = ends.includes("a") ? reach : 0, s1 = ends.includes("b") ? len - reach : len;
+      solid.push([id, s0, s1]);
+      for (let i = 0; i < SWITCH_DIM_STEPS; i++) {
+        const f0 = i / SWITCH_DIM_STEPS, f1 = (i + 1) / SWITCH_DIM_STEPS, alpha = 0.3 + 0.7 * f0;
+        if (s0 > 0) drawTrack(id, s0 * f0, s0 * f1, alpha);
+        if (s1 < len) drawTrack(id, len - (len - s1) * f0, len - (len - s1) * f1, alpha);
+      }
+    }
+    for (const [id, s0, s1] of solid) drawTrack(id, s0, s1, 1);
     // Buffer stops at every end of track.
     for (const id in NODES) {
       if (SEGMENTS_AT[id].length !== 1) continue;
@@ -755,15 +801,26 @@
       line(p.x - p.uy * 2, p.y + p.ux * 2, p.x + p.uy * 2, p.y - p.ux * 2, "#b9b2a4", Math.max(3, k * 0.8));
     }
 
-    // Switches: the leg each is set to is drawn bright from the node out.
+    // Switch targets, after FA practice (RGF art. 100): a green disc when the
+    // switch is set normal, a yellow triangle on black when it is reversed,
+    // pointing along the leg it is set to.
     for (const id in SWITCHES) {
-      const n = NODES[id], set = state.switches[id].set, len = segmentLength(set);
-      const reach = Math.min(12, len);
-      polyline(SEGMENTS[set].a === id ? trackPoints(set, 0, reach) : trackPoints(set, len, len - reach),
-        "#e3c55a", trackWidth);
-      const c = view.toScreen(n.x, n.y);
-      ctx.fillStyle = "#e3c55a";
-      ctx.beginPath(); ctx.arc(c.x, c.y, Math.max(6, trackWidth * 1.4), 0, Math.PI * 2); ctx.fill();
+      const n = NODES[id], set = state.switches[id].set, normal = set === SWITCHES[id].normal;
+      const len = segmentLength(set), atA = SEGMENTS[set].a === id;
+      const c = view.toScreen(n.x, n.y), r = Math.max(6, k * 1.6);
+      const ahead = pointOn(set, atA ? Math.min(6, len) : len - Math.min(6, len)), q = view.toScreen(ahead.x, ahead.y);
+      const dl = Math.hypot(q.x - c.x, q.y - c.y) || 1, ux = (q.x - c.x) / dl, uy = (q.y - c.y) / dl;
+      ctx.strokeStyle = "#111"; ctx.lineWidth = 2;
+      ctx.beginPath();
+      if (normal) { ctx.fillStyle = "#3fae5a"; ctx.arc(c.x, c.y, r * 0.8, 0, Math.PI * 2); }
+      else {
+        ctx.fillStyle = "#f0c419";
+        ctx.moveTo(c.x + ux * r * 1.2, c.y + uy * r * 1.2);
+        ctx.lineTo(c.x - ux * r * 0.7 - uy * r, c.y - uy * r * 0.7 + ux * r);
+        ctx.lineTo(c.x - ux * r * 0.7 + uy * r, c.y - uy * r * 0.7 - ux * r);
+        ctx.closePath();
+      }
+      ctx.stroke(); ctx.fill();
     }
 
     // Vehicles, each drawn end to end with a small gap; couplings bridge it.

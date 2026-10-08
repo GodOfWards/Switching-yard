@@ -3,6 +3,16 @@
 Design calls Tom has made, newest first, with where they were made. The
 values these produced live in CONFIG and WORLD DATA in `index.html`.
 
+## 2026-10-08: Switch indicators and track look
+
+- **Switches show their position after FA practice** (RGF art. 100): a
+  green disc when set normal, a yellow triangle on black when reversed.
+  The triangle points along the set leg.
+- **The unset leg fades** for its first stretch past the switch.
+- **Track is drawn as rails and ties when zoomed in**, and as a single line
+  zoomed out, where rails would crowd. See
+  [switch-indicators.md](reference/switch-indicators.md).
+
 ## 2026-10-08: Junín depot fan
 
 - **The yard is the depot fan at Junín**, from OpenStreetMap: seven
