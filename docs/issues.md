@@ -39,9 +39,14 @@ scope reopens. There are no priority or size labels: the bump type
 
 ## Filing and closing
 
-- **Claude files and edits issues without asking**, the moment work surfaces
-  (a bug, a cleanup, scope that belongs later). This is the one exception to
-  "propose and wait". Don't file an issue to record what was shipped.
+- **File first, work later.** When Tom brings something up, or it turns up
+  during a task, the first action is filing an issue with the best
+  description to hand; a rough one is fine if it needs looking into. Only
+  then is it worked on, as its own task. Don't start investigating it or
+  open a thread for it just because it came up.
+- **Claude files and edits issues without asking.** This is the one
+  exception to "propose and wait". Don't file an issue to record what was
+  shipped.
 - **An issue closes through the pull request that fulfils it** (`Closes #NN`).
   An idea Tom drops for good is closed by hand as not planned, with a comment
   naming the decision.
