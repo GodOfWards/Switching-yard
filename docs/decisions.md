@@ -3,6 +3,44 @@
 Design calls Tom has made, newest first, with where they were made. The
 values these produced live in CONFIG and WORLD DATA in `index.html`.
 
+## 2026-10-08: Jobs
+
+Made in the "Jobs" design thread; the full rules are in #35, built in
+three stages (#48, #49, #50).
+
+- **A job is one operation**: the chain of tasks a piece of work needs
+  (pull from an industry, set out, bring to the yard, build a consist,
+  leave cars on a track, take a consist apart, sort the yard for the next
+  shift). It can span the yard and the industries near it.
+- **Cars live on across days**, each with a waybill naming its next
+  destination, so a player can follow one car through its cycle. Traffic
+  comes from a plan in WORLD DATA: industries' rates and a road-train
+  timetable.
+- **The player takes as many jobs as they like** from a job board. Work
+  they don't take is done off-screen when due; other crews on the map are
+  backlog (#46).
+- **Time runs at real time**, with skips to the next event or to a
+  10-minute mark, only when nothing the player could touch is moving.
+- **A job sheet** states the end result, grouped by task, a line per car
+  that ticks itself. Weights go on a consist page for trains being built.
+- **Nothing fails**: jobs have due times, lateness is recorded and the
+  train leaves late. The report scores time, rough handling and moves.
+  Knock-on delays later (#47).
+- **Stages**: 1. clock, board, sheet and "sort the yard" on the fan;
+  2. bigger map (#44), road trains, consists; 3. industries and waybills.
+- **How yards work** is researched from real FA practice (#45).
+- **Stage 1 on the fan** (#48): tracks get destination blocks (1 Retiro,
+  7 Mendoza, 2–3 local, 4 repair, 5–6 storage); a sort job puts named cars
+  on their block tracks by a time, the Retiro block in order; three 8-hour
+  shifts from 06:00; a history log per car; clock and Skip at the top, the
+  sheet sliding up from the bottom.
+- **The map grows by only what jobs need** (#44); mapping every active
+  rail is the long-term aim (#52). Play happens zoomed in, following the
+  loco, with zoomed out as an overview (#53).
+- **Trains are capped shorter than real**, about 15–20 cars (≈ 250 m), so
+  tracks shrink; retunable. The option kept: real train lengths (40 cars
+  ≈ 600 m, unchecked) if the map grows enough.
+
 ## 2026-10-08: Saving
 
 - **The whole yard is saved as it stands**, mid-move included, every 5 s
