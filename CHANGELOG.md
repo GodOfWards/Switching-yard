@@ -2,6 +2,12 @@
 
 Newest first. One entry per version bump.
 
+## 0.6.1
+
+**Fixed**
+- After uncoupling while pushing, the loco no longer passes through the
+  cars it left; it meets and pushes them.
+
 ## 0.6.0
 
 **New**
