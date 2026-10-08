@@ -64,6 +64,8 @@ Later prefixes:
 
 Most Argentine freight cars run on two bogies (4 axles). Historic cars carried a plain number with no letter prefix, often 4 or 5 digits (for example BAGS hopper 61096, BAP stock car 45310).
 
+**Update 2026-10-08:** FA's car numbering (broad gauge 40000–99999) and marking are now in [fa-freight-cars.md](fa-freight-cars.md), from FAT MRe-2002. The type codes are still unread.
+
 **Gap:** FA's standard car type code is in the official NEFA drawings 553 ("Código numérico") and 674 ("Letras normalizadas"), hosted by CNRT. Their PDFs block automated download, so I couldn't read the actual codes. If you want the real codes, open those two PDFs from the CNRT page linked below.
 
 ## Current operators (marks for a modern setting)

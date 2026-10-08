@@ -24,6 +24,15 @@ the job calls below; the current rules are in [design/](design/README.md).
 - **OpenRailwayMap is the standard map reference.**
 - Later: main-line traffic (#56), authority to move (#57).
 
+## 2026-10-08: Freight cars
+
+- **Tapping a car opens its card**: line and number, kind, load, tare and
+  load limit as stencilled, with its hand brake as a button. Replaces
+  tapping a car to set its hand brake (#18).
+- **Car marks: both kinds** (#54). Most cars carry FA's unified panel
+  (monogram and type code, NEFA 555); a few not yet repainted keep their
+  line's initials. See [fa-freight-cars.md](reference/fa-freight-cars.md).
+
 ## 2026-10-08: Jobs
 
 Made in the "Jobs" design thread; the full rules are in #35, built in

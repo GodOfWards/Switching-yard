@@ -2,6 +2,16 @@
 
 Newest first. One entry per version bump.
 
+## 0.7.1
+
+**Changed**
+- The cars are FA freight cars: box cars, grain hoppers, a gondola, a flat
+  and a tank car, each with its line's initials and FA number, loaded or
+  empty. Loaded cars are heavier than before (71–80 t), empties lighter
+  (19–21 t).
+- Tapping a car opens its card: number, kind, load, tare and load limit,
+  and a button for its hand brake.
+
 ## 0.7.0
 
 **New**
