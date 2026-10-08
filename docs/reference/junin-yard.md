@@ -9,6 +9,9 @@ WORLD DATA in `index.html`.
   (B). The turntable starts as a plain dead end.
 - **2026-10-08: A north arrow** in a corner of the view, since the yard
   is turned to fit the screen.
+- **2026-10-08: OpenRailwayMap is the standard map reference.** It draws
+  the same OpenStreetMap data used here; at Junín that data has no signals
+  or track numbers. Re-download before laying more track (#44).
 
 ## The site
 

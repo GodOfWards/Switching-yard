@@ -2,7 +2,8 @@
 
 Real-world data the game needs to be accurate: locomotives, rolling stock,
 resistance and brake figures, naming. The game's own values stay in CONFIG
-and WORLD DATA in `index.html`; this folder is where they came from.
+and WORLD DATA in `index.html`; this folder is where they came from. The rules the
+game builds on them are in [../design/](../design/README.md).
 
 ## Rules
 
@@ -19,6 +20,11 @@ and WORLD DATA in `index.html`; this folder is where they came from.
     restates the primary.
   - **Unconfirmed:** a figure without a source that states it, or an
     estimate. Say what would confirm it.
+- **Track comes from OpenRailwayMap** (openrailwaymap.org), the standard
+  map reference (Tom, 2026-10-08). It draws OpenStreetMap's railway data,
+  so geometry and tags are downloaded from the OSM API for the same area
+  and checked against ORM's rendering of track use, switches, speeds and
+  signals. Say which date the data was taken.
 - **Tom's design calls** that a file's facts led to go at the top of that
   file under **Decided (Tom)**, dated, and in `../decisions.md`.
 - **When a figure here and a figure in the game disagree,** say so in the
