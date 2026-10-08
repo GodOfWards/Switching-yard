@@ -2,6 +2,11 @@
 
 How Argentine railways name and number locomotives and freight cars, for naming the game's rolling stock. Researched 2026-10-08.
 
+**Decided (Tom):**
+- **The setting is Argentina** (2026-10-08). Locos, cars and naming stay within Argentine railways. Which line and era is still open.
+
+**Status:** mostly **Secondary** (enthusiast sites, Wikipedia, OSM wiki). FA's car type codes are a gap: they're in NEFA drawings 553 and 674, which weren't read. The suggested scheme at the end is a proposal, not a fact.
+
 ## Lines (the six FA railways)
 
 | Initials | Line | Gauge | FA number block | 1991 FEMESA letter |

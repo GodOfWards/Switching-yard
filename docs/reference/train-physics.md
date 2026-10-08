@@ -1,8 +1,15 @@
 # Train physics: reference
 
 Real-world figures for resistance and braking, to compare against the
-game's tuned values. Researched 2026-10-08. Unsourced figures here are
-general railway engineering values and are approximate.
+game's tuned values. Researched 2026-10-08.
+
+**Decided (Tom):**
+- **Drag uses the tight yard setting** (2026-10-08): a 10 km/h cut rolls
+  about 60 m, not the real 200–400 m. Retunable as the yard grows.
+
+**Status:** every figure here is **Unconfirmed**: general railway values
+with no source recorded. A rolling-resistance study (Davis-type
+coefficients) or an AAR or FA braking standard would confirm them.
 
 ## Rolling resistance
 
@@ -10,8 +17,7 @@ general railway engineering values and are approximate.
   their weight**.
 - At that drag, a cut released at 10 km/h rolls **200–400 m**, longer than
   the game's yard.
-- The game rolls it about 60 m instead, a deliberate "tight yard" setting
-  (decision G in [decisions.md](../decisions.md)). It's one number,
+- The game rolls it about 60 m instead (see Decided above). It's one number,
   `CUT_ROLL_DISTANCE`. Realistic drag would call for hand brakes or very
   careful speeds, and suits a bigger yard.
 
@@ -35,7 +41,6 @@ general railway engineering values and are approximate.
 
 ## Sources
 
-The resistance and brake figures came from the switcher research thread;
-see [locomotives.md](locomotives.md) for its sources. No separate citation
-was kept for the resistance values, so treat them as approximate until
-sourced.
+None recorded. The figures came from the switcher research thread, whose
+cited sources ([locomotives.md](locomotives.md)) cover the locos, not these
+values.

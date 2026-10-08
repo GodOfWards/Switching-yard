@@ -1,7 +1,13 @@
 # Locomotives: reference
 
 Which real locomotive the game's loco should model. Researched 2026-10-08.
-The pick was the **GM G12**, shipped in v0.2.1 (PR #5).
+
+**Decided (Tom):**
+- **The loco models a GM G12 / GR12** (2026-10-08), over the Class 08 and
+  SW1500, for an Argentine setting. Shipped in v0.2.1 (PR #5).
+
+**Status:** the specs are **Secondary** (Wikipedia). Power at the rail is
+**Unconfirmed**, an estimate; a builder's data sheet would confirm it.
 
 ## Candidates
 
@@ -27,11 +33,6 @@ The pick was the **GM G12**, shipped in v0.2.1 (PR #5).
 No dedicated Argentine shunter with published numbers turned up. Argentine
 yards seem to have been worked mostly by general-purpose locos. Ferrosur
 Roca reports 15 shunters but doesn't name the models.
-
-## Why the G12
-
-Tom wants an Argentine setting, and the G12 is the authentic choice for
-one. It's heavy for a small yard, which matters less as the yard grows.
 
 ## Open points
 

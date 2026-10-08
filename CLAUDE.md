@@ -21,9 +21,9 @@ build step, no dependencies. Open it in a browser to run it.
 - **Simulation runs on the fixed step** (`step(dt)`), never per frame, so
   behaviour doesn't depend on frame rate.
 - **Changes to the saved shape change `SAVE_KEY`** once saving exists.
-- **Research lands in `docs/`.** Real-world facts go in `docs/research/`,
-  dated and sourced; Tom's design calls go in `docs/decisions.md`. Both get
-  listed in `docs/README.md`. Read them before researching again.
+- **Facts are looked up in `docs/reference/` first.** Anything researched
+  lands there in the same pull request, dated, sourced and with a status;
+  Tom's design calls go in `docs/decisions.md`. → `docs/reference/README.md`
 
 ## The wrap
 

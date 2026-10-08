@@ -7,9 +7,9 @@ values these produced live in CONFIG and WORLD DATA in `index.html`.
 
 - **Setting is Argentina.** Locos, cars and naming stay within Argentine
   railways. Naming reference:
-  [argentine-rolling-stock-naming.md](research/argentine-rolling-stock-naming.md).
+  [argentine-rolling-stock-naming.md](reference/argentine-rolling-stock-naming.md).
 - **The loco models a GM G12 / GR12**, over the Class 08 and SW1500
-  (PR #5, v0.2.1). See [locomotives.md](research/locomotives.md).
+  (PR #5, v0.2.1). See [locomotives.md](reference/locomotives.md).
 
 ## 2026-10-08: Physics (PR #3, v0.2.0)
 
@@ -23,7 +23,7 @@ values these produced live in CONFIG and WORLD DATA in `index.html`.
 - **F. A car cut loose** rolls free with no brakes. Hand brakes may come
   later.
 - **G. Drag** uses the tight yard setting (a 10 km/h cut rolls ~60 m), not
-  realistic drag (200–400 m). See [train-physics.md](research/train-physics.md).
+  realistic drag (200–400 m). See [train-physics.md](reference/train-physics.md).
 - **H. Train brake** builds up over a few seconds.
 - Out of scope for now: slack between cars, gradients, wheel slip.
 
