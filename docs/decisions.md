@@ -3,6 +3,17 @@
 Design calls Tom has made, newest first, with where they were made. The
 values these produced live in CONFIG and WORLD DATA in `index.html`.
 
+## 2026-10-08: Controls (PR #4, v0.3.0)
+
+- **Reverser** (Fwd / N / Rev, cab end first is forward) sets direction;
+  the throttle runs 0–4.
+- **Strict reverser rules**: it moves only when stopped with the throttle
+  shut, the throttle won't open in N, and the loco starts in N.
+- **An arrow on the loco** shows the set direction.
+- **Control buttons** a bit smaller (44 px).
+- **Zoom buttons at the top left**; zoomed in, the view follows the loco
+  and a drag pans.
+
 ## 2026-10-08: Setting and loco
 
 - **Setting is Argentina.** Locos, cars and naming stay within Argentine
@@ -32,12 +43,6 @@ values these produced live in CONFIG and WORLD DATA in `index.html`.
 - **Curves and a bigger yard (PR #6).** Turnouts at 25° and tracks 12 m
   apart, against a real yard's ~7° and ~5 m, so it reads on a phone. All
   curves 50 m radius. A 50 m headshunt that fits the loco and two cars.
-- **Controls (PR #4).** A reverser (Fwd / N / Rev, cab end first is
-  forward) sets direction; the throttle runs 0–4. Tom chose strict rules:
-  the reverser moves only when stopped with the throttle shut, the throttle
-  won't open in N, and the loco starts in N. An arrow on the loco shows the
-  set direction. Control buttons a bit smaller (44 px). Zoom buttons at the
-  top left; zoomed in, the view follows the loco and a drag pans.
 
 ## Open questions
 

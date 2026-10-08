@@ -2,6 +2,24 @@
 
 Newest first. One entry per version bump.
 
+## 0.3.0
+
+**New**
+- Reverser. It sets the loco's direction: Fwd (cab end first), N or Rev,
+  one position a press (Q/A on a keyboard). It moves only with the
+  throttle shut and the train stopped, and the throttle won't open with it
+  in N. The loco starts in N. A yellow arrow at the loco's end shows which
+  way it will move.
+- Zoom. Buttons at the top left zoom in and out (+/− on a keyboard), up
+  to 4×. Zoomed in, the view follows the loco; drag the yard to look
+  around, and ◎ follows the loco again. Taps on switches and couplings
+  now act when the finger lifts, so a drag never throws a switch.
+
+**Changed**
+- The throttle runs 0 to 4; direction comes from the reverser.
+- Control buttons are smaller (44 px tall, was 56) to fit the reverser's
+  column.
+
 ## 0.2.2
 
 **New**
