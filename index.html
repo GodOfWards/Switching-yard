@@ -19,8 +19,8 @@
   canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; display: block; }
   #bar { display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--line);
     padding: 8px 16px calc(10px + env(safe-area-inset-bottom)); }
-  /* Zoom, then Pause a little apart from it, sit over the yard's top-left
-     corner. */
+  /* Zoom, then Pause and New yard, each a little apart, sit over the
+     yard's top-left corner. */
   #zoom { position: absolute; top: 8px; left: 8px; display: flex; flex-direction: column; gap: 6px; }
   #zoom button { width: 40px; height: 40px; border-radius: 8px; border: 1px solid var(--line);
     background: rgba(38, 42, 48, 0.85); color: var(--fg); font: 600 20px system-ui, sans-serif; padding: 0;
@@ -30,6 +30,7 @@
   #zoom #followBtn.on { color: #e3c55a; }
   #zoom #pauseBtn { margin-top: 8px; font-size: 16px; }
   #zoom #pauseBtn.on { color: #e3c55a; border-color: #e3c55a; }
+  #zoom #newYardBtn { margin-top: 8px; font-size: 18px; }
   #readout { font-variant-numeric: tabular-nums; display: flex; justify-content: space-between; }
   #readout small { color: var(--muted); font-size: 12px; align-self: center; }
   /* The reverser and three notched levers (throttle, loco brake, train
@@ -74,6 +75,7 @@
     <button id="zoomOut" aria-label="Zoom out">−</button>
     <button id="followBtn" aria-label="Follow the loco">◎&#xFE0E;</button>
     <button id="pauseBtn" aria-label="Pause">❚❚</button>
+    <button id="newYardBtn" aria-label="New yard">↺&#xFE0E;</button>
   </div>
   <div id="couplingMenu">
     <button id="airBtn">Air</button>
@@ -126,14 +128,15 @@
   //                Release, throw a switch, connect or part the air,
   //                uncouple, set a hand brake), and the rules on when they
   //                may. They change STATE; they never draw.
-  //   PERSISTENCE  none yet. When saving arrives, SAVE_KEY changes with every
-  //                change to the saved shape.
+  //   PERSISTENCE  keeps STATE in localStorage between visits, and starts a
+  //                new yard. SAVE_KEY changes with every change to the saved
+  //                shape.
   //   RENDERING    draws STATE to the canvas and the controls, through a
   //                camera (zoom, follow or pan) that is display only. It
   //                never holds rules.
   //   INPUT / LOOP keyboard, buttons and taps to ACTIONS; the fixed-step loop,
   //                and Pause, which holds the loop's steps and the player's
-  //                actions but not the camera.
+  //                actions but not the camera; when to save.
   //
   // Coordinates are metres, +x along the yard, +y to its right; WORLD DATA
   // says where north is. They are the world's, not the screen's: RENDERING
@@ -240,6 +243,7 @@
   const SLACK_SUBSTEPS = 8;             // keeps the spring stable: about 0.1 rad of its swing a substep
   const HARD_HIT_RESTITUTION = 0.3;     // retunable
   const NOTICE_SECONDS = 2;             // how long a message stays up
+  const SAVE_SECONDS = 5;               // s of play between saves; leaving the page saves too; retunable
   const EPS = 1e-6;                     // metres; positions this close are the same
 
   // ==================================================
@@ -852,6 +856,73 @@
   }
 
   // ==================================================
+  // PERSISTENCE
+  // ==================================================
+  // The yard is saved as it stands, mid-move included: every vehicle with
+  // its speed, the trains, couplings' slack and air, switches, hand brakes
+  // and the loco's controls. That is all of STATE but the notice. A save
+  // that doesn't fit the yard (WORLD DATA changed since) is set aside for a
+  // fresh yard. SAVE_KEY changes with every change to the saved shape.
+  const SAVE_KEY = "switching-game.yard.1";
+
+  function saveYard() {
+    try {
+      localStorage.setItem(SAVE_KEY, JSON.stringify({ version: GAME_CONFIG.VERSION, state: { ...state, notice: null } }));
+    } catch (e) { /* storage full or blocked: play goes on unsaved */ }
+  }
+
+  // Whether a saved STATE fits this yard: the same switches and vehicles,
+  // every vehicle on a segment that exists, every train whole, and slack
+  // at every coupling.
+  function fitsYard(st) {
+    const isObj = o => !!o && typeof o === "object";
+    const sameKeys = (o, ref) => isObj(o) && Object.keys(o).sort().join() === Object.keys(ref).sort().join();
+    if (!isObj(st) || !isObj(st.trains) || !isObj(st.air) || !isObj(st.gaps) || !Number.isInteger(st.nextTrain)) return false;
+    if (!sameKeys(st.switches, SWITCHES)) return false;
+    for (const id in SWITCHES) if (!SWITCHES[id].legs.includes(st.switches[id].set)) return false;
+    const startIds = {};
+    for (const t of START_TRAINS) for (const v of t.vehicles) startIds[v.id] = v.type;
+    if (!sameKeys(st.vehicles, startIds)) return false;
+    for (const id in st.vehicles) {
+      const v = st.vehicles[id], type = VEHICLE_TYPES[v.type];
+      if (v.id !== id || !type || !SEGMENTS[v.seg] || !st.trains[v.train]) return false;
+      if (!(v.s >= 0 && v.s <= segmentLength(v.seg)) || !Number.isFinite(v.speed)) return false;
+      if (Math.abs(v.dir) !== 1 || Math.abs(v.flip) !== 1 || !!type.loco !== isObj(v.controls)) return false;
+    }
+    const placed = {};
+    for (const tid in st.trains) {
+      const ids = st.trains[tid].vehicles;
+      if (st.trains[tid].id !== tid || !Array.isArray(ids) || !ids.length) return false;
+      for (let i = 0; i < ids.length; i++) {
+        const v = st.vehicles[ids[i]];
+        if (!v || v.train !== tid || placed[ids[i]]) return false;
+        placed[ids[i]] = true;
+        if (i && !Number.isFinite(st.gaps[pairKey(ids[i - 1], ids[i])])) return false;
+      }
+    }
+    return Object.keys(placed).length === Object.keys(startIds).length;
+  }
+
+  // The saved yard, if there is one that fits; otherwise the fresh one
+  // makeState() built stays.
+  function loadYard() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(SAVE_KEY));
+      if (saved && fitsYard(saved.state)) { state = saved.state; return true; }
+    } catch (e) { /* unreadable or blocked: start fresh */ }
+    return false;
+  }
+
+  // A fresh yard as WORLD DATA lays it out, saved over the old one.
+  function newYard() {
+    state = makeState();
+    for (const k in pressing) delete pressing[k];
+    saveYard();
+  }
+
+  const restored = loadYard();
+
+  // ==================================================
   // RENDERING
   // ==================================================
   const canvas = document.getElementById("yard");
@@ -1118,12 +1189,15 @@
   // ==================================================
   // Pause holds the simulation step and every player action; zoom, follow
   // and pan still work, so the yard can be looked over while it is held.
-  let paused = false;
+  // A restored yard opens paused, so it waits for the player; retunable.
+  let paused = restored;
   const togglePause = () => { paused = !paused; };
   const unlessPaused = fn => (...args) => { if (!paused) fn(...args); };
   // Leaving the page (another app, a call, a locked screen) pauses it, so
-  // the game waits for the player to resume; retunable.
-  document.addEventListener("visibilitychange", () => { if (document.hidden) paused = true; });
+  // the game waits for the player to resume; retunable. It saves too: a
+  // phone may drop the page while it is away.
+  document.addEventListener("visibilitychange", () => { if (document.hidden) { paused = true; saveYard(); } });
+  window.addEventListener("pagehide", saveYard);
 
   // Keyboard: +/− zoom, P pause, Q/A reverser, W/S or ↑/↓ throttle, R/F loco brake,
   // E/D train brake, Space emergency, X release.
@@ -1170,6 +1244,11 @@
   onViewPress("zoomOut", () => zoomBy(-1));
   onViewPress("followBtn", () => { camera.follow = true; });
   onViewPress("pauseBtn", togglePause);
+  // New yard asks first: the yard as it stands can't be had back. A click,
+  // not a press, so the question doesn't open under a finger still down.
+  document.getElementById("newYardBtn").addEventListener("click", () => {
+    if (confirm("Start a new yard? The yard as it stands will be lost.")) { newYard(); menuFor = null; }
+  });
   const VIEW_KEYS = { "+": () => zoomBy(1), "=": () => zoomBy(1), "-": () => zoomBy(-1), p: togglePause };
 
   // A press on the yard that moves more than DRAG_START_PX pans it; one that
@@ -1245,11 +1324,13 @@
   onMenuPress("airBtn", toggleAir);
   onMenuPress("uncoupleBtn", uncouple);
 
-  let last = performance.now(), acc = 0;
+  // The yard is saved every SAVE_SECONDS of play, counted in steps.
+  let last = performance.now(), acc = 0, sinceSave = 0;
   function frame(now) {
     acc = paused ? 0 : acc + Math.min((now - last) / 1000, STEP_SECONDS * MAX_STEPS_PER_FRAME);
     last = now;
-    while (acc >= STEP_SECONDS) { step(STEP_SECONDS); acc -= STEP_SECONDS; }
+    while (acc >= STEP_SECONDS) { step(STEP_SECONDS); acc -= STEP_SECONDS; sinceSave += STEP_SECONDS; }
+    if (sinceSave >= SAVE_SECONDS) { saveYard(); sinceSave = 0; }
     render();
     requestAnimationFrame(frame);
   }
@@ -1258,7 +1339,7 @@
   // Exposed for testing in a browser console or headless check.
   window.switching = { get state() { return state; }, step, throwSwitch, uncouple, moveReverser, moveThrottle,
     moveLocoBrake, moveTrainBrake, emergency, release, trainEnds, toggleAir, toggleHandBrake, brakeReach,
-    get paused() { return paused; }, togglePause };
+    get paused() { return paused; }, togglePause, saveYard, loadYard, newYard, fitsYard, SAVE_KEY };
 })();
 </script>
 </body>
