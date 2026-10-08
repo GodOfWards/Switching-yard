@@ -27,28 +27,28 @@
   /* Zoom, then Pause a little apart from it, sit over the yard's top-left
      corner. */
   #zoom { position: absolute; top: 8px; left: 8px; display: flex; flex-direction: column; gap: 6px; }
-  #zoom button { width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--line);
+  #zoom button { width: 36px; height: 36px; border-radius: 12px; border: 1px solid var(--line);
     background: var(--overlay); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
-    color: var(--fg); font: 500 20px system-ui, sans-serif; padding: 0;
+    color: var(--fg); font: 500 18px system-ui, sans-serif; padding: 0;
     touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
   #zoom button:active { background: var(--button-down); }
-  #zoom #followBtn { font-size: 16px; }
+  #zoom #followBtn { font-size: 14px; }
   #zoom #followBtn.on { color: var(--accent); }
-  #zoom #pauseBtn { margin-top: 8px; font-size: 16px; }
+  #zoom #pauseBtn { margin-top: 8px; font-size: 14px; }
   #zoom #pauseBtn.on { color: var(--accent); border-color: var(--accent); }
   #readout { font-variant-numeric: tabular-nums; display: flex; justify-content: space-between; }
   #readout small { color: var(--muted); font-size: 12px; align-self: center; }
   /* The reverser and three notched levers (throttle, loco brake, train
      brake), each an up and a down with its setting between them, then
-     Release over Emergency. Buttons are 44 px tall, the smallest
-     comfortable thumb target; retunable. */
+     Release over Emergency. Buttons are 40 px tall, 10% under the usual
+     44 px thumb target, at Tom's call; retunable. */
   #controls { display: grid; grid-template-columns: repeat(5, minmax(48px, 1fr)); gap: 4px 8px;
     max-width: 420px; width: 100%; margin: 0 auto; }
-  #controls button { min-height: 44px; border-radius: 12px; border: 1px solid var(--line);
-    background: var(--button); color: var(--fg); font: 500 18px system-ui, sans-serif;
+  #controls button { min-height: 40px; border-radius: 11px; border: 1px solid var(--line);
+    background: var(--button); color: var(--fg); font: 500 16px system-ui, sans-serif;
     touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
   #controls button:active { background: var(--button-down); }
-  #controls .word { font-size: 13px; font-weight: 600; letter-spacing: 0.02em; }
+  #controls .word { font-size: 12px; font-weight: 600; letter-spacing: 0.02em; }
   #controls #emergBtn { background: var(--danger-bg); border-color: var(--danger-line); color: var(--danger); }
   #controls #emergBtn:active { background: var(--danger-line); }
   .lever { text-align: center; font-size: 11px; line-height: 1.3; color: var(--muted);
@@ -60,16 +60,26 @@
      coupling tapped. */
   #couplingMenu { position: absolute; display: none; gap: 6px; }
   #couplingMenu.open { display: flex; }
-  #couplingMenu button { min-width: 88px; min-height: 44px; border-radius: 12px; border: 1px solid var(--line);
-    background: var(--overlay); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); color: var(--fg); font: 600 14px system-ui, sans-serif;
+  #couplingMenu button { min-width: 80px; min-height: 40px; border-radius: 11px; border: 1px solid var(--line);
+    background: var(--overlay); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); color: var(--fg); font: 600 13px system-ui, sans-serif;
     touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
   #couplingMenu button:active { background: var(--button-down); }
   /* A phone on its side has little height to spare: the controls move to the
-     right-hand edge instead. */
+     right-hand edge instead, in two columns to keep that edge narrow:
+     reverser and throttle, then the two brakes, then Emergency and Release. */
   @media (orientation: landscape) and (max-height: 520px) {
     body { flex-direction: row; padding-bottom: env(safe-area-inset-bottom); }
     #bar { border-top: 0; border-left: 1px solid var(--line); justify-content: center;
-      padding: 8px calc(12px + env(safe-area-inset-right)) 8px 12px; width: 360px; box-sizing: border-box; }
+      padding: 8px calc(12px + env(safe-area-inset-right)) 8px 12px; width: 232px; box-sizing: border-box; }
+    #controls { grid-template-columns: 1fr 1fr; gap: 3px 8px;
+      grid-template-areas: "revUp thrUp" "revL thrL" "revDown thrDown" "lbUp tbUp" "lbL tbL" "lbDown tbDown"
+        "emerg release"; }
+    #controls .spacer { display: none; }
+    #lbUp, #tbUp, #emergBtn, #releaseBtn { margin-top: 6px; }
+    #revUp { grid-area: revUp; } #thrUp { grid-area: thrUp; } #lbUp { grid-area: lbUp; } #tbUp { grid-area: tbUp; }
+    #revLever { grid-area: revL; } #thrLever { grid-area: thrL; } #lbLever { grid-area: lbL; } #tbLever { grid-area: tbL; }
+    #revDown { grid-area: revDown; } #thrDown { grid-area: thrDown; } #lbDown { grid-area: lbDown; } #tbDown { grid-area: tbDown; }
+    #emergBtn { grid-area: emerg; } #releaseBtn { grid-area: release; }
   }
 </style>
 </head>
@@ -98,7 +108,7 @@
     <div class="lever" id="thrLever"></div>
     <div class="lever" id="lbLever"></div>
     <div class="lever" id="tbLever"></div>
-    <div></div>
+    <div class="spacer"></div>
     <button id="revDown" aria-label="Reverser toward reverse">▼&#xFE0E;</button>
     <button id="thrDown" aria-label="Throttle down">−</button>
     <button id="lbDown" aria-label="Loco brake off">−</button>
