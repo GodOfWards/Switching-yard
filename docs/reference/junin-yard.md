@@ -9,6 +9,13 @@ WORLD DATA in `index.html`.
   (B). The turntable starts as a plain dead end.
 - **2026-10-08: A north arrow** in a corner of the view, since the yard
   is turned to fit the screen.
+- **2026-10-08: The east end is the next map** (#44): the ladder, its
+  yard tracks cut short, the fan and a head-shunt (section C below), for
+  free switching.
+- **2026-10-08: The fan is laid again for accuracy.** The first game fan
+  (v0.3.1 to v0.7.2) was discarded: it had been laid as a curve and a
+  straight per track with switches spaced out, and at true scale it
+  didn't look like OSM's.
 - **2026-10-08: OpenRailwayMap is the standard map reference.** It draws
   the same OpenStreetMap data used here; at Junín that data has no signals
   or track numbers. Re-download before laying more track (#44).
@@ -42,34 +49,54 @@ mirrors returned errors.
   an approach.
 - **B. East throat.** Five tracks laddering into the main line, about
   450 m long.
+- **C. East end** (the game's map since #44). Eight parallel yard tracks,
+  about 4.5 m apart, run about 1.1 km along the north side of the main
+  line from the station east. Seven of them ladder, at their east end,
+  into one lead; the eighth, nearest the main line, runs past the ladder
+  and isn't joined to it. A diagonal from the northernmost track joins the
+  lead too, making a loop. The fan (A) leaves the northernmost track just
+  west of the ladder, by two leads: one to the turntable and seven
+  tracks, one to an eighth fan track and a short track. Another short
+  track leaves the northernmost yard track. East of the ladder the lead
+  opens into the east throat (B) and the main line.
 
-## How the fan became game track
+## How the east end became game track
 
-OSM's lines for the fan are rough: straight lines with sharp corners and no
-curves. What was kept from OSM:
+`tools/junin_east.py` reads the saved export and prints WORLD DATA's
+track. What it does:
 
-- the tree: which track leaves which switch, in what order;
-- where the switches stand and where the tracks end.
+- **The frame**: turned 20.6° so the main line runs along the game's x
+  axis, east up the portrait screen. `NORTH` in WORLD DATA keeps true
+  north.
+- **What is kept**: everything joined to the ladder between two cuts,
+  less the east throat and the through track nearest the main line. The
+  yard tracks are cut at a buffer on one line across the yard, 300 to
+  500 m west of their switches; the lead is cut at a buffer 281 m east of the ladder,
+  making a head-shunt. The main line is drawn as scenery and isn't
+  track.
+- **Lines**: OSM's lines are simplified (to within 0.75 m) and each
+  corner is rounded with a curve as wide as fits, up to 300 m.
+- **Switches** stand where OSM puts them. Each one's direction is read
+  from OSM 15 m along its three tracks. A track leaves its switch along
+  that direction and curves onto OSM's line, on a 190 m curve where there
+  is room, tighter where switches stand close. So a track runs off OSM's
+  line near its switch, as a real turnout's curve would.
+- **Close switches**: two switches with nothing between them and less
+  than 60 m apart are joined by a pair of curves. Four stood closer than
+  25 m to the one before (one at the ladder's start, three in the fan's
+  throat, where OSM has them 15 to 22 m apart) and were moved out to
+  25 m, along the line between them.
+- **How close it stays** (measured from the game's track to OSM's lines):
+  half the pieces stay within 0.35 m; near switches up to about 2 m; at
+  most 3.6 m, on fan track 1, beyond two of the moved switches.
+- Every joint is smooth (checked in the game: no kink over 0.5°). The
+  tightest curves are in the fan's throat and its second lead, 26 to
+  55 m, where OSM's switches stand closest.
 
-What was laid again, so it follows the real layout but not exactly:
-
-- Each track from its switch is a curve then a straight, aimed at the next
-  switch or the track's end, so every joint is smooth (checked: no kink
-  over 0.2°).
-- Curves are 150 m radius where they fit. Where switches stand too close
-  for that, the curve is tighter: 82, 111 and 138 m.
-- Switches closer than 30 m to the switch before them were moved out
-  along their line to 30 m, and of two branches' switches standing
-  together, the further one was moved 30 m further out. In OSM, three
-  switches near the start of the fan stand 6 to 22 m apart, which is
-  probably simplified mapping, since a real turnout is longer than that.
-- The approach is 110 m of the yard track that the lead leaves from, cut
-  off at a buffer. The lead's other branch, towards the yard's northern
-  tracks, was left out.
-- The whole fan is turned 40° clockwise so its length lies along the
-  game's x axis. `NORTH` in WORLD DATA keeps true north.
-
-Game track lengths, switch to buffer: track 1 182 m, track 2 121 m,
-track 3 119 m, track 4 101 m, track 5 56 m, track 6 57 m, track 7 176 m,
-turntable spur 64 m. Tracks are numbered from the turntable side. These
-numbers are the game's, not the railway's.
+Game track lengths, switch to buffer (the numbers and names are the
+game's, not the railway's): yard tracks, numbered from the main-line
+side, 1: 494 m, 2: 453, 3: 412, 4: 383, 5: 345, 6: 294, 7: 143 (the
+northernmost, behind the fan's leads). Fan tracks, numbered from the
+turntable side, 1: 192 m, 2: 124, 3: 124, 4: 143, 5: 98, 6: 98, 7: 210,
+8: 239; turntable spur 73 m. Short tracks: 226 m (off the fan's second
+lead) and 275 m (off the northernmost yard track). Lead: 281 m.

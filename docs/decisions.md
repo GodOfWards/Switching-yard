@@ -3,6 +3,19 @@
 Design calls Tom has made, newest first, with where they were made. The
 values these produced live in CONFIG and WORLD DATA in `index.html`.
 
+## 2026-10-08: The east end of Junín (#44)
+
+Made in the "new map" thread. See
+[junin-yard.md](reference/junin-yard.md).
+
+- **The next map is Junín's east end**: the ladder where seven yard tracks
+  meet one lead, the yard tracks cut short at a buffer, the depot fan
+  where it really leaves, and the lead cut at a buffer as a head-shunt.
+  The main line is drawn but isn't track. Free switching; jobs come later.
+- **The fan is laid again for accuracy**, following OSM, and the first
+  game fan is discarded. Its track numbers change, so #48's track roles
+  need mapping onto the new ones.
+
 ## 2026-10-08: The rail network (#52)
 
 Made in the "#52" thread. See
