@@ -3,6 +3,21 @@
 Design calls Tom has made, newest first, with where they were made. The
 values these produced live in CONFIG and WORLD DATA in `index.html`.
 
+## 2026-10-08: The rail network (#52)
+
+Made in the "#52" thread. See
+[rail-network-junin.md](reference/rail-network-junin.md).
+
+- **"Active" means track in the FA era**: OSM `rail` plus `disused`, not
+  `abandoned`.
+- **Two tiers**: the network as a line graph; full track only in yards
+  that are played.
+- **First area**: every line out of Junín to its next junction.
+- **The graph goes in WORLD DATA**, made by a script in the repo, so the
+  game stays one file.
+- **Research first**: no game change until the overview (#53) or
+  main-line traffic (#56) needs the network. #44 stays first for jobs.
+
 ## 2026-10-08: Railway operations
 
 Made after Tom's operations summary, in the "Jobs" thread. These rework
