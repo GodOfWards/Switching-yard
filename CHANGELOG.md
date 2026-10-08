@@ -2,6 +2,14 @@
 
 Newest first. One entry per version bump.
 
+## 0.2.1
+
+**Changed**
+- The loco is now modelled on a GM G12, as run on Argentina's Sarmiento
+  line: 109 t, 187 kN of pull and about 780 kW at the rail. It's heavier
+  and stronger than before, and holds its full pull up to about 15 km/h.
+  Yard speed stays capped at 29 km/h.
+
 ## 0.2.0
 
 **New**
