@@ -21,18 +21,20 @@
     padding: 8px 16px calc(10px + env(safe-area-inset-bottom)); }
   #readout { font-variant-numeric: tabular-nums; display: flex; justify-content: space-between; }
   #readout small { color: var(--muted); font-size: 12px; align-self: center; }
-  /* Three notched levers (throttle, loco brake, train brake), each a + and a
-     − with its notch between them, then Release over Emergency. */
-  #controls { display: grid; grid-template-columns: repeat(4, minmax(56px, 1fr)); gap: 6px 10px;
+  /* The reverser and three notched levers (throttle, loco brake, train
+     brake), each an up and a down with its setting between them, then
+     Release over Emergency. Buttons are 44 px tall, the smallest
+     comfortable thumb target; retunable. */
+  #controls { display: grid; grid-template-columns: repeat(5, minmax(48px, 1fr)); gap: 4px 8px;
     max-width: 420px; width: 100%; margin: 0 auto; }
-  #controls button { min-height: 56px; border-radius: 10px; border: 1px solid var(--line);
-    background: #262a30; color: var(--fg); font: 600 22px system-ui, sans-serif;
+  #controls button { min-height: 44px; border-radius: 8px; border: 1px solid var(--line);
+    background: #262a30; color: var(--fg); font: 600 18px system-ui, sans-serif;
     touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
   #controls button:active { background: #343a42; }
-  #controls .word { font-size: 14px; }
+  #controls .word { font-size: 13px; }
   #controls #emergBtn { background: #6b2620; border-color: #8a3a30; }
   #controls #emergBtn:active { background: #84302a; }
-  .lever { text-align: center; font-size: 12px; line-height: 1.25; color: var(--muted);
+  .lever { text-align: center; font-size: 11px; line-height: 1.25; color: var(--muted);
     font-variant-numeric: tabular-nums; }
   .lever b { display: block; color: var(--fg); font-size: 14px; }
   .meter { height: 3px; margin: 2px 6px 0; background: var(--line); border-radius: 2px; overflow: hidden; }
@@ -42,7 +44,7 @@
   @media (orientation: landscape) and (max-height: 520px) {
     body { flex-direction: row; padding-bottom: env(safe-area-inset-bottom); }
     #bar { border-top: 0; border-left: 1px solid var(--line); justify-content: center;
-      padding: 8px calc(12px + env(safe-area-inset-right)) 8px 12px; width: 340px; box-sizing: border-box; }
+      padding: 8px calc(12px + env(safe-area-inset-right)) 8px 12px; width: 360px; box-sizing: border-box; }
   }
 </style>
 </head>
@@ -51,14 +53,17 @@
 <div id="bar">
   <div id="readout"></div>
   <div id="controls">
+    <button id="revUp" aria-label="Reverser toward forward">▲&#xFE0E;</button>
     <button id="thrUp" aria-label="Throttle up">+</button>
     <button id="lbUp" aria-label="Loco brake on">+</button>
     <button id="tbUp" aria-label="Train brake on">+</button>
     <button id="releaseBtn" class="word">Release</button>
+    <div class="lever" id="revLever"></div>
     <div class="lever" id="thrLever"></div>
     <div class="lever" id="lbLever"></div>
     <div class="lever" id="tbLever"></div>
     <div></div>
+    <button id="revDown" aria-label="Reverser toward reverse">▼&#xFE0E;</button>
     <button id="thrDown" aria-label="Throttle down">−</button>
     <button id="lbDown" aria-label="Loco brake off">−</button>
     <button id="tbDown" aria-label="Train brake off">−</button>
@@ -86,8 +91,9 @@
   //                rules live here: forces, brakes, contact, coupling. The
   //                loop calls it at a fixed rate, so behaviour never depends
   //                on the display's frame rate.
-  //   ACTIONS      what the player can do (levers, Emergency, Release, throw
-  //                a switch, uncouple). They change STATE; they never draw.
+  //   ACTIONS      what the player can do (reverser, levers, Emergency,
+  //                Release, throw a switch, uncouple), and the rules on when
+  //                they may. They change STATE; they never draw.
   //   PERSISTENCE  none yet. When saving arrives, SAVE_KEY changes with every
   //                change to the saved shape.
   //   RENDERING    draws STATE to the canvas and the controls. It never holds
@@ -109,16 +115,17 @@
   // ==================================================
   // CONFIG
   // ==================================================
-  const GAME_CONFIG = { VERSION: "0.2.0" };
+  const GAME_CONFIG = { VERSION: "0.3.0" };
   const STEP_SECONDS = 1 / 60;          // fixed simulation step
   const MAX_STEPS_PER_FRAME = 5;        // drop time rather than spiral after a stall
   const VIEW_MARGIN = 8;                // metres of ground kept around the yard
   const TAP_RADIUS_PX = 32;             // CSS px from a switch or coupling that a tap counts; retunable (a fingertip)
   const G = 9.81;                       // m/s²
 
-  // Locomotive pull. Each throttle notch gives an equal share of the pull;
-  // above LOCO_POWER / LOCO_MAX_FORCE (2.5 m/s) the engine's power limits it.
-  const THROTTLE_NOTCHES = 4;           // per direction; retunable
+  // Locomotive pull. The reverser sets its direction (cab end first is
+  // forward); each throttle notch gives an equal share of the pull; above
+  // LOCO_POWER / LOCO_MAX_FORCE (2.5 m/s) the engine's power limits it.
+  const THROTTLE_NOTCHES = 4;           // retunable
   const LOCO_MAX_FORCE = 160e3;         // N at full notch; retunable
   const LOCO_POWER = 400e3;             // W at full notch; retunable
   const LOCO_MAX_SPEED = 8;             // m/s (29 km/h); pull fades to nothing over the last GOVERNOR_BAND
@@ -213,7 +220,7 @@
         const c = walk(end.seg, end.s, end.travel, half);
         const veh = { id: v.id, type: v.type, train: train.id, seg: c.seg, s: c.s, dir: -c.travel,
                       flip: v.flip || 1 };
-        if (VEHICLE_TYPES[v.type].loco) veh.controls = { throttle: 0, locoBrake: 0, trainBrake: 0,
+        if (VEHICLE_TYPES[v.type].loco) veh.controls = { reverser: 0, throttle: 0, locoBrake: 0, trainBrake: 0,
           locoApplied: 0, trainApplied: 0, emergency: false };
         st.vehicles[v.id] = veh;
         train.vehicles.push(v.id);
@@ -338,10 +345,10 @@
     for (const id of t.vehicles) {
       const v = state.vehicles[id], c = v.controls;
       if (!c) continue;
-      if (c.throttle) {
-        const sense = Math.sign(c.throttle) * v.flip;            // toward the head, or not
+      if (c.throttle && c.reverser) {
+        const sense = c.reverser * v.flip;                        // toward the head, or not
         const along = t.speed * sense;                            // speed in the direction of pull
-        const share = Math.abs(c.throttle) / THROTTLE_NOTCHES;
+        const share = c.throttle / THROTTLE_NOTCHES;
         const force = Math.min(LOCO_MAX_FORCE, LOCO_POWER / Math.max(Math.abs(along), EPS));
         const governor = Math.max(0, Math.min(1, (LOCO_MAX_SPEED - along) / GOVERNOR_BAND));
         pull += sense * share * force * governor;
@@ -470,9 +477,23 @@
   // ACTIONS
   // ==================================================
   const clampNotch = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
+  // The reverser: forward (+1), neutral (0) or reverse (−1), one position a
+  // press. It moves only with the throttle shut and the train stopped.
+  // Retunable: both rules are design choices.
+  function moveReverser(delta) {
+    const v = playerLoco(), c = v.controls;
+    const next = clampNotch(c.reverser + delta, -1, 1);
+    if (next === c.reverser) return false;
+    if (c.throttle) { setNotice("Shut the throttle first"); return false; }
+    if (trainOf(v).speed !== 0) { setNotice("Stop before moving the reverser"); return false; }
+    c.reverser = next;
+    return true;
+  }
+  // The throttle opens only with the reverser in forward or reverse.
   function moveThrottle(delta) {
     const c = playerLoco().controls;
-    c.throttle = clampNotch(c.throttle + delta, -THROTTLE_NOTCHES, THROTTLE_NOTCHES);
+    if (delta > 0 && !c.reverser) { setNotice("Reverser is in neutral"); return; }
+    c.throttle = clampNotch(c.throttle + delta, 0, THROTTLE_NOTCHES);
   }
   function moveLocoBrake(delta) {
     const c = playerLoco().controls;
@@ -518,7 +539,7 @@
   const canvas = document.getElementById("yard");
   const ctx = canvas.getContext("2d");
   const readout = document.getElementById("readout");
-  const levers = { thr: document.getElementById("thrLever"), lb: document.getElementById("lbLever"),
+  const levers = { rev: document.getElementById("revLever"), thr: document.getElementById("thrLever"), lb: document.getElementById("lbLever"),
                    tb: document.getElementById("tbLever") };
 
   // World bounds, from WORLD DATA, once.
@@ -637,7 +658,8 @@
     const cars = t.vehicles.length - 1;
     readout.innerHTML = `<span>${(Math.abs(t.speed) * 3.6).toFixed(1)} km/h · ` +
       `${cars} car${cars === 1 ? "" : "s"}</span><small>v${GAME_CONFIG.VERSION}</small>`;
-    levers.thr.innerHTML = `Throttle<b>${c.throttle > 0 ? "+" : ""}${c.throttle}</b>`;
+    levers.rev.innerHTML = `Reverser<b>${c.reverser > 0 ? "Fwd" : c.reverser < 0 ? "Rev" : "N"}</b>`;
+    levers.thr.innerHTML = `Throttle<b>${c.throttle}/${THROTTLE_NOTCHES}</b>`;
     levers.lb.innerHTML = `Loco brake<b>${c.locoBrake}/${LOCO_BRAKE_NOTCHES}</b>` +
       `<div class="meter"><i style="width:${c.locoApplied * 100}%"></i></div>`;
     levers.tb.innerHTML = `Train brake<b>${c.emergency ? "EMERG" : c.trainBrake + "/" + TRAIN_BRAKE_NOTCHES}</b>` +
@@ -647,9 +669,10 @@
   // ==================================================
   // INPUT / LOOP
   // ==================================================
-  // Keyboard: W/S or ↑/↓ throttle, R/F loco brake, E/D train brake,
+  // Keyboard: Q/A reverser, W/S or ↑/↓ throttle, R/F loco brake, E/D train brake,
   // Space emergency, X release.
   const KEYS = {
+    q: () => moveReverser(1), a: () => moveReverser(-1),
     w: () => moveThrottle(1), ArrowUp: () => moveThrottle(1),
     s: () => moveThrottle(-1), ArrowDown: () => moveThrottle(-1),
     r: () => moveLocoBrake(1), f: () => moveLocoBrake(-1),
@@ -666,6 +689,8 @@
   const onPress = (id, fn) => document.getElementById(id).addEventListener("pointerdown", e => {
     e.preventDefault(); fn();
   });
+  onPress("revUp", () => moveReverser(1));
+  onPress("revDown", () => moveReverser(-1));
   onPress("thrUp", () => moveThrottle(1));
   onPress("thrDown", () => moveThrottle(-1));
   onPress("lbUp", () => moveLocoBrake(1));
@@ -701,7 +726,7 @@
   requestAnimationFrame(frame);
 
   // Exposed for testing in a browser console or headless check.
-  window.switching = { get state() { return state; }, step, throwSwitch, uncouple, moveThrottle,
+  window.switching = { get state() { return state; }, step, throwSwitch, uncouple, moveReverser, moveThrottle,
     moveLocoBrake, moveTrainBrake, emergency, release, trainEnds, CONFIG: { ROLLING_RESISTANCE } };
 })();
 </script>
