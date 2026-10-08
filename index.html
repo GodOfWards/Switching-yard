@@ -3,10 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#1b1d1f">
+<meta name="theme-color" content="#000000">
 <title>Switching Game</title>
 <style>
-  :root { --bg: #1b1d1f; --ground: #2a2d2a; --fg: #d8d4cc; --muted: #8a867e; --line: #3a3d3a; }
+  /* Dark palette: the yard and the bar sit on black. Controls are a near-black
+     panel with a border light enough to find them by; retunable. */
+  :root { --bg: #000; --ground: #000; --fg: #d8d4cc; --muted: #8a867e; --line: #3a3d42;
+    --button: #17191c; --button-down: #2c3036; }
   html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg);
     font: 15px/1.4 system-ui, sans-serif; overscroll-behavior: none; }
   /* Phone held upright is the target. The yard fills the screen and the
@@ -23,9 +26,9 @@
      corner. */
   #zoom { position: absolute; top: 8px; left: 8px; display: flex; flex-direction: column; gap: 6px; }
   #zoom button { width: 40px; height: 40px; border-radius: 8px; border: 1px solid var(--line);
-    background: rgba(38, 42, 48, 0.85); color: var(--fg); font: 600 20px system-ui, sans-serif; padding: 0;
+    background: rgba(23, 25, 28, 0.85); color: var(--fg); font: 600 20px system-ui, sans-serif; padding: 0;
     touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
-  #zoom button:active { background: #343a42; }
+  #zoom button:active { background: var(--button-down); }
   #zoom #followBtn { font-size: 16px; }
   #zoom #followBtn.on { color: #e3c55a; }
   #zoom #pauseBtn { margin-top: 8px; font-size: 16px; }
@@ -39,9 +42,9 @@
   #controls { display: grid; grid-template-columns: repeat(5, minmax(48px, 1fr)); gap: 4px 8px;
     max-width: 420px; width: 100%; margin: 0 auto; }
   #controls button { min-height: 44px; border-radius: 8px; border: 1px solid var(--line);
-    background: #262a30; color: var(--fg); font: 600 18px system-ui, sans-serif;
+    background: var(--button); color: var(--fg); font: 600 18px system-ui, sans-serif;
     touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
-  #controls button:active { background: #343a42; }
+  #controls button:active { background: var(--button-down); }
   #controls .word { font-size: 13px; }
   #controls #emergBtn { background: #6b2620; border-color: #8a3a30; }
   #controls #emergBtn:active { background: #84302a; }
@@ -55,9 +58,9 @@
   #couplingMenu { position: absolute; display: none; gap: 6px; }
   #couplingMenu.open { display: flex; }
   #couplingMenu button { min-width: 88px; min-height: 44px; border-radius: 8px; border: 1px solid var(--line);
-    background: rgba(38, 42, 48, 0.95); color: var(--fg); font: 600 14px system-ui, sans-serif;
+    background: rgba(23, 25, 28, 0.95); color: var(--fg); font: 600 14px system-ui, sans-serif;
     touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
-  #couplingMenu button:active { background: #343a42; }
+  #couplingMenu button:active { background: var(--button-down); }
   /* A phone on its side has little height to spare: the controls move to the
      right-hand edge instead. */
   @media (orientation: landscape) and (max-height: 520px) {
@@ -854,6 +857,22 @@
   // ==================================================
   // RENDERING
   // ==================================================
+  // Canvas colours, matched to the page's CSS palette. Rolling stock keeps
+  // its own colours in WORLD DATA.
+  const PALETTE = {
+    bg: "#000",
+    trackFar: "#86837b",   // track as one line, zoomed out; lifted for black
+    ties: "#5e5447",       // lifted for black
+    rails: "#a9a59c",
+    buffer: "#b9b2a4",
+    switchEdge: "#000",
+    switchNormal: "#3fae5a",
+    switchReversed: "#f0c419",
+    light: "#f2e6d0",      // cab, hand-brake band, notices
+    accent: "#e3c55a",     // reverser arrow, Paused
+    air: "#6fa8dc",
+    north: "#d8d4cc",
+  };
   const canvas = document.getElementById("yard");
   const ctx = canvas.getContext("2d");
   const readout = document.getElementById("readout");
@@ -956,10 +975,10 @@
     function drawTrack(id, s0, s1, alpha) {
       const pts = trackPoints(id, s0, s1);
       ctx.globalAlpha = alpha;
-      if (!detailed) { polyline(pts, "#6b6a64", trackWidth); ctx.globalAlpha = 1; return; }
+      if (!detailed) { polyline(pts, PALETTE.trackFar, trackWidth); ctx.globalAlpha = 1; return; }
       const half = GAUGE / 2, len = Math.abs(s1 - s0), dir = Math.sign(s1 - s0) || 1;
       ctx.lineCap = "butt";
-      ctx.strokeStyle = "#4a4239"; ctx.lineWidth = Math.max(1.5, k * 0.25);  // ties, in one path
+      ctx.strokeStyle = PALETTE.ties; ctx.lineWidth = Math.max(1.5, k * 0.25);  // ties, in one path
       ctx.beginPath();
       for (let d = TIE_SPACING / 2; d < len; d += TIE_SPACING) {
         const p = pointOn(id, s0 + dir * d), h = TIE_LENGTH / 2;
@@ -968,7 +987,7 @@
       }
       ctx.stroke();
       for (const side of [-1, 1])                                        // rails
-        polyline(pts.map(p => ({ x: p.x - p.uy * half * side, y: p.y + p.ux * half * side })), "#a9a59c", Math.max(1.2, k * 0.12));
+        polyline(pts.map(p => ({ x: p.x - p.uy * half * side, y: p.y + p.ux * half * side })), PALETTE.rails, Math.max(1.2, k * 0.12));
       ctx.lineCap = "round";
       ctx.globalAlpha = 1;
     }
@@ -995,7 +1014,7 @@
     for (const id in NODES) {
       if (SEGMENTS_AT[id].length !== 1) continue;
       const seg = SEGMENTS_AT[id][0], p = pointOn(seg, SEGMENTS[seg].a === id ? 0 : segmentLength(seg));
-      line(p.x - p.uy * 2, p.y + p.ux * 2, p.x + p.uy * 2, p.y - p.ux * 2, "#b9b2a4", Math.max(3, k * 0.8));
+      line(p.x - p.uy * 2, p.y + p.ux * 2, p.x + p.uy * 2, p.y - p.ux * 2, PALETTE.buffer, Math.max(3, k * 0.8));
     }
 
     // Switch targets, after FA practice (RGF art. 100): a green disc when the
@@ -1007,11 +1026,11 @@
       const c = view.toScreen(n.x, n.y), r = Math.max(6, k * 1.6);
       const ahead = pointOn(set, atA ? Math.min(6, len) : len - Math.min(6, len)), q = view.toScreen(ahead.x, ahead.y);
       const dl = Math.hypot(q.x - c.x, q.y - c.y) || 1, ux = (q.x - c.x) / dl, uy = (q.y - c.y) / dl;
-      ctx.strokeStyle = "#111"; ctx.lineWidth = 2;
+      ctx.strokeStyle = PALETTE.switchEdge; ctx.lineWidth = 2;
       ctx.beginPath();
-      if (normal) { ctx.fillStyle = "#3fae5a"; ctx.arc(c.x, c.y, r * 0.8, 0, Math.PI * 2); }
+      if (normal) { ctx.fillStyle = PALETTE.switchNormal; ctx.arc(c.x, c.y, r * 0.8, 0, Math.PI * 2); }
       else {
-        ctx.fillStyle = "#f0c419";
+        ctx.fillStyle = PALETTE.switchReversed;
         ctx.moveTo(c.x + ux * r * 1.2, c.y + uy * r * 1.2);
         ctx.lineTo(c.x - ux * r * 0.7 - uy * r, c.y - uy * r * 0.7 + ux * r);
         ctx.lineTo(c.x - ux * r * 0.7 + uy * r, c.y - uy * r * 0.7 - ux * r);
@@ -1031,11 +1050,11 @@
       if (type.loco) {                                    // cab, at the end it faces
         const cabEnd = v.flip > 0 ? front : back, other = v.flip > 0 ? back : front;
         const c1 = toward(cabEnd, other, 0.6), c2 = toward(cabEnd, other, 3);
-        line(c1.x, c1.y, c2.x, c2.y, "#f2e6d0", bodyWidth * 0.6);
+        line(c1.x, c1.y, c2.x, c2.y, PALETTE.light, bodyWidth * 0.6);
       }
       if (v.handBrake) {                                  // a hand brake set: a light band at the middle
         const mid = toward(head, tail, type.length / 2), along = toward(head, tail, type.length / 2 + 1.5);
-        line(mid.x, mid.y, along.x, along.y, "#f2e6d0", bodyWidth * 1.3);
+        line(mid.x, mid.y, along.x, along.y, PALETTE.light, bodyWidth * 1.3);
       }
       if (v.controls && v.controls.reverser) {            // arrow off the end the reverser points to
         const toHead = v.controls.reverser * v.flip > 0;
@@ -1043,7 +1062,7 @@
         const e = view.toScreen(pe.x, pe.y), o = view.toScreen(po.x, po.y);
         const len = Math.hypot(e.x - o.x, e.y - o.y) || 1, ux = (e.x - o.x) / len, uy = (e.y - o.y) / len;
         const size = Math.max(7, k * 1.5), bx = e.x + ux * size * 0.4, by = e.y + uy * size * 0.4;
-        ctx.fillStyle = "#e3c55a";
+        ctx.fillStyle = PALETTE.accent;
         ctx.beginPath();
         ctx.moveTo(bx + ux * size * 1.2, by + uy * size * 1.2);
         ctx.lineTo(bx - uy * size * 0.8, by + ux * size * 0.8);
@@ -1055,10 +1074,10 @@
     // fills in blue as the air charges.
     for (const c of couplings()) {
       const p = view.toScreen(c.at.x, c.at.y), air = state.air[c.key], r = Math.max(2.5, k * 0.5);
-      ctx.fillStyle = "#1b1d1f";
+      ctx.fillStyle = PALETTE.bg;
       ctx.beginPath(); ctx.arc(p.x, p.y, air === undefined ? r : r * 1.6, 0, Math.PI * 2); ctx.fill();
       if (air === undefined) continue;
-      ctx.fillStyle = "#6fa8dc"; ctx.globalAlpha = 0.35 + 0.65 * air;
+      ctx.fillStyle = PALETTE.air; ctx.globalAlpha = 0.35 + 0.65 * air;
       ctx.beginPath(); ctx.arc(p.x, p.y, r * 1.1, 0, Math.PI * 2); ctx.fill();
       ctx.globalAlpha = 1;
     }
@@ -1069,7 +1088,7 @@
       const o = view.toScreen(0, 0), n = view.toScreen(NORTH.x, NORTH.y);
       const len = Math.hypot(n.x - o.x, n.y - o.y) || 1, ux = (n.x - o.x) / len, uy = (n.y - o.y) / len;
       const cx = screenW - 26, cy = 34, size = 10;
-      ctx.fillStyle = "#d8d4cc"; ctx.globalAlpha = 0.7;
+      ctx.fillStyle = PALETTE.north; ctx.globalAlpha = 0.7;
       ctx.beginPath();
       ctx.moveTo(cx + ux * size, cy + uy * size);
       ctx.lineTo(cx - ux * size * 0.6 - uy * size * 0.5, cy - uy * size * 0.6 + ux * size * 0.5);
@@ -1084,13 +1103,13 @@
     if (state.notice) {
       ctx.globalAlpha = Math.min(1, state.notice.time);
       ctx.font = "600 15px system-ui, sans-serif"; ctx.textAlign = "center";
-      ctx.fillStyle = "#f2e6d0";
+      ctx.fillStyle = PALETTE.light;
       ctx.fillText(state.notice.text, screenW / 2, 24);
       ctx.globalAlpha = 1; ctx.textAlign = "start";
     }
     if (paused) {
       ctx.font = "600 22px system-ui, sans-serif"; ctx.textAlign = "center";
-      ctx.fillStyle = "#e3c55a";
+      ctx.fillStyle = PALETTE.accent;
       ctx.fillText("Paused", screenW / 2, screenH / 2);
       ctx.textAlign = "start";
     }
