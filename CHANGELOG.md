@@ -2,7 +2,7 @@
 
 Newest first. One entry per version bump.
 
-## 0.3.0
+## Unreleased
 
 **New**
 - Reverser. It sets the loco's direction: Fwd (cab end first), N or Rev,
