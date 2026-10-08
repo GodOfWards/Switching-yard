@@ -29,7 +29,7 @@ and WORLD DATA in `index.html`; this folder is where they came from.
 | File | Covers |
 |---|---|
 | [locomotives.md](locomotives.md) | Switcher candidates (Class 08, SW1500, GM G12, GAIA) and why the G12 |
-| [train-physics.md](train-physics.md) | Rolling and starting resistance (Davis), curve drag, brakes, air, hand brakes, FA coupler types |
+| [train-physics.md](train-physics.md) | Rolling and starting resistance (Davis), curve drag, brakes, air, hand brakes, slack, FA coupler types |
 | [argentine-rolling-stock-naming.md](argentine-rolling-stock-naming.md) | Line initials, FA loco numbers, Spanish car type names, current operators |
 | [junin-yard.md](junin-yard.md) | Junín yard from OpenStreetMap, the depot fan section and how it became game track |
 | [switch-indicators.md](switch-indicators.md) | How Argentine railways show a switch's position (RGF art. 100), and the track figures used to draw rails |
