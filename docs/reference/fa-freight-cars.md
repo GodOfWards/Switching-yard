@@ -3,10 +3,12 @@
 Load limits, tares and markings of Ferrocarriles Argentinos broad-gauge
 (1676 mm) freight cars, for the game's cars. Researched 2026-10-08 (#18, #54).
 
-**Status:** load limits and some tares are **Confirmed**, read on FA's own
-technical specifications (FAT), hosted by CNRT. **Lengths are not found**:
-they are in the NEFA drawings each FAT points to, which weren't read. Car
-body colours per type are in NEFA 560–562, also unread. Open gaps: #54.
+**Status:** load limits, some tares, the numbering, the marking layout and
+the paint colours are **Confirmed**, read on FA's own technical
+specifications (FAT) and drawings (NEFA), hosted by CNRT. **Lengths over
+couplers are still not found**: the general-arrangement drawings the FATs
+point to (NEFA 254, 32.000 and the like) aren't on CNRT's site, and only
+detail sheets are. Open gap: lengths, in #54.
 
 ## Load limits and tares
 
@@ -51,8 +53,107 @@ which applies the March 1971 recoding and renumbering of FA's wagons.
   layout per kind is NEFA 543 (box), 544 (high side), 547 (tank), 548
   (flat).
 
-The type codes themselves (NEFA 958) weren't read, so the game shows the
-line initials, the number and the Spanish kind name, with no type code.
+### Type codes (NEFA 958, read 2026-10-08)
+
+The first two digits of the code's top row: **type**, then **sub-type**.
+Confirmed, NEFA 958 issue 12 (1992). The kinds the game uses:
+
+| Type | Kind | Sub-types that matter here |
+|---|---|---|
+| 1 | Cubierto, carga general, no grain hatch | 0–6 by load: up to 19 t … 6 = over 50 t |
+| 2 | Cubierto, carga general, grain hatch | 0–6 by load; **7, 8, 9 = vagón para ganado** (one deck, two decks, convertible) |
+| 3 | Cubierto granero | 0–6 by load (6 = 50 t and over) |
+| 5 | Abierto | 0–4 costados fijos altos by load (3 = 40–50 t, 4 = over 50 t); 5–8 costados bajos |
+| 6 | Plataforma | 0–3 by headstock and 12.5 m length; 4 = two containers, 8 = three containers |
+| 7 | Tolva | 0 cemento; 1–3 piedras; 4 granero convertible; 5 graneros |
+| 8 | Tanque | 0 petróleo y fuel-oil; 1 nafta y kerosene; 2 gas oil y diesel oil; 6 agua |
+| 9 | Tanque | 0 aceites vegetales; 6 vinos y jugos |
+| 0 | Servicio interno | 7 = vagón de cola |
+
+So a **jaula (stock car) is a type 2 cubierto in FA's code**, sub-type 7–9,
+not a kind of its own. Examples: a 60 t borde alto is **54**, a 58 t tolva
+granero **75**, a 50 t covered car with a grain hatch **26**, a gasoil tank
+**82**.
+
+The third digit (NEFA 956) is the operating code: **3** is plains, low
+speed; **2** plains, high speed (the galgo, greyhound, symbol); 0–1 are
+privately owned. The fifth and sixth digits (NEFA 957) are the mechanical
+class: metal, part-metal or wooden body, and the bogie and bearing type.
+The fourth column of the top row is left blank (NEFA 553).
+
+### The side panel (NEFA 555, 553, 771)
+
+![NEFA 555, the unified marking panel](fa-freight-car-marking-nefa555.png)
+
+*NEFA 555, CNRT copy, cropped.* Confirmed. At the right-hand end of each
+side, top to bottom:
+
+1. **The FERROCARRILES ARGENTINOS monogram** (NEFA 485). **No line
+   initials:** the unified marking of 1976 (NEFA 555 issue 3) and MRe-2002
+   put FA's monogram at the top of the panel. A car got
+   it when next repainted (MRe-2002 D-1), so in the 1970s and 80s both
+   kinds ran side by side.
+2. The **greyhound** (NEFA 487) on cars passed for high speed.
+3. Symbols for operating restrictions, and the **brake symbol** (NEFA
+   532–539: vacuum, air, or through pipe only).
+4. **The code**: top row type, sub-type, operating digit, blank, mechanical
+   class; bottom row the five-digit car number and the check digit, 180 mm
+   high (NEFA 553).
+5. Damage-label panel (NEFA 549), repair grid **ACC.** and **REV.** (550,
+   940).
+6. **C 000000 K** and **T 00000 K**, 63.5 mm high (NEFA 771): the tare in
+   kilograms, rounded to the nearest 50 kg, weighed in the shops with the
+   car uncoupled; optionally followed by the month and year as the tare's
+   expiry. C is drawn dashed above it. That C is the load limit in kilograms
+   is my reading; the drawing doesn't say.
+7. The destination-card holder (NEFA 410).
+
+So a stencil reads, for example, **T 20000 K** and **C 060000 K**.
+
+### Paint (NEFA 560, 561, 562)
+
+Colours to IRAM DEF D10-54. Confirmed. Lines didn't differ: these are
+FA-wide.
+
+| Kind | Body | Frame | Lettering | Other |
+|---|---|---|---|---|
+| Cubierto, general | grey 09-1-140, roof grey | grey | white | |
+| Cubierto granero only | grey | grey | white | yellow triangles |
+| Hacienda (stock) | grey | grey | white | two boards white |
+| Abierto (borde alto) | grey 09-1-140 | grey | white | |
+| Plataforma for containers or bulk cement | yellow 05-1-070 | black | black | yellow floor |
+| Tanque, gasoil, diesel, kerosene | black 11-1-070 | black | white | yellow band, black dome |
+| Tanque, petróleo, asfalto | black | black | white | black band and dome |
+| Tanque, nafta, solvents | white 11-1-010 | black | black | white band and dome |
+| Tanque, agua | grey | black | white | grey band and dome |
+
+Bogies black, brake wheels white on all of them. Private-owner cars blue
+08-1-080 with white lettering. FAT V-1520 (1989) gives the container flat a
+black frame and white lettering; NEFA 562 (issue 8) gives yellow body,
+black frame and black lettering.
+
+## Couplers and buffers
+
+FAT V-1527 and V-1529 give the borde alto **side buffers 1850–1860 mm
+apart** and a **screw coupling** on the central draw hook, with brackets
+for a future automatic coupler. Confirmed. Broad-gauge FA cars of the
+period ran on buffers and screw couplings, which bears on #33.
+
+## Length clues
+
+No drawing found gives a length over couplers or buffers. What was found:
+
+- **Tolva pedrero, broad gauge** (NEFA 32.060): side sill **10.43 m**.
+  Confirmed. Over buffers is longer by the headstocks and buffers; about
+  11.5–12 m, Unconfirmed.
+- **Tanque monocasco** (NEFA 25.015): frame **12.7 m**, but the sheet
+  gives no gauge, and FA's monocoque tank spec is metre gauge (V-1528), so
+  it isn't applied here.
+- **Container flat**: three 20 ft (6.06 m) containers, so at least 18.2 m
+  of deck. Derived.
+
+Would confirm the rest: NEFA 254 (V-1529's general arrangement), NEFA
+32.000 (V-1530's), or a photo of a car's length stencil.
 
 ## In the game
 
@@ -75,10 +176,22 @@ Unconfirmed and retunable.
   FCDFS, FCGBM, FCGR); Junín is San Martín, so most are FCGSM. Which
   numbers go to which kind is the game's, not FA's.
 
+**Where the game and FA disagree** (fixing them is Tom's call, #54):
+
+- **Line initials.** FA's unified marking carries the FA monogram, not the
+  line's initials (NEFA 555). Cars not yet repainted kept their old marks.
+- **Body colours.** The game's cubierto and borde alto are brown; FA's
+  are grey 09-1-140. The gasoil tank is black with a yellow band in FA's
+  scheme; the game's is grey.
+- **No type code.** The game could show the top row too, for example
+  **54 3** over **71842 x** for a 60 t borde alto. The check digit's
+  formula wasn't found.
+
 ## Sources
 
 - [Especificaciones FAT, CNRT](https://www.argentina.gob.ar/cnrt/especificaciones-fat): the index of FA's technical specifications, with titles and capacities.
 - [FAT V-1520](https://www.argentina.gob.ar/sites/default/files/normas_fat/FAT_V_1520.pdf), [FAT V-1527](https://www.argentina.gob.ar/sites/default/files/normas_fat/FAT_V_1527.pdf), [FAT V-1529](https://www.argentina.gob.ar/sites/default/files/normas_fat/FAT_V_1529.pdf), [FAT V-1530](https://www.argentina.gob.ar/sites/default/files/normas_fat/FAT_V_1530.pdf), [FAT V-1545](https://www.argentina.gob.ar/sites/default/files/normas_fat/FAT_V_1545.pdf): read 2026-10-08.
 - [FAT MRe-2002, marcado unificado](https://www.argentina.gob.ar/sites/default/files/normas_fat/FAT_MRe_2002.pdf): read 2026-10-08.
 - [Planos NEFA, CNRT](https://www.argentina.gob.ar/cnrt/planos-nefa): drawing titles (NEFA 543–562, 674, 938, 956–958).
+- NEFA drawings, CNRT copies, read 2026-10-08: [553](https://www.argentina.gob.ar/sites/default/files/subidos_tanda_3/NEFA_553.pdf) (code), [555](https://www.argentina.gob.ar/sites/default/files/subidos_tanda_3/NEFA_555.pdf) (panel), [543](https://www.argentina.gob.ar/sites/default/files/subidos_tanda_3/NEFA_543.pdf) (box car layout), [560](https://www.argentina.gob.ar/sites/default/files/subidos_tanda_3/NEFA_560.pdf), [561](https://www.argentina.gob.ar/sites/default/files/subidos_tanda_3/NEFA_561.pdf), [562](https://www.argentina.gob.ar/sites/default/files/subidos_tanda_3/NEFA_562.pdf) (paint), [771](https://www.argentina.gob.ar/sites/default/files/subidos_tanda_3/NEFA_771.pdf) (tare), [956](https://www.argentina.gob.ar/sites/default/files/subidos_tanda_4/NEFA_956.pdf), [957](https://www.argentina.gob.ar/sites/default/files/subidos_tanda_4/NEFA_957.pdf), [958](https://www.argentina.gob.ar/sites/default/files/subidos_tanda_4/NEFA_958.pdf) (codes), [32.060](https://www.argentina.gob.ar/sites/default/files/subidos_tanda_6/NEFA_32060.pdf) (pedrero side sill), 25.015 (tank frame). The NEFA PDFs download fine with a plain request.
 - V-1500, V-1501, V-1502, V-1539, V-1546, V-1547 and V-1548 didn't download (the server returned a page instead of the PDF).
