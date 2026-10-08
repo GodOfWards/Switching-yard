@@ -167,7 +167,9 @@
   // it starts set to. A node with only one segment is the end of track, with
   // a buffer stop.
   //
-  // Turnouts and ladder leave at 25° on 50 m curves, with tracks 12 m apart.
+  // Every curve is 50 m radius, about the tightest a yard gives a four-axle
+  // road switcher such as the G12 (not checked against its spec). Turnouts
+  // and ladder leave at 25°, with tracks 12 m apart.
   // Real yards use about 7° and 5 m; both are widened so the yard reads on a
   // phone. Retunable: the layout is only these numbers.
   const NODES = {
@@ -196,8 +198,8 @@
     lad4:      { x: 153.97, y: 43.32 },
     s4Start:   { x: 175.11, y: 48 },
     s4End:     { x: 225,    y: 48 },
-    indBend:   { x: 335,    y: 35 },
-    indEnd:    { x: 335,    y: 75 },
+    indBend:   { x: 350,    y: 50 },
+    indEnd:    { x: 350,    y: 80 },
   };
   const SEGMENTS = {
     headshunt:   { a: "westEnd", b: "L0" },
@@ -228,7 +230,7 @@
     s4Curve:     { a: "lad4",    b: "s4Start", r: -50 },
     siding4:     { a: "s4Start", b: "s4End" },
     // Industry spur: a quarter circle south off the main.
-    indCurve:    { a: "ind",     b: "indBend", r: 35 },
+    indCurve:    { a: "ind",     b: "indBend", r: 50 },
     industry:    { a: "indBend", b: "indEnd" },
   };
   const SWITCHES = {
@@ -258,7 +260,7 @@
       { id: "car4", type: "boxEmpty" }, { id: "car5", type: "boxEmpty" }] },
     { segment: "siding3", s: 84, dir: 1, vehicles: [
       { id: "car6", type: "boxLoaded" }, { id: "car7", type: "boxEmpty" }] },
-    { segment: "industry", s: 38, dir: 1, vehicles: [{ id: "car8", type: "boxLoaded" }] },
+    { segment: "industry", s: 28, dir: 1, vehicles: [{ id: "car8", type: "boxLoaded" }] },
   ];
   const PLAYER_LOCO = "loco1";
 
