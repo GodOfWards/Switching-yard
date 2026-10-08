@@ -25,6 +25,9 @@ build step, no dependencies. Open it in a browser to run it.
 - **Facts are looked up in `docs/reference/` first.** Anything researched
   lands there in the same pull request, dated, sourced and with a status;
   Tom's design calls go in `docs/decisions.md`. → `docs/reference/README.md`
+- **Images never sit at the repo root.** Screenshots go in `docs/screenshots/`
+  as `vX.Y.Z-<what>-<orientation>.png`; images for a reference doc sit
+  beside it in `docs/reference/`.
 - **Pending work and open designs live in GitHub Issues**: one kind label
   each, the kind's template, the body kept as the current truth, closed by
   the pull request that says `Closes #NN`. `designed` marks a design Tom has
