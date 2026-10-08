@@ -29,6 +29,12 @@ three stages (#48, #49, #50).
 - **Stages**: 1. clock, board, sheet and "sort the yard" on the fan;
   2. bigger map (#44), road trains, consists; 3. industries and waybills.
 - **How yards work** is researched from real FA practice (#45).
+- **The map grows by only what jobs need** (#44); mapping every active
+  rail is the long-term aim (#52). Play happens zoomed in, following the
+  loco, with zoomed out as an overview (#53).
+- **Trains are capped shorter than real**, about 15–20 cars (≈ 250 m), so
+  tracks shrink; retunable. The option kept: real train lengths (40 cars
+  ≈ 600 m, unchecked) if the map grows enough.
 
 ## 2026-10-08: Saving
 
