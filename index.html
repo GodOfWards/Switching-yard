@@ -829,6 +829,9 @@
   let paused = false;
   const togglePause = () => { paused = !paused; };
   const unlessPaused = fn => (...args) => { if (!paused) fn(...args); };
+  // Leaving the page (another app, a call, a locked screen) pauses it, so
+  // the game waits for the player to resume; retunable.
+  document.addEventListener("visibilitychange", () => { if (document.hidden) paused = true; });
 
   // Keyboard: +/− zoom, P pause, Q/A reverser, W/S or ↑/↓ throttle, R/F loco brake,
   // E/D train brake, Space emergency, X release.
