@@ -13,9 +13,16 @@ switching puzzle. All of this is long-term.
 - **Work the player doesn't take is done off-screen** for now; other crews
   doing it visibly on the map is backlog.
 
+- **The railway beyond the yard is a line graph**: stations, junctions,
+  distances and shape, made from OpenStreetMap
+  ([rail-network-junin.md](../reference/rail-network-junin.md)). Full
+  switching track exists only in yards that are played. "Active" track
+  means track in the FA era: in use or disused, not lifted.
+
 ## Open
 
 - Main-line traffic: #56.
 - Authority to move (yard limits, permission to use the main): #57.
 - Other crews on the map: #46.
 - Knock-on delays: #47.
+- Every active rail mapped, beyond the lines out of Junín: #52.

@@ -39,4 +39,5 @@ game builds on them are in [../design/](../design/README.md).
 | [argentine-rolling-stock-naming.md](argentine-rolling-stock-naming.md) | Line initials, FA loco numbers, Spanish car type names, current operators |
 | [fa-freight-cars.md](fa-freight-cars.md) | FA freight cars: load limits and tares from FA's specifications, type codes, the marking panel, tare stencil, paint colours, couplers |
 | [junin-yard.md](junin-yard.md) | Junín yard from OpenStreetMap, the depot fan section and how it became game track |
+| [rail-network-junin.md](rail-network-junin.md) | The lines out of Junín to their next junction, from OpenStreetMap, and how they were extracted (`tools/rail_network.py`) |
 | [switch-indicators.md](switch-indicators.md) | How Argentine railways show a switch's position (RGF art. 100), and the track figures used to draw rails |
