@@ -34,9 +34,9 @@ pull requests open at once never claim the same one.
 
 - While open, a pull request that changes `index.html` leaves
   `GAME_CONFIG.VERSION` and `CHANGELOG.md` alone. It drafts its changelog
-  entry in the description's **Changelog** section and names the change
-  type: PATCH for fixes and content, MINOR for a new mechanic or saved
-  state.
+  entry in the description's **Changelog** section and declares its bump
+  type up front, but never the number: PATCH for fixes and content, MINOR
+  for a new mechanic or saved state, MAJOR only when Tom says so.
 - Once Tom confirms the merge, one last commit on that branch merges `main`
   in, bumps `GAME_CONFIG.VERSION` from the version on `main`, and adds the
   drafted entry to `CHANGELOG.md` under it. Then it merges.
