@@ -24,7 +24,8 @@ build step, no dependencies. Open it in a browser to run it.
 - **Changes to the saved shape change `SAVE_KEY`** once saving exists.
 - **Facts are looked up in `docs/reference/` first.** Anything researched
   lands there in the same pull request, dated, sourced and with a status;
-  Tom's design calls go in `docs/decisions.md`. → `docs/reference/README.md`
+  Tom's design calls go in `docs/decisions.md`, the game's rules in
+  `docs/design/`. → `docs/reference/README.md`, `docs/design/README.md`
 - **Images never sit at the repo root.** Screenshots go in `docs/screenshots/`
   as `vX.Y.Z-<what>-<orientation>.png`; images for a reference doc sit
   beside it in `docs/reference/`.

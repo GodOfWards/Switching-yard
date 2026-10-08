@@ -3,6 +3,27 @@
 Design calls Tom has made, newest first, with where they were made. The
 values these produced live in CONFIG and WORLD DATA in `index.html`.
 
+## 2026-10-08: Railway operations
+
+Made after Tom's operations summary, in the "Jobs" thread. These rework
+the job calls below; the current rules are in [design/](design/README.md).
+
+- **Traffic first, jobs second.** Traffic exists on its own; a train
+  arriving is a traffic event. Disposition decides what happens next to
+  each car or block, including staying put; jobs are the work that
+  follows.
+- **The game decides dispositions**, as a yardmaster's instructions; the
+  player may take that role later.
+- **Requirements, not arrangements.** Each block has an ordering level:
+  exact, block, or none, set by whoever needs the cars.
+- **Results are an operational assessment**: correctness, efficiency,
+  timeliness, operational validity. Rough handling is a consequence (a
+  damaged car goes bad order), not a score.
+- **Three documentation layers:** history in `reference/`, rules in
+  `design/`, the minimum simulation in issues and code.
+- **OpenRailwayMap is the standard map reference.**
+- Later: main-line traffic (#56), authority to move (#57).
+
 ## 2026-10-08: Freight cars
 
 - **Tapping a car opens its card**: line and number, kind, load, tare and
