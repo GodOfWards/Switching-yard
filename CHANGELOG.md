@@ -2,6 +2,23 @@
 
 Newest first. One entry per version bump.
 
+## 0.5.0
+
+**New**
+- Air between cars. Coupling doesn't connect it: tap a coupling and pick
+  Connect air. The train brake then reaches the car once the air has
+  charged. Without air, a move stops on the loco brake.
+- Hand brakes. Tap a car to set or release one.
+
+**Changed**
+- Cars roll real distances, by load and bearings: a loaded box car about
+  255 m from 10 km/h, an empty one about 145 m.
+- Curves slow cars, more on tighter ones.
+- Tapping a coupling opens a menu (Air, Uncouple) instead of uncoupling at
+  once.
+- Coupling needs a closing speed of at least 1.5 km/h, or a firm shove. A
+  gentle touch only pushes.
+
 ## 0.4.1
 
 **Changed**
