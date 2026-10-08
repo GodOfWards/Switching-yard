@@ -65,6 +65,19 @@
     background: var(--overlay); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); color: var(--fg); font: 600 13px system-ui, sans-serif;
     touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
   #couplingMenu button:active { background: var(--button-down); }
+  /* The car card: what is stencilled on a tapped car, and its hand brake,
+     next to the car. */
+  #carCard { position: absolute; display: none; min-width: 180px; padding: 10px 12px; border-radius: 12px;
+    border: 1px solid var(--line); background: var(--overlay); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+    font-size: 13px; line-height: 1.35; font-variant-numeric: tabular-nums; }
+  #carCard.open { display: block; }
+  #carCard b { display: block; font-size: 16px; letter-spacing: 0.03em; }
+  #carCard small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+  #carCard button { display: block; width: 100%; min-height: 40px; margin-top: 8px; border-radius: 11px;
+    border: 1px solid var(--line); background: var(--button); color: var(--fg); font: 600 13px system-ui, sans-serif;
+    touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+  #carCard button:active { background: var(--button-down); }
+  #carCard button.on { color: var(--accent); border-color: var(--accent); }
   /* A phone on its side has little height to spare: the controls move to the
      right-hand edge instead, in two columns to keep that edge narrow:
      reverser and throttle, then the two brakes, then Emergency and Release. */
@@ -97,6 +110,7 @@
     <button id="airBtn">Air</button>
     <button id="uncoupleBtn">Uncouple</button>
   </div>
+  <div id="carCard"><div id="carText"></div><button id="handBrakeBtn"></button></div>
 </div>
 <div id="bar">
   <div id="readout"></div>
@@ -130,7 +144,8 @@
   //   CONFIG       version and every tunable game rule, as named constants.
   //   WORLD DATA   the yard: track nodes, straight or curved segments between
   //                them, switches;
-  //                the kinds of rolling stock and where it starts.
+  //                the kinds of rolling stock, the cars with their
+  //                markings and loads, and where it all starts.
   //                Content passes (a new siding, a new yard) touch only this.
   //   STATE        what changes while playing: switch positions, vehicles,
   //                the trains they are coupled into, the loco's controls.
@@ -172,7 +187,7 @@
   // ==================================================
   // CONFIG
   // ==================================================
-  const GAME_CONFIG = { VERSION: "0.7.0" };
+  const GAME_CONFIG = { VERSION: "0.7.1" };
   const STEP_SECONDS = 1 / 60;          // fixed simulation step
   const MAX_STEPS_PER_FRAME = 5;        // drop time rather than spiral after a stall
   const VIEW_MARGIN = 8;                // metres of ground kept around the yard
@@ -363,23 +378,44 @@
 
   // Kinds of rolling stock. Lengths are over the couplers. FA-era cars run
   // on plain bearings (Unconfirmed); the G12 on roller bearings.
+  // A freight car kind has its Spanish name, its stencilled tare and load
+  // limit (`carga`) in tonnes, and its body colour. Figures, their status
+  // and sources: docs/reference/fa-freight-cars.md. Every car length, and
+  // the tares and loads marked there as estimates, are Unconfirmed;
+  // retunable.
   const VEHICLE_TYPES = {
-    g12:       { loco: true,  length: 14, mass: 109e3, axles: 4, bearing: "roller", colour: "#c0533a" }, // GM G12; length approximate
-    boxLoaded: { loco: false, length: 15, mass: 60e3,  axles: 4, bearing: "plain",  colour: "#7a5236" },
-    boxEmpty:  { loco: false, length: 15, mass: 25e3,  axles: 4, bearing: "plain",  colour: "#a88a62" },
+    g12:       { loco: true, name: "GM G12", length: 14, mass: 109e3, axles: 4, bearing: "roller", colour: "#c0533a" }, // length approximate
+    cubierto:  { name: "Vagón cubierto",  length: 15.5, tare: 21, carga: 50, axles: 4, bearing: "plain", colour: "#8a5a3a" },
+    tolva:     { name: "Tolva cerealera", length: 15,   tare: 21, carga: 58, axles: 4, bearing: "plain", colour: "#9a9488" },
+    bordeAlto: { name: "Borde alto",      length: 14,   tare: 20, carga: 60, axles: 4, bearing: "plain", colour: "#6e4a3a" },
+    plataforma: { name: "Plataforma",     length: 19.5, tare: 19, carga: 61, axles: 4, bearing: "plain", colour: "#7f7466" },
+    tanque:    { name: "Vagón tanque",    length: 14,   tare: 21, carga: 50, axles: 4, bearing: "plain", colour: "#5d6168" },
+  };
+  // The cars, by id: the broad-gauge line whose initials each carries, its
+  // FA number and whether it is loaded (to its load limit). Junín is on the
+  // San Martín, so most cars are its own; the rest come from the other
+  // broad-gauge lines. FA numbered broad-gauge cars 40000–99999; which
+  // numbers go to which kind is the game's, not FA's.
+  const CARS = {
+    car1: { type: "tolva",      line: "FCGSM", number: "64218", loaded: true },
+    car2: { type: "tolva",      line: "FCGSM", number: "64377", loaded: true },
+    car3: { type: "cubierto",   line: "FCDFS", number: "47105", loaded: false },
+    car4: { type: "bordeAlto",  line: "FCGSM", number: "71842", loaded: false },
+    car5: { type: "plataforma", line: "FCGBM", number: "83016", loaded: false },
+    car6: { type: "tanque",     line: "FCGSM", number: "92260", loaded: true },
+    car7: { type: "cubierto",   line: "FCGSM", number: "45931", loaded: false },
+    car8: { type: "cubierto",   line: "FCGR",  number: "48570", loaded: true },
   };
   // Each starting train is laid out back from its head end, which stands `s`
   // metres along `segment` and faces `dir` (+1 toward the segment's `b`).
-  // A loco's cab faces the head unless it has `flip: -1`.
+  // Vehicles are named by id: a car's kind comes from CARS, a loco gives its
+  // `type`. A loco's cab faces the head unless it has `flip: -1`.
   const START_TRAINS = [
     { segment: "approach", s: 60, dir: 1, vehicles: [{ id: "loco1", type: "g12" }] },
-    { segment: "track1", s: 100, dir: 1, vehicles: [
-      { id: "car1", type: "boxLoaded" }, { id: "car2", type: "boxLoaded" }, { id: "car3", type: "boxEmpty" }] },
-    { segment: "track3", s: 36, dir: 1, vehicles: [
-      { id: "car4", type: "boxEmpty" }, { id: "car5", type: "boxEmpty" }] },
-    { segment: "track6", s: 48, dir: 1, vehicles: [
-      { id: "car6", type: "boxLoaded" }, { id: "car7", type: "boxEmpty" }] },
-    { segment: "track7", s: 120, dir: 1, vehicles: [{ id: "car8", type: "boxLoaded" }] },
+    { segment: "track1", s: 100, dir: 1, vehicles: [{ id: "car1" }, { id: "car2" }, { id: "car3" }] },
+    { segment: "track3", s: 36, dir: 1, vehicles: [{ id: "car4" }, { id: "car5" }] },
+    { segment: "track6", s: 48, dir: 1, vehicles: [{ id: "car6" }, { id: "car7" }] },
+    { segment: "track7", s: 120, dir: 1, vehicles: [{ id: "car8" }] },
   ];
   const PLAYER_LOCO = "loco1";
 
@@ -398,11 +434,11 @@
       const train = { id: "t" + st.nextTrain++, vehicles: [] };
       let end = { seg: t.segment, s: t.s, travel: -t.dir };   // walking back from the head
       for (const v of t.vehicles) {
-        const half = VEHICLE_TYPES[v.type].length / 2;
+        const type = startType(v), half = VEHICLE_TYPES[type].length / 2;
         const c = walk(end.seg, end.s, end.travel, half);
-        const veh = { id: v.id, type: v.type, train: train.id, seg: c.seg, s: c.s, dir: -c.travel,
+        const veh = { id: v.id, type, train: train.id, seg: c.seg, s: c.s, dir: -c.travel,
                       flip: v.flip || 1, speed: 0, handBrake: false };
-        if (VEHICLE_TYPES[v.type].loco) veh.controls = { reverser: 0, throttle: 0, locoBrake: 0, trainBrake: 0,
+        if (VEHICLE_TYPES[type].loco) veh.controls = { reverser: 0, throttle: 0, locoBrake: 0, trainBrake: 0,
           locoApplied: 0, trainApplied: 0, emergency: false };
         st.vehicles[v.id] = veh;
         if (train.vehicles.length) st.gaps[pairKey(train.vehicles[train.vehicles.length - 1], v.id)] = 0;
@@ -491,6 +527,16 @@
   }
 
   const vehicleType = v => VEHICLE_TYPES[v.type];
+  // A starting vehicle's kind: a car's from CARS, a loco's its own.
+  function startType(v) { return CARS[v.id] ? CARS[v.id].type : v.type; }
+  // Each vehicle's mass in kg, by id, built once from WORLD DATA: a loco's
+  // own; a car's tare, plus its load limit when loaded.
+  const MASSES = {};
+  for (const t of START_TRAINS) for (const v of t.vehicles) {
+    const car = CARS[v.id], type = VEHICLE_TYPES[startType(v)];
+    MASSES[v.id] = car ? (type.tare + (car.loaded ? type.carga : 0)) * 1000 : type.mass;
+  }
+  const vehicleMass = v => MASSES[v.id];
   // A vehicle's two ends: `head` toward its train's head, `tail` away. Each
   // carries `travel`, the segment sense pointing outward from the vehicle.
   function vehicleEnds(v, trail = false, nodes = null) {
@@ -580,7 +626,7 @@
       if (c) trainApplied = Math.max(trainApplied, c.trainApplied);
     }
     for (const id of t.vehicles) {
-      const v = state.vehicles[id], type = vehicleType(v), c = v.controls, weight = type.mass * G;
+      const v = state.vehicles[id], type = vehicleType(v), c = v.controls, weight = vehicleMass(v) * G;
       let pull = 0, hold = 0;
       if (c && c.throttle && c.reverser) {
         const sense = c.reverser * v.flip;                        // toward the head, or not
@@ -608,7 +654,7 @@
     const gap = state.gaps[pairKey(front.id, back.id)];
     if (gap >= 0 && gap <= COUPLER_FREE_PLAY) return 0;
     const opening = front.speed - back.speed;                     // how fast the gap grows
-    const mF = vehicleType(front).mass, mB = vehicleType(back).mass;
+    const mF = vehicleMass(front), mB = vehicleMass(back);
     const damping = 2 * DRAFT_GEAR_DAMPING * Math.sqrt(DRAFT_GEAR_STIFFNESS * mF * mB / (mF + mB));
     if (gap > 0) return Math.max(0, DRAFT_GEAR_STIFFNESS * (gap - COUPLER_FREE_PLAY) + damping * opening);
     return Math.min(0, DRAFT_GEAR_STIFFNESS * gap + damping * opening);
@@ -620,7 +666,7 @@
   // until `applied` beats its brakes and starting resistance, so a loco
   // takes up the slack and starts a cut one car at a time.
   function accelerateVehicle(v, f, applied, dt) {
-    const m = vehicleType(v).mass;
+    const m = vehicleMass(v);
     if (v.speed === 0) {
       if (Math.abs(applied) <= f.hold + f.start) return;
       v.speed = Math.sign(applied) * (Math.abs(applied) - f.hold - f.roll) / m * dt;
@@ -692,7 +738,7 @@
     const xs = xEnd === "head" ? 1 : -1, ys = yEnd === "head" ? -1 : 1;
     const uA = a.speed * xs, uB = b.speed * ys, closing = uA - uB;
     if (closing <= 0) return;                                   // already parting
-    const mA = vehicleType(a).mass, mB = vehicleType(b).mass;
+    const mA = vehicleMass(a), mB = vehicleMass(b);
     const shared = (mA * uA + mB * uB) / (mA + mB);              // momentum is kept
     if (closing > COUPLE_MAX_SPEED) {
       a.speed = (shared + HARD_HIT_RESTITUTION * (shared - uA)) * xs;
@@ -897,11 +943,11 @@
     if (!sameKeys(st.switches, SWITCHES)) return false;
     for (const id in SWITCHES) if (!SWITCHES[id].legs.includes(st.switches[id].set)) return false;
     const startIds = {};
-    for (const t of START_TRAINS) for (const v of t.vehicles) startIds[v.id] = v.type;
+    for (const t of START_TRAINS) for (const v of t.vehicles) startIds[v.id] = startType(v);
     if (!sameKeys(st.vehicles, startIds)) return false;
     for (const id in st.vehicles) {
       const v = st.vehicles[id], type = VEHICLE_TYPES[v.type];
-      if (v.id !== id || !type || !SEGMENTS[v.seg] || !st.trains[v.train]) return false;
+      if (v.id !== id || v.type !== startIds[id] || !SEGMENTS[v.seg] || !st.trains[v.train]) return false;
       if (!(v.s >= 0 && v.s <= segmentLength(v.seg)) || !Number.isFinite(v.speed)) return false;
       if (Math.abs(v.dir) !== 1 || Math.abs(v.flip) !== 1 || !!type.loco !== isObj(v.controls)) return false;
     }
@@ -1130,7 +1176,12 @@
       const v = state.vehicles[id], type = vehicleType(v), e = vehicleEnds(v);
       const head = endPoint(e.head), tail = endPoint(e.tail);
       const front = toward(head, tail, inset), back = toward(tail, head, inset);
+      if (id === cardFor) line(back.x, back.y, front.x, front.y, PALETTE.accent, bodyWidth + 4);  // its card is open
       line(back.x, back.y, front.x, front.y, type.colour, bodyWidth);
+      if (CARS[id] && !CARS[id].loaded) {                 // an empty car is drawn hollow
+        const f = toward(front, back, 1), b = toward(back, front, 1);
+        line(b.x, b.y, f.x, f.y, PALETTE.bg, bodyWidth * 0.4);
+      }
       if (type.loco) {                                    // cab, at the end it faces
         const cabEnd = v.flip > 0 ? front : back, other = v.flip > 0 ? back : front;
         const c1 = toward(cabEnd, other, 0.6), c2 = toward(cabEnd, other, 3);
@@ -1166,6 +1217,7 @@
       ctx.globalAlpha = 1;
     }
     placeCouplingMenu();
+    placeCarCard();
 
     // North arrow in the top right corner, turned with the view.
     {
@@ -1279,7 +1331,7 @@
   // New yard asks first: the yard as it stands can't be had back. A click,
   // not a press, so the question doesn't open under a finger still down.
   document.getElementById("newYardBtn").addEventListener("click", () => {
-    if (confirm("Start a new yard? The yard as it stands will be lost.")) { newYard(); menuFor = null; }
+    if (confirm("Start a new yard? The yard as it stands will be lost.")) { newYard(); menuFor = null; cardFor = null; }
   });
   const VIEW_KEYS = { "+": () => zoomBy(1), "=": () => zoomBy(1), "-": () => zoomBy(-1), p: togglePause };
 
@@ -1309,24 +1361,25 @@
   });
 
   // A tap acts on the nearest thing within TAP_RADIUS_PX on screen: a
-  // switch (throws it), a coupling (opens its menu) or a car's middle (sets
-  // or releases its hand brake). Any tap closes an open coupling menu.
+  // switch (throws it), a coupling (opens its menu) or a car's middle (opens
+  // its card). Any tap closes an open menu or card. Opening a card only
+  // shows, so it works while paused.
   function tap(e) {
     const r = canvas.getBoundingClientRect();
     const tx = e.clientX - r.left, ty = e.clientY - r.top;
-    let best = null, bestD = TAP_RADIUS_PX;
-    const consider = (x, y, act) => {
+    let best = null, bestD = TAP_RADIUS_PX, bestShows = false;
+    const consider = (x, y, act, shows = false) => {
       const c = view.toScreen(x, y), d = Math.hypot(c.x - tx, c.y - ty);
-      if (d < bestD) { best = act; bestD = d; }
+      if (d < bestD) { best = act; bestD = d; bestShows = shows; }
     };
     for (const id in SWITCHES) consider(NODES[id].x, NODES[id].y, () => throwSwitch(id));
     for (const c of couplings()) consider(c.at.x, c.at.y, () => { menuFor = c.key; });
     for (const id in state.vehicles) {
       const v = state.vehicles[id];
-      if (!v.controls) { const p = pointOn(v.seg, v.s); consider(p.x, p.y, () => toggleHandBrake(id)); }
+      if (!v.controls) { const p = pointOn(v.seg, v.s); consider(p.x, p.y, () => { cardFor = id; }, true); }
     }
-    menuFor = null;
-    if (best) unlessPaused(best)();
+    menuFor = null; cardFor = null;
+    if (best) (bestShows ? best : unlessPaused(best))();
   }
 
   // The coupling menu, open over the coupling `menuFor` (its pair key) until
@@ -1355,6 +1408,33 @@
   });
   onMenuPress("airBtn", toggleAir);
   onMenuPress("uncoupleBtn", uncouple);
+
+  // The car card, open over the car `cardFor` (its id) until another tap
+  // closes it: the car's line and number, its kind and load, and its tare
+  // and load limit as stencilled (TARA, CARGA), with its hand brake.
+  const carCard = document.getElementById("carCard");
+  const carText = document.getElementById("carText");
+  const handBrakeBtn = document.getElementById("handBrakeBtn");
+  let cardFor = null;
+  function placeCarCard() {
+    const v = cardFor && state.vehicles[cardFor], car = v && CARS[cardFor];
+    if (!car) cardFor = null;
+    carCard.classList.toggle("open", !!car);
+    if (!car) return;
+    const type = vehicleType(v), at = pointOn(v.seg, v.s), p = view.toScreen(at.x, at.y);
+    carText.innerHTML = `<b>${car.line} ${car.number}</b>${type.name} · ${car.loaded ? "loaded" : "empty"}` +
+      `<small>TARA ${type.tare} t · CARGA ${type.carga} t</small>`;
+    handBrakeBtn.textContent = v.handBrake ? "Release hand brake" : "Set hand brake";
+    handBrakeBtn.classList.toggle("on", v.handBrake);
+    // Beside the car, kept on screen and clear of the zoom buttons.
+    const w = carCard.offsetWidth, h = carCard.offsetHeight;
+    carCard.style.left = `${Math.max(52, Math.min(screenW - w - 8, p.x - w / 2))}px`;
+    carCard.style.top = `${p.y - h - 24 < 8 ? p.y + 24 : p.y - h - 24}px`;
+  }
+  handBrakeBtn.addEventListener("pointerdown", e => {
+    e.preventDefault(); e.stopPropagation();
+    if (cardFor) unlessPaused(toggleHandBrake)(cardFor);
+  });
 
   // The yard is saved every SAVE_SECONDS of play, counted in steps.
   let last = performance.now(), acc = 0, sinceSave = 0;

@@ -3,6 +3,12 @@
 Design calls Tom has made, newest first, with where they were made. The
 values these produced live in CONFIG and WORLD DATA in `index.html`.
 
+## 2026-10-08: Freight cars
+
+- **Tapping a car opens its card**: line and number, kind, load, tare and
+  load limit as stencilled, with its hand brake as a button. Replaces
+  tapping a car to set its hand brake (#18).
+
 ## 2026-10-08: Jobs
 
 Made in the "Jobs" design thread; the full rules are in #35, built in
