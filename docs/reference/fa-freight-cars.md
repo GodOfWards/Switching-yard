@@ -3,6 +3,11 @@
 Load limits, tares and markings of Ferrocarriles Argentinos broad-gauge
 (1676 mm) freight cars, for the game's cars. Researched 2026-10-08 (#18, #54).
 
+**Decided (Tom):**
+- **Car marks: both kinds** (2026-10-08, #54). Most cars carry FA's
+  unified panel (monogram and type code); a few not yet repainted keep
+  their line's initials. The share is retunable.
+
 **Status:** load limits, some tares, the numbering, the marking layout and
 the paint colours are **Confirmed**, read on FA's own technical
 specifications (FAT) and drawings (NEFA), hosted by CNRT. **Lengths over
@@ -180,7 +185,8 @@ Unconfirmed and retunable.
 **Where the game and FA disagree** (fixing them is Tom's call, #54):
 
 - **Line initials.** FA's unified marking carries the FA monogram, not the
-  line's initials (NEFA 555). Cars not yet repainted kept their old marks.
+  line's initials (NEFA 555). Tom chose both (above); #55 shows initials
+  on every car.
 - **Body colours.** The game's cubierto and borde alto are brown; FA's
   are grey 09-1-140. The gasoil tank is black with a yellow band in FA's
   scheme; the game's is grey.
