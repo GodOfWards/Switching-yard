@@ -3,6 +3,33 @@
 Design calls Tom has made, newest first, with where they were made. The
 values these produced live in CONFIG and WORLD DATA in `index.html`.
 
+## 2026-10-08: Jobs
+
+Made in the "Jobs" design thread; the full rules are in #35, built in
+three stages (#48, #49, #50).
+
+- **A job is one operation**: the chain of tasks a piece of work needs
+  (pull from an industry, set out, bring to the yard, build a consist,
+  leave cars on a track, take a consist apart, sort the yard for the next
+  shift). It can span the yard and the industries near it.
+- **Cars live on across days**, each with a waybill naming its next
+  destination, so a player can follow one car through its cycle. Traffic
+  comes from a plan in WORLD DATA: industries' rates and a road-train
+  timetable.
+- **The player takes as many jobs as they like** from a job board. Work
+  they don't take is done off-screen when due; other crews on the map are
+  backlog (#46).
+- **Time runs at real time**, with skips to the next event or to a
+  10-minute mark, only when nothing the player could touch is moving.
+- **A job sheet** states the end result, grouped by task, a line per car
+  that ticks itself. Weights go on a consist page for trains being built.
+- **Nothing fails**: jobs have due times, lateness is recorded and the
+  train leaves late. The report scores time, rough handling and moves.
+  Knock-on delays later (#47).
+- **Stages**: 1. clock, board, sheet and "sort the yard" on the fan;
+  2. bigger map (#44), road trains, consists; 3. industries and waybills.
+- **How yards work** is researched from real FA practice (#45).
+
 ## 2026-10-08: Saving
 
 - **The whole yard is saved as it stands**, mid-move included, every 5 s
