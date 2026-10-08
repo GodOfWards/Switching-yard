@@ -2,6 +2,15 @@
 
 Newest first. One entry per version bump.
 
+## 0.7.2
+
+**Changed**
+- Most cars carry FA's marks: FA, the type code and the number, with the
+  tare and load limit stencilled in kilograms as FA did. A couple not yet
+  repainted keep their old line's initials and brown paint.
+- Cars are painted as FA painted them: grey box cars, hoppers and
+  gondolas, a yellow container flat, a black tank car with a yellow band.
+
 ## 0.7.1
 
 **Changed**

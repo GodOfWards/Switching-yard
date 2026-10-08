@@ -32,6 +32,10 @@ the job calls below; the current rules are in [design/](design/README.md).
 - **Car marks: both kinds** (#54). Most cars carry FA's unified panel
   (monogram and type code, NEFA 555); a few not yet repainted keep their
   line's initials. See [fa-freight-cars.md](reference/fa-freight-cars.md).
+- **Paint: FA's colours** (#64). Box, grain and open cars all FA grey,
+  told apart on the card rather than by colour; the container flat yellow,
+  the gasoil tank black with a yellow band. Cars still in line marks keep
+  an older brown.
 
 ## 2026-10-08: Jobs
 
