@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Switching Game</title>
+<style>
+  :root { --bg: #1b1d1f; --fg: #d8d4cc; --muted: #8a867e; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg);
+    font: 14px/1.4 system-ui, sans-serif; }
+  body { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }
+  canvas { background: #2a2d2a; max-width: 100vw; height: auto; border-radius: 4px; }
+  #help { color: var(--muted); }
+</style>
+</head>
+<body>
+<canvas id="yard" width="960" height="540"></canvas>
+<div id="help">W / S: throttle forward / back &nbsp;·&nbsp; Space: stop &nbsp;·&nbsp; Click a switch to throw it</div>
+<script>
+"use strict";
+(() => {
+  // ==================================================
+  // ARCHITECTURE
+  // ==================================================
+  // One self-contained file, no build step, no dependencies. Content and
+  // mechanics are kept apart so a pass can touch one without the other.
+  //
+  //   CONFIG       version and every tunable game rule, as named constants.
+  //   WORLD DATA   the yard: track nodes, segments between them, switches.
+  //                Content passes (a new siding, a new yard) touch only this.
+  //   STATE        what changes while playing: switch positions, rolling
+  //                stock positions and speeds. Built from WORLD DATA by
+  //                makeState(); never edits WORLD DATA.
+  //   UTILITIES    small geometry and lookup helpers.
+  //   SIMULATION   advances STATE by one fixed step, step(dt). All movement
+  //                rules live here. The loop calls it at a fixed rate, so
+  //                behaviour never depends on the display's frame rate.
+  //   ACTIONS      what the player can do (throttle, throw a switch). They
+  //                change STATE; they never draw.
+  //   PERSISTENCE  none yet. When saving arrives, SAVE_KEY changes with every
+  //                change to the saved shape.
+  //   RENDERING    draws STATE to the canvas. It never holds rules.
+  //   INPUT / LOOP keyboard and mouse to ACTIONS; the fixed-step loop.
+  //
+  // Coordinates are metres, +x east, +y south (screen down). Identity is an
+  // id string, never an array index.
+  // ==================================================
+
+  // ==================================================
+  // CONFIG
+  // ==================================================
+  const GAME_CONFIG = { VERSION: "0.1.0" };
+  const STEP_SECONDS = 1 / 60;          // fixed simulation step
+  const MAX_STEPS_PER_FRAME = 5;        // drop time rather than spiral after a stall
+  const PX_PER_METRE = 4;               // retunable: zoom
+  const THROTTLE_NOTCHES = 4;           // per direction
+  const SPEED_PER_NOTCH = 2;            // m/s at each notch; retunable (yard speeds are slow)
+  const ACCELERATION = 0.6;             // m/s², retunable
+  const BRAKING = 1.5;                  // m/s², retunable
+  const SWITCH_CLICK_RADIUS = 8;        // metres from a switch's node that a click counts
+  const LOCO_LENGTH = 14;               // metres
+
+  // ==================================================
+  // WORLD DATA
+  // ==================================================
+  // A small yard: a main line with a two-switch ladder into two sidings.
+  // Every segment is a straight line from node `a` to node `b`. A switch sits
+  // on a node: `trunk` is the single-track side, `legs` the two diverging
+  // routes, and `normal` the leg it starts set to.
+  const NODES = {
+    westEnd:   { x: 10,  y: 40 },
+    sw1:       { x: 70,  y: 40 },
+    eastEnd:   { x: 230, y: 40 },
+    sw2:       { x: 95,  y: 65 },
+    s1End:     { x: 220, y: 65 },
+    s2Bend:    { x: 120, y: 90 },
+    s2End:     { x: 210, y: 90 },
+  };
+  const SEGMENTS = {
+    mainWest:  { a: "westEnd", b: "sw1" },
+    mainEast:  { a: "sw1",     b: "eastEnd" },
+    lead:      { a: "sw1",     b: "sw2" },
+    siding1:   { a: "sw2",     b: "s1End" },
+    s2Curve:   { a: "sw2",     b: "s2Bend" },
+    siding2:   { a: "s2Bend",  b: "s2End" },
+  };
+  const SWITCHES = {
+    sw1: { trunk: "mainWest", legs: ["mainEast", "lead"],     normal: "mainEast" },
+    sw2: { trunk: "lead",     legs: ["siding1", "s2Curve"],   normal: "siding1" },
+  };
+  const START_LOCO = { id: "loco1", segment: "mainWest", s: 30, facing: 1 };
+
+  // ==================================================
+  // STATE
+  // ==================================================
+  function makeState() {
+    const switches = {};
+    for (const id in SWITCHES) switches[id] = { set: SWITCHES[id].normal };
+    return {
+      switches,
+      locos: [{ ...START_LOCO, speed: 0, throttle: 0 }],
+    };
+  }
+  let state = makeState();
+
+  // ==================================================
+  // UTILITIES
+  // ==================================================
+  function segmentLength(segId) {
+    const { a, b } = SEGMENTS[segId];
+    return Math.hypot(NODES[b].x - NODES[a].x, NODES[b].y - NODES[a].y);
+  }
+  // The point `s` metres from a segment's `a` end, and the unit vector a→b.
+  function pointOn(segId, s) {
+    const { a, b } = SEGMENTS[segId];
+    const len = segmentLength(segId);
+    const ux = (NODES[b].x - NODES[a].x) / len, uy = (NODES[b].y - NODES[a].y) / len;
+    return { x: NODES[a].x + ux * s, y: NODES[a].y + uy * s, ux, uy };
+  }
+  // Segments meeting at each node, built once from WORLD DATA.
+  const SEGMENTS_AT = {};
+  for (const id in NODES) SEGMENTS_AT[id] = [];
+  for (const id in SEGMENTS) {
+    SEGMENTS_AT[SEGMENTS[id].a].push(id);
+    SEGMENTS_AT[SEGMENTS[id].b].push(id);
+  }
+
+  // ==================================================
+  // SIMULATION
+  // ==================================================
+  // Which segment a train arriving at `nodeId` along `fromSeg` continues
+  // onto, or null at the end of track. Arriving on a switch's trunk follows
+  // the leg it is set to. Arriving on a leg returns to the trunk; if the
+  // switch was set the other way the train trails through it and pushes it
+  // over (a spring switch). Retunable: later this could derail instead.
+  function nextSegment(nodeId, fromSeg) {
+    const sw = SWITCHES[nodeId];
+    if (sw) {
+      if (fromSeg === sw.trunk) return state.switches[nodeId].set;
+      state.switches[nodeId].set = fromSeg;
+      return sw.trunk;
+    }
+    return SEGMENTS_AT[nodeId].find(id => id !== fromSeg) || null;
+  }
+
+  function stepLoco(loco, dt) {
+    const target = loco.throttle * SPEED_PER_NOTCH;
+    const rate = Math.abs(target) < Math.abs(loco.speed) || Math.sign(target) !== Math.sign(loco.speed)
+      ? BRAKING : ACCELERATION;
+    const dv = Math.max(-rate * dt, Math.min(rate * dt, target - loco.speed));
+    loco.speed += dv;
+
+    // Distance to travel this step, in the segment's own a→b sense.
+    let move = loco.speed * dt * loco.facing;
+    while (move !== 0) {
+      const len = segmentLength(loco.segment);
+      const s = loco.s + move;
+      if (s >= 0 && s <= len) { loco.s = s; break; }
+      const atB = s > len;
+      const nodeId = atB ? SEGMENTS[loco.segment].b : SEGMENTS[loco.segment].a;
+      const next = nextSegment(nodeId, loco.segment);
+      if (!next) {                       // end of track: stop at the buffer
+        loco.s = atB ? len : 0;
+        loco.speed = 0; loco.throttle = 0;
+        break;
+      }
+      const leftover = atB ? s - len : -s;
+      const enterAtA = SEGMENTS[next].a === nodeId;
+      // Keep the direction of travel: entering at `a` means moving +s.
+      const oldTravel = atB ? 1 : -1, newTravel = enterAtA ? 1 : -1;
+      loco.facing *= oldTravel * newTravel;
+      loco.segment = next;
+      loco.s = enterAtA ? 0 : segmentLength(next);
+      move = leftover * newTravel;
+    }
+  }
+
+  function step(dt) {
+    for (const loco of state.locos) stepLoco(loco, dt);
+  }
+
+  // ==================================================
+  // ACTIONS
+  // ==================================================
+  function changeThrottle(loco, delta) {
+    loco.throttle = Math.max(-THROTTLE_NOTCHES, Math.min(THROTTLE_NOTCHES, loco.throttle + delta));
+  }
+  function stopLoco(loco) { loco.throttle = 0; }
+  function throwSwitch(swId) {
+    const sw = SWITCHES[swId], cur = state.switches[swId];
+    cur.set = cur.set === sw.legs[0] ? sw.legs[1] : sw.legs[0];
+  }
+
+  // ==================================================
+  // RENDERING
+  // ==================================================
+  const canvas = document.getElementById("yard");
+  const ctx = canvas.getContext("2d");
+  const px = m => m * PX_PER_METRE;
+
+  function drawSegment(segId, colour, width) {
+    const { a, b } = SEGMENTS[segId];
+    ctx.strokeStyle = colour; ctx.lineWidth = width;
+    ctx.beginPath();
+    ctx.moveTo(px(NODES[a].x), px(NODES[a].y));
+    ctx.lineTo(px(NODES[b].x), px(NODES[b].y));
+    ctx.stroke();
+  }
+
+  function render() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.lineCap = "round";
+    for (const id in SEGMENTS) drawSegment(id, "#6b6a64", 4);
+
+    // Switches: the leg each is set to is drawn bright from the node out.
+    for (const id in SWITCHES) {
+      const n = NODES[id], set = state.switches[id].set;
+      const far = pointOn(set, SEGMENTS[set].a === id ? 12 : segmentLength(set) - 12);
+      ctx.strokeStyle = "#e3c55a"; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.moveTo(px(n.x), px(n.y)); ctx.lineTo(px(far.x), px(far.y)); ctx.stroke();
+      ctx.fillStyle = "#e3c55a";
+      ctx.beginPath(); ctx.arc(px(n.x), px(n.y), 5, 0, Math.PI * 2); ctx.fill();
+    }
+
+    for (const loco of state.locos) {
+      const p = pointOn(loco.segment, loco.s);
+      ctx.save();
+      ctx.translate(px(p.x), px(p.y));
+      ctx.rotate(Math.atan2(p.uy * loco.facing, p.ux * loco.facing));
+      ctx.fillStyle = "#c0533a";
+      ctx.fillRect(px(-LOCO_LENGTH / 2), -7, px(LOCO_LENGTH), 14);
+      ctx.fillStyle = "#f2e6d0";                          // cab end = front
+      ctx.fillRect(px(LOCO_LENGTH / 2) - 8, -5, 6, 10);
+      ctx.restore();
+    }
+
+    const loco = state.locos[0];
+    ctx.fillStyle = "#d8d4cc"; ctx.font = "14px system-ui, sans-serif";
+    ctx.fillText(`Throttle ${loco.throttle > 0 ? "+" : ""}${loco.throttle}   ` +
+      `Speed ${(Math.abs(loco.speed) * 3.6).toFixed(1)} km/h`, 12, canvas.height - 14);
+    ctx.fillStyle = "#8a867e";
+    ctx.fillText(`v${GAME_CONFIG.VERSION}`, canvas.width - 50, canvas.height - 14);
+  }
+
+  // ==================================================
+  // INPUT / LOOP
+  // ==================================================
+  window.addEventListener("keydown", e => {
+    const loco = state.locos[0];
+    if (e.repeat) return;
+    if (e.key === "w" || e.key === "ArrowUp") changeThrottle(loco, 1);
+    else if (e.key === "s" || e.key === "ArrowDown") changeThrottle(loco, -1);
+    else if (e.key === " ") stopLoco(loco);
+    else return;
+    e.preventDefault();
+  });
+
+  canvas.addEventListener("click", e => {
+    const r = canvas.getBoundingClientRect();
+    const mx = (e.clientX - r.left) * (canvas.width / r.width) / PX_PER_METRE;
+    const my = (e.clientY - r.top) * (canvas.height / r.height) / PX_PER_METRE;
+    let best = null, bestD = SWITCH_CLICK_RADIUS;
+    for (const id in SWITCHES) {
+      const d = Math.hypot(NODES[id].x - mx, NODES[id].y - my);
+      if (d < bestD) { best = id; bestD = d; }
+    }
+    if (best) throwSwitch(best);
+  });
+
+  let last = performance.now(), acc = 0;
+  function frame(now) {
+    acc += Math.min((now - last) / 1000, STEP_SECONDS * MAX_STEPS_PER_FRAME);
+    last = now;
+    while (acc >= STEP_SECONDS) { step(STEP_SECONDS); acc -= STEP_SECONDS; }
+    render();
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  // Exposed for testing in a browser console or headless check.
+  window.switching = { get state() { return state; }, step, throwSwitch, changeThrottle };
+})();
+</script>
+</body>
+</html>
