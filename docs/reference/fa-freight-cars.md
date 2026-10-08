@@ -90,9 +90,10 @@ side, top to bottom:
 
 1. **The FERROCARRILES ARGENTINOS monogram** (NEFA 485). **No line
    initials:** the unified marking of 1976 (NEFA 555 issue 3) and MRe-2002
-   put FA's monogram at the top of the panel. A car got
-   it when next repainted (MRe-2002 D-1), so in the 1970s and 80s both
-   kinds ran side by side.
+   put FA's monogram at the top of the panel. A car got it when next
+   repainted (MRe-2002 D-1), so in the late 1970s and 80s cars with old
+   line marks and cars with the FA panel likely ran together (my
+   inference, not read anywhere).
 2. The **greyhound** (NEFA 487) on cars passed for high speed.
 3. Symbols for operating restrictions, and the **brake symbol** (NEFA
    532–539: vacuum, air, or through pipe only).
