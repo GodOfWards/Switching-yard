@@ -27,7 +27,17 @@ build step, no dependencies. Open it in a browser to run it.
 
 ## The wrap
 
-Every pull request that changes `index.html` bumps `GAME_CONFIG.VERSION`
-(PATCH for fixes and content, MINOR for a new mechanic or saved state) and
-adds a `CHANGELOG.md` entry. Work lands through a pull request from a
-branch, never a commit to `main`.
+Work lands through a pull request from a branch, never a commit to `main`.
+
+**A version number is picked only when Tom confirms the merge**, so two
+pull requests open at once never claim the same one.
+
+- While open, a pull request that changes `index.html` leaves
+  `GAME_CONFIG.VERSION` and `CHANGELOG.md` alone. It drafts its changelog
+  entry in the description's **Changelog** section and names the change
+  type: PATCH for fixes and content, MINOR for a new mechanic or saved
+  state.
+- Once Tom confirms the merge, one last commit on that branch merges `main`
+  in, bumps `GAME_CONFIG.VERSION` from the version on `main`, and adds the
+  drafted entry to `CHANGELOG.md` under it. Then it merges.
+- A pull request that doesn't change `index.html` gets no version.

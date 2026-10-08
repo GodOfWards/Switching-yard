@@ -8,8 +8,12 @@ Closes #
 
 ## Version
 
-- [ ] `index.html` changed: `GAME_CONFIG.VERSION` bumped (PATCH / MINOR) and a `CHANGELOG.md` entry added
-- [ ] `index.html` unchanged: no bump, no changelog entry
+- [ ] `index.html` changed: PATCH / MINOR. The version and `CHANGELOG.md` entry are added in the last commit, once Tom confirms the merge
+- [ ] `index.html` unchanged: no version, no changelog entry
+
+## Changelog
+
+<!-- The draft entry, in CHANGELOG.md's style. Copied into CHANGELOG.md at merge. -->
 
 ## Validation
 
