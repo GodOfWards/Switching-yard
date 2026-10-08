@@ -11,6 +11,8 @@ game's tuned values. Researched 2026-10-08.
 - **Air not connected by default**; the train brake works only on cars
   with their air connected and charged (2026-10-08, #17).
 - **Hand brakes on every car** (2026-10-08, #15).
+- **Slack in every coupling** (2026-10-08, #26): free play, then a stiff
+  draft gear.
 
 **Status:** marked per figure. **Secondary** figures come from patents,
 forum posts quoting AAR material, or a railroad's own rule; an AAR or FA
@@ -69,6 +71,23 @@ Researched 2026-10-08.
 - The game's hand brake force is a guess: a tenth of a loaded car's weight
   on the shoes at a shoe friction near 0.3, about 17.7 kN. **Unconfirmed**.
 
+## Slack
+
+Researched 2026-10-08.
+
+- About **2 in (5 cm) of free play** between two freight cars' couplers.
+  **Secondary** (US patents; Type E couplers alone are nearer 25/32 in, so
+  the 2 in includes worn parts and the draft gear's own play).
+- **Draft gear** (AAR M-901-G) is rated at about **2¾–3¼ in (7–8 cm) of
+  travel under a 500,000 lb (2.2 MN) buff load**, and "goes solid" past
+  it. **Secondary** (US patents). The game treats it as a linear spring of
+  2.2 MN over 7.5 cm, about 30 MN/m, damped at half of critical (an
+  estimate; friction draft gears soak up much of an impact).
+- At the game's forces (up to the G12's 187 kN) the draft gear gives only
+  millimetres, so the free play is what the player feels: a loco moves
+  about 5 cm per car before each car starts, and a cut runs in by as much
+  when the loco brakes alone.
+
 ## Couplers
 
 Researched 2026-10-08.
@@ -96,6 +115,8 @@ Researched 2026-10-08.
   [Railinc UMLER release notes](https://public.railinc.com/sites/default/files/documents/UmlerReleaseNotes120717.pdf)
 - Hand brakes: [49 CFR 232.103](https://www.govinfo.gov/content/pkg/CFR-2006-title49-vol4/html/CFR-2006-title49-vol4-sec232-103.htm);
   [Trains forum](https://cs.trains.com/mrr/f/13/t/292780.aspx)
+- Slack and draft gear: [US patent 6446820](https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/6446820);
+  [US patent 10189488](https://patents.justia.com/patent/10189488)
 - Vacuum brakes: [CNRT FAT specifications](https://www.argentina.gob.ar/cnrt/especificaciones-fat)
 - Couplers: [FAT E-726, Alturas de enganches de vehículos en Ferrocarriles
   Argentinos, Nov 1982 (CNRT copy)](https://argentina.gob.ar/sites/default/files/normas_fat/FAT_E_726.pdf)

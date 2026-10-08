@@ -2,6 +2,19 @@
 
 Newest first. One entry per version bump.
 
+## 0.6.0
+
+**New**
+- Slack between cars. Each coupling has a few centimetres of play, so the
+  loco starts a cut one car at a time, and a cut runs in behind the loco
+  when only the loco brakes.
+
+**Changed**
+- Train ends meet car to car, and the rest of the train feels it through
+  the couplings.
+- Coupling by shoving takes a firmer push than before: about notch 2
+  against a hand-braked car.
+
 ## 0.5.0
 
 **New**

@@ -119,7 +119,7 @@
   //                Built from WORLD DATA by makeState(); never edits WORLD DATA.
   //   UTILITIES    small geometry, track-walking and lookup helpers.
   //   SIMULATION   advances STATE by one fixed step, step(dt). All movement
-  //                rules live here: forces, brakes, contact, coupling. The
+  //                rules live here: forces, brakes, slack, contact, coupling. The
   //                loop calls it at a fixed rate, so behaviour never depends
   //                on the display's frame rate.
   //   ACTIONS      what the player can do (reverser, levers, Emergency,
@@ -141,17 +141,19 @@
   // quarter so the yard runs up the screen (see makeView()).
   // Physics is in SI units: metres, seconds, kilograms, newtons.
   //
-  // A train is a list of coupled vehicles, ordered from its head to its tail,
-  // with one speed (+ toward the head). A vehicle stands on the track at its
-  // centre, with `dir` the segment sense (+1 toward `b`) that points toward
-  // its train's head; a lone car or loco is a train of one.
+  // A train is a list of coupled vehicles, ordered from its head to its tail.
+  // Each vehicle has its own speed (+ toward its train's head); the couplings
+  // between them have play, so a train stretches and bunches (slack). A
+  // vehicle stands on the track at its centre, with `dir` the segment sense
+  // (+1 toward `b`) that points toward its train's head; a lone car or loco
+  // is a train of one.
   // Identity is an id string, never an array index.
   // ==================================================
 
   // ==================================================
   // CONFIG
   // ==================================================
-  const GAME_CONFIG = { VERSION: "0.5.0" };
+  const GAME_CONFIG = { VERSION: "0.6.0" };
   const STEP_SECONDS = 1 / 60;          // fixed simulation step
   const MAX_STEPS_PER_FRAME = 5;        // drop time rather than spiral after a stall
   const VIEW_MARGIN = 8;                // metres of ground kept around the yard
@@ -222,6 +224,20 @@
   const COUPLE_MIN_SPEED = 1.5 / 3.6;   // m/s closing speed; estimated, retunable
   const COUPLE_PUSH_FORCE = 40e3;       // N; estimated, retunable
   const COUPLE_MAX_SPEED = 5 / 3.6;     // m/s closing speed; retunable
+  const PRESS_SECONDS = 0.5;            // s the push between two touching ends is averaged over
+
+  // Slack. A coupling has COUPLER_FREE_PLAY of play: inside it, nothing
+  // passes between the two vehicles. Past it, stretched or bunched, the
+  // draft gear acts as a stiff damped spring, rated at DRAFT_GEAR_FORCE over
+  // DRAFT_GEAR_TRAVEL (AAR M-901-G: 500,000 lb over about 3 in). Secondary;
+  // see docs/reference/train-physics.md. The spring is stiff, so the
+  // simulation takes SLACK_SUBSTEPS smaller steps within each fixed step.
+  const COUPLER_FREE_PLAY = 0.05;       // m, about 2 in
+  const DRAFT_GEAR_TRAVEL = 0.075;      // m, about 3 in
+  const DRAFT_GEAR_FORCE = 500e3 * LBF; // N at full travel, ≈ 2.2 MN
+  const DRAFT_GEAR_STIFFNESS = DRAFT_GEAR_FORCE / DRAFT_GEAR_TRAVEL;  // N/m, ≈ 30 MN/m
+  const DRAFT_GEAR_DAMPING = 0.5;       // share of critical damping; friction draft gears soak up a lot; estimated, retunable
+  const SLACK_SUBSTEPS = 8;             // keeps the spring stable: about 0.1 rad of its swing a substep
   const HARD_HIT_RESTITUTION = 0.3;     // retunable
   const NOTICE_SECONDS = 2;             // how long a message stays up
   const EPS = 1e-6;                     // metres; positions this close are the same
@@ -353,20 +369,23 @@
   function makeState() {
     // `air` holds each coupling whose air is connected, by its pair key, with
     // how far its charge has come (0 to 1).
-    const st = { switches: {}, vehicles: {}, trains: {}, air: {}, nextTrain: 1, notice: null };
+    // `gaps` holds each coupling's opening past touching, by its pair key: 0
+    // fully bunched, COUPLER_FREE_PLAY fully stretched before the draft gear.
+    const st = { switches: {}, vehicles: {}, trains: {}, air: {}, gaps: {}, nextTrain: 1, notice: null };
     for (const id in SWITCHES) st.switches[id] = { set: SWITCHES[id].normal };
     state = st;                           // walk() reads the switches as it lays trains out
     for (const t of START_TRAINS) {
-      const train = { id: "t" + st.nextTrain++, vehicles: [], speed: 0 };
+      const train = { id: "t" + st.nextTrain++, vehicles: [] };
       let end = { seg: t.segment, s: t.s, travel: -t.dir };   // walking back from the head
       for (const v of t.vehicles) {
         const half = VEHICLE_TYPES[v.type].length / 2;
         const c = walk(end.seg, end.s, end.travel, half);
         const veh = { id: v.id, type: v.type, train: train.id, seg: c.seg, s: c.s, dir: -c.travel,
-                      flip: v.flip || 1, handBrake: false };
+                      flip: v.flip || 1, speed: 0, handBrake: false };
         if (VEHICLE_TYPES[v.type].loco) veh.controls = { reverser: 0, throttle: 0, locoBrake: 0, trainBrake: 0,
           locoApplied: 0, trainApplied: 0, emergency: false };
         st.vehicles[v.id] = veh;
+        if (train.vehicles.length) st.gaps[pairKey(train.vehicles[train.vehicles.length - 1], v.id)] = 0;
         train.vehicles.push(v.id);
         end = walk(c.seg, c.s, c.travel, half);
       }
@@ -463,11 +482,6 @@
     return { head: vehicleEnds(state.vehicles[t.vehicles[0]]).head,
              tail: vehicleEnds(state.vehicles[t.vehicles[t.vehicles.length - 1]]).tail };
   }
-  function trainMass(t) {
-    let m = 0;
-    for (const id of t.vehicles) m += vehicleType(state.vehicles[id]).mass;
-    return m;
-  }
   const playerLoco = () => state.vehicles[PLAYER_LOCO];
   // A coupling's identity: the ids of the two vehicles it joins, in order.
   const pairKey = (a, b) => a < b ? a + "|" + b : b + "|" + a;
@@ -484,8 +498,7 @@
   // swapped.
   function reverseTrain(t) {
     t.vehicles.reverse();
-    t.speed = -t.speed;
-    for (const id of t.vehicles) { state.vehicles[id].dir *= -1; state.vehicles[id].flip *= -1; }
+    for (const id of t.vehicles) { const v = state.vehicles[id]; v.dir *= -1; v.flip *= -1; v.speed = -v.speed; }
   }
 
   function setNotice(text) { state.notice = { text, time: NOTICE_SECONDS }; }
@@ -534,50 +547,67 @@
     return reach;
   }
 
-  // Each train's pull (+ toward its head) and the force holding it back, as
-  // worked out by accelerate() this step; contact() reads them.
-  const forces = {};
-
-  // Changes a train's speed by the forces on it: locos pull; rolling and
-  // curve resistance and brakes hold back, never more than it takes to stop.
-  // The train brake reaches only cars with their air connected and charged;
-  // a hand brake holds whatever train its car is in.
-  function accelerate(t, dt) {
-    const mass = trainMass(t), reach = brakeReach(t);
+  // The forces on each vehicle of a train this step, by id: `pull` (+
+  // toward the head), `hold` from brakes, and the resistance to rolling
+  // (`roll`) or to getting a standing vehicle moving (`start`). Curves add
+  // to both. The train brake reaches only cars with their air connected and
+  // charged; a hand brake holds its car whatever train it is in.
+  function vehicleForces(t, out) {
+    const reach = brakeReach(t);
     let trainApplied = 0;
     for (const id of t.vehicles) {
       const c = state.vehicles[id].controls;
       if (c) trainApplied = Math.max(trainApplied, c.trainApplied);
     }
-    let pull = 0, brake = 0, roll = 0, start = 0;
     for (const id of t.vehicles) {
       const v = state.vehicles[id], type = vehicleType(v), c = v.controls, weight = type.mass * G;
+      let pull = 0, hold = 0;
       if (c && c.throttle && c.reverser) {
         const sense = c.reverser * v.flip;                        // toward the head, or not
-        const along = t.speed * sense;                            // speed in the direction of pull
+        const along = v.speed * sense;                            // speed in the direction of pull
         const share = c.throttle / THROTTLE_NOTCHES;
         const force = Math.min(LOCO_MAX_FORCE, LOCO_POWER / Math.max(Math.abs(along), EPS));
         const governor = Math.max(0, Math.min(1, (LOCO_MAX_SPEED - along) / GOVERNOR_BAND));
-        pull += sense * share * force * governor;
+        pull = sense * share * force * governor;
       }
-      if (c) brake += c.locoApplied * LOCO_BRAKE_RATIO * weight;
-      brake += trainApplied * TRAIN_BRAKE_RATIO * weight * reach[id];
-      if (v.handBrake) brake += HAND_BRAKE_FORCE;
+      if (c) hold += c.locoApplied * LOCO_BRAKE_RATIO * weight;
+      hold += trainApplied * TRAIN_BRAKE_RATIO * weight * reach[id];
+      if (v.handBrake) hold += HAND_BRAKE_FORCE;
       const radius = SHAPES[v.seg].radius;
       const curve = radius ? CURVE_RESISTANCE / radius * weight : 0;
-      roll += DAVIS_WEIGHT_SHARE * weight + type.axles * BEARING_AXLE_DRAG[type.bearing] + curve;
-      start += STARTING_RESISTANCE[type.bearing] * weight + curve;
+      out[id] = { pull, hold,
+                  roll: DAVIS_WEIGHT_SHARE * weight + type.axles * BEARING_AXLE_DRAG[type.bearing] + curve,
+                  start: STARTING_RESISTANCE[type.bearing] * weight + curve };
     }
-    forces[t.id] = { pull, hold: brake + (t.speed === 0 ? start : roll) };
-    if (t.speed === 0) {
-      // Standing: it stays put unless the pull beats brakes and starting resistance.
-      if (Math.abs(pull) <= brake + start) return;
-      t.speed = Math.sign(pull) * (Math.abs(pull) - brake - roll) / mass * dt;
+  }
+
+  // The force in the coupling between `front` and the vehicle `back` behind
+  // it: + pulling them together (stretched), − pushing them apart (bunched),
+  // nothing while the gap is within the free play.
+  function couplerForce(front, back) {
+    const gap = state.gaps[pairKey(front.id, back.id)];
+    if (gap >= 0 && gap <= COUPLER_FREE_PLAY) return 0;
+    const opening = front.speed - back.speed;                     // how fast the gap grows
+    const mF = vehicleType(front).mass, mB = vehicleType(back).mass;
+    const damping = 2 * DRAFT_GEAR_DAMPING * Math.sqrt(DRAFT_GEAR_STIFFNESS * mF * mB / (mF + mB));
+    if (gap > 0) return Math.max(0, DRAFT_GEAR_STIFFNESS * (gap - COUPLER_FREE_PLAY) + damping * opening);
+    return Math.min(0, DRAFT_GEAR_STIFFNESS * gap + damping * opening);
+  }
+
+  // Changes a vehicle's speed by `applied` (its pull and coupler forces, +
+  // toward the head) against its brakes and resistance, which hold back
+  // but never more than it takes to stop. A standing vehicle stays put
+  // until `applied` beats its brakes and starting resistance, so a loco
+  // takes up the slack and starts a cut one car at a time.
+  function accelerateVehicle(v, f, applied, dt) {
+    const m = vehicleType(v).mass;
+    if (v.speed === 0) {
+      if (Math.abs(applied) <= f.hold + f.start) return;
+      v.speed = Math.sign(applied) * (Math.abs(applied) - f.hold - f.roll) / m * dt;
       return;
     }
-    const hold = brake + roll;
-    const next = t.speed + (pull - Math.sign(t.speed) * hold) / mass * dt;
-    t.speed = Math.sign(next) === Math.sign(t.speed) ? next : 0;
+    const next = v.speed + (applied - Math.sign(v.speed) * (f.hold + f.roll)) / m * dt;
+    v.speed = Math.sign(next) === Math.sign(v.speed) ? next : 0;
   }
 
   // The nearest thing ahead of a train end within `dist` metres: another
@@ -612,77 +642,115 @@
     }
   }
 
-  // Moves every vehicle of a train `d` metres (+ toward its head).
-  function moveTrain(t, d) {
+  // Moves a vehicle `d` metres (+ toward its train's head).
+  function moveVehicle(v, d) {
     if (d === 0) return;
     const sense = Math.sign(d);
-    for (const id of t.vehicles) {
-      const v = state.vehicles[id];
-      const p = walk(v.seg, v.s, v.dir * sense, Math.abs(d), true);
-      v.seg = p.seg; v.s = p.s; v.dir = p.travel * sense;
-    }
-    for (const id of t.vehicles) trailSwitches(state.vehicles[id]);
+    const p = walk(v.seg, v.s, v.dir * sense, Math.abs(d), true);
+    v.seg = p.seg; v.s = p.s; v.dir = p.travel * sense;
+    trailSwitches(v);
   }
 
-  // Train X's end `xEnd` has met train Y's end `yEnd`. Speeds are compared
+  // How hard each pair of touching train ends presses together, by pair key:
+  // the push between them averaged over PRESS_SECONDS, so a brief bump
+  // counts for little and a steady shove for its full force.
+  const pressing = {};
+
+  // The vehicle at end `which` ("head" or "tail") of train `t`.
+  const endVehicle = (t, which) => state.vehicles[t.vehicles[which === "head" ? 0 : t.vehicles.length - 1]];
+  // Which end of train `t` its end vehicle `v` is; for a train of one, the
+  // end it met with, `which`.
+  const endOf = (t, v, which) => t.vehicles.length === 1 ? which : t.vehicles[0] === v.id ? "head" : "tail";
+
+  // Train X's end `xEnd` has met train Y's end `yEnd`. The two end vehicles
+  // meet; the rest feel it through their couplings. Speeds are compared
   // along one axis, pointing from X into Y.
   function contact(X, xEnd, Y, yEnd) {
+    const a = endVehicle(X, xEnd), b = endVehicle(Y, yEnd);
     const xs = xEnd === "head" ? 1 : -1, ys = yEnd === "head" ? -1 : 1;
-    const uX = X.speed * xs, uY = Y.speed * ys, closing = uX - uY;
+    const uA = a.speed * xs, uB = b.speed * ys, closing = uA - uB;
     if (closing <= 0) return;                                   // already parting
-    const mX = trainMass(X), mY = trainMass(Y);
-    const shared = (mX * uX + mY * uY) / (mX + mY);              // momentum is kept
+    const mA = vehicleType(a).mass, mB = vehicleType(b).mass;
+    const shared = (mA * uA + mB * uB) / (mA + mB);              // momentum is kept
     if (closing > COUPLE_MAX_SPEED) {
-      X.speed = (shared + HARD_HIT_RESTITUTION * (shared - uX)) * xs;
-      Y.speed = (shared + HARD_HIT_RESTITUTION * (shared - uY)) * ys;
+      a.speed = (shared + HARD_HIT_RESTITUTION * (shared - uA)) * xs;
+      b.speed = (shared + HARD_HIT_RESTITUTION * (shared - uB)) * ys;
       setNotice(`Hard hit at ${(closing * 3.6).toFixed(0)} km/h`);
       return;
     }
-    // How hard the two press together, from this step's forces: each one's
-    // net force along the axis, shared out by mass as they move as one.
-    const none = { pull: 0, hold: 0 }, fX = forces[X.id] || none, fY = forces[Y.id] || none;
-    const netX = fX.pull * xs - fX.hold, netY = fY.pull * ys - fY.hold;
-    const press = (mY * netX - mX * netY) / (mX + mY);
-    if (closing >= COUPLE_MIN_SPEED || press >= COUPLE_PUSH_FORCE) {
-      couple(X, xEnd, Y, yEnd, shared);
-      return;
+    const k = pairKey(a.id, b.id);
+    pressing[k] = (pressing[k] || 0) + mB * (shared - uB) / PRESS_SECONDS;
+    a.speed = shared * xs;
+    b.speed = shared * ys;
+    // Fast enough, or pressed hard enough, they couple; else a gentle touch
+    // just pushes.
+    if (closing >= COUPLE_MIN_SPEED || pressing[k] >= COUPLE_PUSH_FORCE) {
+      delete pressing[k];
+      couple(X, xEnd, Y, yEnd);
     }
-    // A gentle touch: they move on together, still apart.
-    X.speed = shared * xs;
-    Y.speed = shared * ys;
   }
 
   // Joins Y onto X. X's coupling end becomes its tail and Y's its head, so
-  // the joined train runs X's vehicles then Y's. `shared` is the joined
-  // speed along the X-into-Y axis, which then points away from the head.
-  function couple(X, xEnd, Y, yEnd, shared) {
+  // the joined train runs X's vehicles then Y's. The new coupling starts
+  // fully bunched, the two ends touching.
+  function couple(X, xEnd, Y, yEnd) {
     if (xEnd === "head") reverseTrain(X);
     if (yEnd === "tail") reverseTrain(Y);
+    state.gaps[pairKey(X.vehicles[X.vehicles.length - 1], Y.vehicles[0])] = 0;
     for (const id of Y.vehicles) state.vehicles[id].train = X.id;
     X.vehicles = X.vehicles.concat(Y.vehicles);
-    X.speed = -shared;
     delete state.trains[Y.id];
   }
 
-  // Moves a train by its speed, stopping short at whatever it meets.
+  // Moves each vehicle of a train by its own speed. The two end vehicles
+  // stop short at whatever they meet, then meet it; each coupling's gap
+  // changes by how far its two vehicles moved apart.
   function advance(t, dt) {
-    const d = t.speed * dt;
-    if (d === 0) return;
-    const ends = trainEnds(t), lead = d > 0 ? "head" : "tail";
-    const hit = findObstacle(ends[lead], Math.abs(d), t.id);
-    if (!hit) { moveTrain(t, d); return; }
-    moveTrain(t, Math.sign(d) * hit.gap);
-    if (hit.kind === "train") { contact(t, lead, state.trains[hit.train], hit.which); return; }
-    // A buffer stop: the train stops against it.
-    if (Math.abs(t.speed) > COUPLE_MAX_SPEED) setNotice(`Hit the buffers at ${(Math.abs(t.speed) * 3.6).toFixed(0)} km/h`);
-    t.speed = 0;
+    const ids = t.vehicles.slice(), last = ids.length - 1, moved = {}, hits = [];
+    ids.forEach((id, i) => {
+      const v = state.vehicles[id], d = v.speed * dt;
+      const lead = i === 0 && d > 0 ? "head" : i === last && d < 0 ? "tail" : null;
+      const hit = lead && findObstacle(vehicleEnds(v)[lead], Math.abs(d), t.id);
+      moved[id] = hit ? Math.sign(d) * hit.gap : d;
+      moveVehicle(v, moved[id]);
+      if (hit) hits.push({ v, lead, hit, other: hit.kind === "train" && endVehicle(state.trains[hit.train], hit.which) });
+    });
+    for (let i = 0; i < last; i++) state.gaps[pairKey(ids[i], ids[i + 1])] += moved[ids[i]] - moved[ids[i + 1]];
+    for (const { v, lead, hit, other } of hits) {
+      if (hit.kind === "buffer") {
+        // A buffer stop: the vehicle stops against it.
+        if (Math.abs(v.speed) > COUPLE_MAX_SPEED) setNotice(`Hit the buffers at ${(Math.abs(v.speed) * 3.6).toFixed(0)} km/h`);
+        v.speed = 0;
+        continue;
+      }
+      // An earlier meeting this substep may have joined or turned the trains.
+      const X = trainOf(v), Y = trainOf(other);
+      if (X !== Y) contact(X, endOf(X, v, lead), Y, endOf(Y, other, hit.which));
+    }
+  }
+
+  // One substep: coupler forces, then speeds, then moves.
+  function substep(forces, dt) {
+    for (const id in state.trains) {
+      const ids = state.trains[id].vehicles, applied = {};
+      for (const vid of ids) applied[vid] = forces[vid].pull;
+      for (let i = 0; i + 1 < ids.length; i++) {
+        const tension = couplerForce(state.vehicles[ids[i]], state.vehicles[ids[i + 1]]);
+        applied[ids[i]] -= tension;
+        applied[ids[i + 1]] += tension;
+      }
+      for (const vid of ids) accelerateVehicle(state.vehicles[vid], forces[vid], applied[vid], dt);
+    }
+    for (const k in pressing) if ((pressing[k] -= pressing[k] * dt / PRESS_SECONDS) < 1) delete pressing[k];
+    for (const id of Object.keys(state.trains)) if (state.trains[id]) advance(state.trains[id], dt);
   }
 
   function step(dt) {
     for (const id in state.vehicles) if (state.vehicles[id].controls) stepBrakes(state.vehicles[id].controls, dt);
     for (const id in state.trains) stepAir(state.trains[id], dt);
-    for (const id in state.trains) accelerate(state.trains[id], dt);
-    for (const id of Object.keys(state.trains)) if (state.trains[id]) advance(state.trains[id], dt);
+    const forces = {};
+    for (const id in state.trains) vehicleForces(state.trains[id], forces);
+    for (let i = 0; i < SLACK_SUBSTEPS; i++) substep(forces, dt / SLACK_SUBSTEPS);
     if (state.notice && (state.notice.time -= dt) <= 0) state.notice = null;
   }
 
@@ -710,7 +778,7 @@
     const next = clampNotch(c.reverser + delta, -1, 1);
     if (next === c.reverser) return false;
     if (c.throttle) { setNotice("Shut the throttle first"); return false; }
-    if (trainOf(v).speed !== 0) { setNotice("Stop before moving the reverser"); return false; }
+    if (v.speed !== 0) { setNotice("Stop before moving the reverser"); return false; }
     c.reverser = next;
     return true;
   }
@@ -773,7 +841,8 @@
     const v = state.vehicles[vehicleId], t = trainOf(v), i = t.vehicles.indexOf(vehicleId);
     if (i < 0 || i === t.vehicles.length - 1) return false;
     delete state.air[pairKey(vehicleId, t.vehicles[i + 1])];
-    const rest = { id: "t" + state.nextTrain++, vehicles: t.vehicles.slice(i + 1), speed: t.speed };
+    delete state.gaps[pairKey(vehicleId, t.vehicles[i + 1])];
+    const rest = { id: "t" + state.nextTrain++, vehicles: t.vehicles.slice(i + 1) };
     t.vehicles = t.vehicles.slice(0, i + 1);
     for (const id of rest.vehicles) state.vehicles[id].train = rest.id;
     state.trains[rest.id] = rest;
@@ -1027,7 +1096,7 @@
     const loco = playerLoco(), c = loco.controls, t = trainOf(loco);
     const cars = t.vehicles.length - 1, reach = brakeReach(t);
     const braked = t.vehicles.filter(id => !state.vehicles[id].controls && reach[id] >= 1).length;
-    readout.innerHTML = `<span>${(Math.abs(t.speed) * 3.6).toFixed(1)} km/h · ` +
+    readout.innerHTML = `<span>${(Math.abs(loco.speed) * 3.6).toFixed(1)} km/h · ` +
       `${cars} car${cars === 1 ? "" : "s"}${cars ? ` · air ${braked}/${cars}` : ""}</span>` +
       `<small>v${GAME_CONFIG.VERSION}</small>`;
     followBtn.classList.toggle("on", camera.follow);

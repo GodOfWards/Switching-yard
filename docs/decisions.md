@@ -3,6 +3,13 @@
 Design calls Tom has made, newest first, with where they were made. The
 values these produced live in CONFIG and WORLD DATA in `index.html`.
 
+## 2026-10-08: Slack
+
+- **Each vehicle moves on its own**, joined by couplings with about 5 cm of
+  free play and a stiff draft gear, so a loco starts a cut one car at a
+  time and a cut runs in on the loco brake (#26). Replaces the one rigid
+  train of Physics A–H.
+
 ## 2026-10-08: Physics update, first part
 
 Made in the "Realistic physics update design" thread. These replace
