@@ -32,3 +32,4 @@ and WORLD DATA in `index.html`; this folder is where they came from.
 | [train-physics.md](train-physics.md) | Rolling and starting resistance, brake rates, switching without air, curves |
 | [argentine-rolling-stock-naming.md](argentine-rolling-stock-naming.md) | Line initials, FA loco numbers, Spanish car type names, current operators |
 | [junin-yard.md](junin-yard.md) | Junín yard from OpenStreetMap, the depot fan section and how it became game track |
+| [switch-indicators.md](switch-indicators.md) | How Argentine railways show a switch's position (RGF art. 100), and the track figures used to draw rails |
