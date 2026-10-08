@@ -30,7 +30,8 @@ build step, no dependencies. Open it in a browser to run it.
   beside it in `docs/reference/`.
 - **Pending work and open designs live in GitHub Issues**: one kind label
   each, the kind's template, the body kept as the current truth, closed by
-  the pull request that says `Closes #NN`. `designed` marks a design Tom has
+  the pull request that says `Closes #NN`. Anything raised or found is filed
+  first, before anyone works on it. `designed` marks a design Tom has
   confirmed done. → `docs/issues.md`
 
 ## The wrap

@@ -39,8 +39,29 @@ coefficients) or an AAR or FA braking standard would confirm them.
 - Real stock slows more on a tight curve. The game has no curve drag yet;
   adding it would be a new rule and is Tom's call.
 
+## Couplers
+
+Researched 2026-10-08.
+
+- **FA ran two coupler systems on broad (1676 mm) and standard gauge.**
+  Its 1982 coupler-height standard sets a **central hook** ("gancho
+  central", the hook with screw link and side buffers) at 1055.5 mm and an
+  **automatic coupler** at 900 mm, both for 1676 and 1435 mm gauge. Metre
+  gauge (804 mm) and 750 mm (660 mm) are listed with automatic couplers
+  only. **Confirmed** (FAT E-726).
+- So in the FA era both were in service. Which cars and locos carried
+  which, and in what share, is **Unconfirmed**: a FA rolling-stock list or
+  a NEFA drawing per car type would settle it.
+- A hook-and-screw coupling never joins on impact: someone drops the link
+  over the hook and tightens the screw by hand. An automatic coupler joins
+  on impact only if one knuckle is open. **Unconfirmed** here (general
+  railway practice, no source recorded).
+
 ## Sources
 
-None recorded. The figures came from the switcher research thread, whose
+- Couplers: [FAT E-726, Alturas de enganches de vehículos en Ferrocarriles
+  Argentinos, Nov 1982 (CNRT copy)](https://argentina.gob.ar/sites/default/files/normas_fat/FAT_E_726.pdf)
+
+Otherwise none recorded. The figures came from the switcher research thread, whose
 cited sources ([locomotives.md](locomotives.md)) cover the locos, not these
 values.
