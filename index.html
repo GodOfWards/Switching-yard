@@ -75,7 +75,8 @@
   // mechanics are kept apart so a pass can touch one without the other.
   //
   //   CONFIG       version and every tunable game rule, as named constants.
-  //   WORLD DATA   the yard: track nodes, segments between them, switches;
+  //   WORLD DATA   the yard: track nodes, straight or curved segments between
+  //                them, switches;
   //                the kinds of rolling stock and where it starts.
   //                Content passes (a new siding, a new yard) touch only this.
   //   STATE        what changes while playing: switch positions, vehicles,
@@ -109,7 +110,7 @@
   // ==================================================
   // CONFIG
   // ==================================================
-  const GAME_CONFIG = { VERSION: "0.2.0" };
+  const GAME_CONFIG = { VERSION: "0.2.1" };
   const STEP_SECONDS = 1 / 60;          // fixed simulation step
   const MAX_STEPS_PER_FRAME = 5;        // drop time rather than spiral after a stall
   const VIEW_MARGIN = 8;                // metres of ground kept around the yard
@@ -153,31 +154,91 @@
   // ==================================================
   // WORLD DATA
   // ==================================================
-  // A small yard: a main line with a two-switch ladder into two sidings.
-  // Every segment is a straight line from node `a` to node `b`. A switch sits
-  // on a node: `trunk` is the single-track side, `legs` the two diverging
-  // routes, and `normal` the leg it starts set to. A node with only one
-  // segment is the end of track, with a buffer stop.
+  // A yard off a main line. From the west: a headshunt, then a ladder of
+  // four sidings to the south, a run-around loop to the north and a curved
+  // industry spur at the east end.
+  //
+  // Every segment runs from node `a` to node `b`: a straight line, or, with
+  // `r`, a circular curve of radius |r| metres that bends right (r > 0) or
+  // left (r < 0) on the way from a to b, as seen on a map with north up.
+  // Track joins smoothly: where segments meet, the curves are laid out so
+  // the directions match. A switch sits on a node: `trunk` is the
+  // single-track side, `legs` the two diverging routes, and `normal` the leg
+  // it starts set to. A node with only one segment is the end of track, with
+  // a buffer stop.
+  //
+  // Turnouts and ladder leave at 25° on 50 m curves, with tracks 12 m apart.
+  // Real yards use about 7° and 5 m; both are widened so the yard reads on a
+  // phone. Retunable: the layout is only these numbers.
   const NODES = {
-    westEnd:   { x: 10,  y: 40 },
-    sw1:       { x: 70,  y: 40 },
-    eastEnd:   { x: 230, y: 40 },
-    sw2:       { x: 95,  y: 65 },
-    s1End:     { x: 220, y: 65 },
-    s2Bend:    { x: 120, y: 90 },
-    s2End:     { x: 210, y: 90 },
+    westEnd:   { x: 0,      y: 0 },
+    L0:        { x: 50,     y: 0 },
+    raW:       { x: 125,    y: 0 },
+    raE:       { x: 275,    y: 0 },
+    ind:       { x: 300,    y: 0 },
+    eastEnd:   { x: 330,    y: 0 },
+    rw1:       { x: 146.13, y: -4.68 },
+    rw2:       { x: 151.77, y: -7.32 },
+    rw3:       { x: 172.9,  y: -12 },
+    re1:       { x: 253.87, y: -4.68 },
+    re2:       { x: 248.23, y: -7.32 },
+    re3:       { x: 227.1,  y: -12 },
+    lad0:      { x: 71.13,  y: 4.68 },
+    L1:        { x: 76.77,  y: 7.32 },
+    s1Start:   { x: 97.9,   y: 12 },
+    s1End:     { x: 255,    y: 12 },
+    L2:        { x: 102.51, y: 19.32 },
+    s2Start:   { x: 123.64, y: 24 },
+    s2End:     { x: 245,    y: 24 },
+    L3:        { x: 128.24, y: 31.32 },
+    s3Start:   { x: 149.37, y: 36 },
+    s3End:     { x: 235,    y: 36 },
+    lad4:      { x: 153.97, y: 43.32 },
+    s4Start:   { x: 175.11, y: 48 },
+    s4End:     { x: 225,    y: 48 },
+    indBend:   { x: 335,    y: 35 },
+    indEnd:    { x: 335,    y: 75 },
   };
   const SEGMENTS = {
-    mainWest:  { a: "westEnd", b: "sw1" },
-    mainEast:  { a: "sw1",     b: "eastEnd" },
-    lead:      { a: "sw1",     b: "sw2" },
-    siding1:   { a: "sw2",     b: "s1End" },
-    s2Curve:   { a: "sw2",     b: "s2Bend" },
-    siding2:   { a: "s2Bend",  b: "s2End" },
+    headshunt:   { a: "westEnd", b: "L0" },
+    main1:       { a: "L0",      b: "raW" },
+    main2:       { a: "raW",     b: "raE" },
+    main3:       { a: "raE",     b: "ind" },
+    mainEast:    { a: "ind",     b: "eastEnd" },
+    // Run-around: out of the main and back, over a reverse curve at each end.
+    rwCurve1:    { a: "raW",     b: "rw1",     r: -50 },
+    rwCross:     { a: "rw1",     b: "rw2" },
+    rwCurve2:    { a: "rw2",     b: "rw3",     r: 50 },
+    loop:        { a: "rw3",     b: "re3" },
+    reCurve2:    { a: "re3",     b: "re2",     r: 50 },
+    reCross:     { a: "re2",     b: "re1" },
+    reCurve1:    { a: "re1",     b: "raE",     r: -50 },
+    // Ladder: a straight track at 25° with each siding curving off it.
+    ladderCurve: { a: "L0",      b: "lad0",    r: 50 },
+    ladder1:     { a: "lad0",    b: "L1" },
+    ladder2:     { a: "L1",      b: "L2" },
+    ladder3:     { a: "L2",      b: "L3" },
+    ladder4:     { a: "L3",      b: "lad4" },
+    s1Curve:     { a: "L1",      b: "s1Start", r: -50 },
+    siding1:     { a: "s1Start", b: "s1End" },
+    s2Curve:     { a: "L2",      b: "s2Start", r: -50 },
+    siding2:     { a: "s2Start", b: "s2End" },
+    s3Curve:     { a: "L3",      b: "s3Start", r: -50 },
+    siding3:     { a: "s3Start", b: "s3End" },
+    s4Curve:     { a: "lad4",    b: "s4Start", r: -50 },
+    siding4:     { a: "s4Start", b: "s4End" },
+    // Industry spur: a quarter circle south off the main.
+    indCurve:    { a: "ind",     b: "indBend", r: 35 },
+    industry:    { a: "indBend", b: "indEnd" },
   };
   const SWITCHES = {
-    sw1: { trunk: "mainWest", legs: ["mainEast", "lead"],     normal: "mainEast" },
-    sw2: { trunk: "lead",     legs: ["siding1", "s2Curve"],   normal: "siding1" },
+    L0:  { trunk: "headshunt", legs: ["main1", "ladderCurve"], normal: "main1" },
+    L1:  { trunk: "ladder1",   legs: ["s1Curve", "ladder2"],   normal: "s1Curve" },
+    L2:  { trunk: "ladder2",   legs: ["s2Curve", "ladder3"],   normal: "s2Curve" },
+    L3:  { trunk: "ladder3",   legs: ["s3Curve", "ladder4"],   normal: "s3Curve" },
+    raW: { trunk: "main1",     legs: ["main2", "rwCurve1"],    normal: "main2" },
+    raE: { trunk: "main3",     legs: ["main2", "reCurve1"],    normal: "main2" },
+    ind: { trunk: "main3",     legs: ["mainEast", "indCurve"], normal: "mainEast" },
   };
 
   // Kinds of rolling stock. Lengths are over the couplers.
@@ -190,11 +251,14 @@
   // metres along `segment` and faces `dir` (+1 toward the segment's `b`).
   // A loco's cab faces the head unless it has `flip: -1`.
   const START_TRAINS = [
-    { segment: "mainWest", s: 37, dir: 1, vehicles: [{ id: "loco1", type: "shunter" }] },
-    { segment: "siding1", s: 124, dir: 1, vehicles: [
+    { segment: "headshunt", s: 32, dir: 1, vehicles: [{ id: "loco1", type: "shunter" }] },
+    { segment: "siding1", s: 155, dir: 1, vehicles: [
       { id: "car1", type: "boxLoaded" }, { id: "car2", type: "boxLoaded" }, { id: "car3", type: "boxEmpty" }] },
-    { segment: "siding2", s: 89, dir: 1, vehicles: [
+    { segment: "siding2", s: 119, dir: 1, vehicles: [
       { id: "car4", type: "boxEmpty" }, { id: "car5", type: "boxEmpty" }] },
+    { segment: "siding3", s: 84, dir: 1, vehicles: [
+      { id: "car6", type: "boxLoaded" }, { id: "car7", type: "boxEmpty" }] },
+    { segment: "industry", s: 38, dir: 1, vehicles: [{ id: "car8", type: "boxLoaded" }] },
   ];
   const PLAYER_LOCO = "loco1";
 
@@ -229,16 +293,33 @@
   // ==================================================
   // UTILITIES
   // ==================================================
-  function segmentLength(segId) {
-    const { a, b } = SEGMENTS[segId];
-    return Math.hypot(NODES[b].x - NODES[a].x, NODES[b].y - NODES[a].y);
+  // Each segment's shape, built once from WORLD DATA: its length along the
+  // track and, for a curve, its centre, radius, the angle of `a` seen from
+  // the centre, and `turn` (+1 bending right, -1 left).
+  const SHAPES = {};
+  for (const id in SEGMENTS) {
+    const { a, b, r } = SEGMENTS[id], A = NODES[a], B = NODES[b];
+    const dx = B.x - A.x, dy = B.y - A.y, chord = Math.hypot(dx, dy);
+    if (!r) { SHAPES[id] = { length: chord }; continue; }
+    const radius = Math.abs(r), turn = Math.sign(r), half = chord / 2;
+    if (radius < half) console.warn(`Segment ${id}: radius ${radius} m is too tight for its ends`);
+    // The centre stands off the chord's midpoint, to the side it bends toward.
+    const off = Math.sqrt(Math.max(0, radius * radius - half * half)) * turn / chord;
+    const cx = A.x + dx / 2 - dy * off, cy = A.y + dy / 2 + dx * off;
+    SHAPES[id] = { length: radius * 2 * Math.asin(Math.min(1, half / radius)),
+                   cx, cy, radius, turn, start: Math.atan2(A.y - cy, A.x - cx) };
   }
-  // The point `s` metres from a segment's `a` end, and the unit vector a→b.
+  const segmentLength = segId => SHAPES[segId].length;
+  // The point `s` metres along a segment from its `a` end, and the unit
+  // vector of the track's direction there, pointing toward `b`.
   function pointOn(segId, s) {
-    const { a, b } = SEGMENTS[segId];
-    const len = segmentLength(segId);
-    const ux = (NODES[b].x - NODES[a].x) / len, uy = (NODES[b].y - NODES[a].y) / len;
-    return { x: NODES[a].x + ux * s, y: NODES[a].y + uy * s, ux, uy };
+    const g = SHAPES[segId], A = NODES[SEGMENTS[segId].a];
+    if (!g.radius) {
+      const B = NODES[SEGMENTS[segId].b], ux = (B.x - A.x) / g.length, uy = (B.y - A.y) / g.length;
+      return { x: A.x + ux * s, y: A.y + uy * s, ux, uy };
+    }
+    const angle = g.start + g.turn * s / g.radius, cos = Math.cos(angle), sin = Math.sin(angle);
+    return { x: g.cx + g.radius * cos, y: g.cy + g.radius * sin, ux: -g.turn * sin, uy: g.turn * cos };
   }
   // Segments meeting at each node, built once from WORLD DATA.
   const SEGMENTS_AT = {};
@@ -521,9 +602,18 @@
   const levers = { thr: document.getElementById("thrLever"), lb: document.getElementById("lbLever"),
                    tb: document.getElementById("tbLever") };
 
-  // World bounds, from WORLD DATA, once.
+  // Points every few metres along a stretch of a segment, from `s0` to `s1`,
+  // for drawing it. A straight needs only its ends.
+  function trackPoints(segId, s0, s1) {
+    const n = SHAPES[segId].radius ? Math.max(1, Math.ceil(Math.abs(s1 - s0) / 2)) : 1, out = [];
+    for (let i = 0; i <= n; i++) out.push(pointOn(segId, s0 + (s1 - s0) * i / n));
+    return out;
+  }
+
+  // World bounds, from WORLD DATA, once. Curves can bow out past their nodes.
   const BOUNDS = (() => {
-    const xs = Object.values(NODES).map(n => n.x), ys = Object.values(NODES).map(n => n.y);
+    const pts = Object.keys(SEGMENTS).flatMap(id => trackPoints(id, 0, segmentLength(id)));
+    const xs = pts.map(p => p.x), ys = pts.map(p => p.y);
     return { minX: Math.min(...xs) - VIEW_MARGIN, maxX: Math.max(...xs) + VIEW_MARGIN,
              minY: Math.min(...ys) - VIEW_MARGIN, maxY: Math.max(...ys) + VIEW_MARGIN };
   })();
@@ -560,6 +650,12 @@
     ctx.strokeStyle = colour; ctx.lineWidth = width;
     ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
   }
+  function polyline(points, colour, width) {
+    ctx.strokeStyle = colour; ctx.lineWidth = width;
+    ctx.beginPath();
+    points.forEach((p, i) => { const c = view.toScreen(p.x, p.y); i ? ctx.lineTo(c.x, c.y) : ctx.moveTo(c.x, c.y); });
+    ctx.stroke();
+  }
   const endPoint = e => pointOn(e.seg, e.s);
   // A point `d` metres from `p` toward `q`.
   function toward(p, q, d) {
@@ -584,10 +680,7 @@
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.lineCap = "round";
     const trackWidth = Math.max(3, k);
-    for (const id in SEGMENTS) {
-      const { a, b } = SEGMENTS[id];
-      line(NODES[a].x, NODES[a].y, NODES[b].x, NODES[b].y, "#6b6a64", trackWidth);
-    }
+    for (const id in SEGMENTS) polyline(trackPoints(id, 0, segmentLength(id)), "#6b6a64", trackWidth);
     // Buffer stops at every end of track.
     for (const id in NODES) {
       if (SEGMENTS_AT[id].length !== 1) continue;
@@ -597,9 +690,10 @@
 
     // Switches: the leg each is set to is drawn bright from the node out.
     for (const id in SWITCHES) {
-      const n = NODES[id], set = state.switches[id].set;
-      const far = pointOn(set, SEGMENTS[set].a === id ? 12 : segmentLength(set) - 12);
-      line(n.x, n.y, far.x, far.y, "#e3c55a", trackWidth);
+      const n = NODES[id], set = state.switches[id].set, len = segmentLength(set);
+      const reach = Math.min(12, len);
+      polyline(SEGMENTS[set].a === id ? trackPoints(set, 0, reach) : trackPoints(set, len, len - reach),
+        "#e3c55a", trackWidth);
       const c = view.toScreen(n.x, n.y);
       ctx.fillStyle = "#e3c55a";
       ctx.beginPath(); ctx.arc(c.x, c.y, Math.max(6, trackWidth * 1.4), 0, Math.PI * 2); ctx.fill();
