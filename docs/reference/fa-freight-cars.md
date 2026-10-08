@@ -7,6 +7,8 @@ Load limits, tares and markings of Ferrocarriles Argentinos broad-gauge
 - **Car marks: both kinds** (2026-10-08, #54). Most cars carry FA's
   unified panel (monogram and type code); a few not yet repainted keep
   their line's initials. The share is retunable.
+- **Paint: FA's colours** (2026-10-08, #64), grey box, grain and open
+  cars alike; cars still in line marks keep an older brown.
 
 **Status:** load limits, some tares, the numbering, the marking layout and
 the paint colours are **Confirmed**, read on FA's own technical
@@ -178,21 +180,19 @@ Unconfirmed and retunable.
   and an empty one 19–21 t. The game's earlier box cars were 60 t loaded
   and 25 t empty, the figures in [train-physics.md](train-physics.md)'s
   worked example.
-- Cars carry the initials of one of the four broad-gauge lines (FCGSM,
-  FCDFS, FCGBM, FCGR); Junín is San Martín, so most are FCGSM. Which
-  numbers go to which kind is the game's, not FA's.
+- Most cars carry the FA panel: FA, the type code's first three digits
+  (type, sub-type, operating digit 3) and the number, with **T** and **C**
+  stencils in kg. Two not yet repainted keep a broad-gauge line's initials
+  (FCDFS, FCGR) and an older brown, whose real shade isn't recorded. Which
+  numbers go to which kind, and which cars keep line marks, is the game's.
+- Paint is FA's (table above), except the gasoil tank's black, lightened so
+  it shows on the black yard.
 
-**Where the game and FA disagree** (fixing them is Tom's call, #54):
+**Where the game and FA still differ:**
 
-- **Line initials.** FA's unified marking carries the FA monogram, not the
-  line's initials (NEFA 555). Tom chose both (above); #55 shows initials
-  on every car.
-- **Body colours.** The game's cubierto and borde alto are brown; FA's
-  are grey 09-1-140. The gasoil tank is black with a yellow band in FA's
-  scheme; the game's is grey.
-- **No type code.** The game could show the top row too, for example
-  **54 3** over **71842 x** for a 60 t borde alto. The check digit's
-  formula wasn't found.
+- **The code is cut short.** The card shows the type, sub-type and
+  operating digit (for example **54 3** for a 60 t borde alto), not the
+  mechanical class or the check digit, whose formula wasn't found.
 
 ## Sources
 
