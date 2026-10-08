@@ -2,6 +2,14 @@
 
 Newest first. One entry per version bump.
 
+## 0.4.0
+
+**New**
+- Pause. The ❚❚ button under the zoom buttons (P on a keyboard) holds
+  the game; ▶ resumes it. While paused the controls, switches and
+  couplings don't respond, but zoom, follow and dragging the yard still
+  work. Leaving the page pauses it.
+
 ## 0.3.1
 
 **Changed**
