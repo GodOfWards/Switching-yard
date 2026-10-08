@@ -2,6 +2,14 @@
 
 Newest first. One entry per version bump.
 
+## 0.4.1
+
+**Changed**
+- Switches show their position the Argentine way: a green disc when set
+  normal, a yellow triangle when reversed, pointing along the set track.
+  The track a switch isn't set to fades out near the switch.
+- Zoomed in, track is drawn as rails on ties.
+
 ## 0.4.0
 
 **New**
