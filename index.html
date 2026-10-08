@@ -667,6 +667,19 @@
         const c1 = toward(cabEnd, other, 0.6), c2 = toward(cabEnd, other, 3);
         line(c1.x, c1.y, c2.x, c2.y, "#f2e6d0", bodyWidth * 0.6);
       }
+      if (v.controls && v.controls.reverser) {            // arrow off the end the reverser points to
+        const toHead = v.controls.reverser * v.flip > 0;
+        const pe = toHead ? head : tail, po = toHead ? tail : head;
+        const e = view.toScreen(pe.x, pe.y), o = view.toScreen(po.x, po.y);
+        const len = Math.hypot(e.x - o.x, e.y - o.y) || 1, ux = (e.x - o.x) / len, uy = (e.y - o.y) / len;
+        const size = Math.max(7, k * 1.5), bx = e.x + ux * size * 0.4, by = e.y + uy * size * 0.4;
+        ctx.fillStyle = "#e3c55a";
+        ctx.beginPath();
+        ctx.moveTo(bx + ux * size * 1.2, by + uy * size * 1.2);
+        ctx.lineTo(bx - uy * size * 0.8, by + ux * size * 0.8);
+        ctx.lineTo(bx + uy * size * 0.8, by - ux * size * 0.8);
+        ctx.fill();
+      }
     }
     for (const c of couplings()) {
       const p = view.toScreen(c.at.x, c.at.y);
