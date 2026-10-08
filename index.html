@@ -19,7 +19,8 @@
   canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; display: block; }
   #bar { display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--line);
     padding: 8px 16px calc(10px + env(safe-area-inset-bottom)); }
-  /* Zoom sits over the yard's top-left corner. */
+  /* Zoom, then Pause a little apart from it, sit over the yard's top-left
+     corner. */
   #zoom { position: absolute; top: 8px; left: 8px; display: flex; flex-direction: column; gap: 6px; }
   #zoom button { width: 40px; height: 40px; border-radius: 8px; border: 1px solid var(--line);
     background: rgba(38, 42, 48, 0.85); color: var(--fg); font: 600 20px system-ui, sans-serif; padding: 0;
@@ -27,6 +28,8 @@
   #zoom button:active { background: #343a42; }
   #zoom #followBtn { font-size: 16px; }
   #zoom #followBtn.on { color: #e3c55a; }
+  #zoom #pauseBtn { margin-top: 8px; font-size: 16px; }
+  #zoom #pauseBtn.on { color: #e3c55a; border-color: #e3c55a; }
   #readout { font-variant-numeric: tabular-nums; display: flex; justify-content: space-between; }
   #readout small { color: var(--muted); font-size: 12px; align-self: center; }
   /* The reverser and three notched levers (throttle, loco brake, train
@@ -62,6 +65,7 @@
     <button id="zoomIn" aria-label="Zoom in">+</button>
     <button id="zoomOut" aria-label="Zoom out">−</button>
     <button id="followBtn" aria-label="Follow the loco">◎&#xFE0E;</button>
+    <button id="pauseBtn" aria-label="Pause">❚❚</button>
   </div>
 </div>
 <div id="bar">
@@ -114,7 +118,9 @@
   //   RENDERING    draws STATE to the canvas and the controls, through a
   //                camera (zoom, follow or pan) that is display only. It
   //                never holds rules.
-  //   INPUT / LOOP keyboard, buttons and taps to ACTIONS; the fixed-step loop.
+  //   INPUT / LOOP keyboard, buttons and taps to ACTIONS; the fixed-step loop,
+  //                and Pause, which holds the loop's steps and the player's
+  //                actions but not the camera.
   //
   // Coordinates are metres, +x east, +y south. They are the world's, not the
   // screen's: RENDERING fits the yard to the screen and, on a portrait screen,
@@ -641,6 +647,7 @@
   const ctx = canvas.getContext("2d");
   const readout = document.getElementById("readout");
   const followBtn = document.getElementById("followBtn");
+  const pauseBtn = document.getElementById("pauseBtn");
   const levers = { rev: document.getElementById("revLever"), thr: document.getElementById("thrLever"), lb: document.getElementById("lbLever"),
                    tb: document.getElementById("tbLever") };
 
@@ -791,12 +798,21 @@
       ctx.fillText(state.notice.text, screenW / 2, 24);
       ctx.globalAlpha = 1; ctx.textAlign = "start";
     }
+    if (paused) {
+      ctx.font = "600 22px system-ui, sans-serif"; ctx.textAlign = "center";
+      ctx.fillStyle = "#e3c55a";
+      ctx.fillText("Paused", screenW / 2, screenH / 2);
+      ctx.textAlign = "start";
+    }
 
     const loco = playerLoco(), c = loco.controls, t = trainOf(loco);
     const cars = t.vehicles.length - 1;
     readout.innerHTML = `<span>${(Math.abs(t.speed) * 3.6).toFixed(1)} km/h · ` +
       `${cars} car${cars === 1 ? "" : "s"}</span><small>v${GAME_CONFIG.VERSION}</small>`;
     followBtn.classList.toggle("on", camera.follow);
+    pauseBtn.classList.toggle("on", paused);
+    pauseBtn.innerHTML = paused ? "▶&#xFE0E;" : "❚❚";
+    pauseBtn.setAttribute("aria-label", paused ? "Resume" : "Pause");
     levers.rev.innerHTML = `Reverser<b>${c.reverser > 0 ? "Fwd" : c.reverser < 0 ? "Rev" : "N"}</b>`;
     levers.thr.innerHTML = `Throttle<b>${c.throttle}/${THROTTLE_NOTCHES}</b>`;
     levers.lb.innerHTML = `Loco brake<b>${c.locoBrake}/${LOCO_BRAKE_NOTCHES}</b>` +
@@ -808,8 +824,14 @@
   // ==================================================
   // INPUT / LOOP
   // ==================================================
-  // Keyboard: +/− zoom, Q/A reverser, W/S or ↑/↓ throttle, R/F loco brake, E/D train brake,
-  // Space emergency, X release.
+  // Pause holds the simulation step and every player action; zoom, follow
+  // and pan still work, so the yard can be looked over while it is held.
+  let paused = false;
+  const togglePause = () => { paused = !paused; };
+  const unlessPaused = fn => (...args) => { if (!paused) fn(...args); };
+
+  // Keyboard: +/− zoom, P pause, Q/A reverser, W/S or ↑/↓ throttle, R/F loco brake,
+  // E/D train brake, Space emergency, X release.
   const KEYS = {
     q: () => moveReverser(1), a: () => moveReverser(-1),
     w: () => moveThrottle(1), ArrowUp: () => moveThrottle(1),
@@ -819,14 +841,16 @@
     " ": emergency, x: release,
   };
   window.addEventListener("keydown", e => {
-    if (e.repeat || !KEYS[e.key]) return;
-    KEYS[e.key]();
+    if (e.repeat) return;
+    if (VIEW_KEYS[e.key]) VIEW_KEYS[e.key]();
+    else if (KEYS[e.key]) unlessPaused(KEYS[e.key])();
+    else return;
     e.preventDefault();
   });
 
   // pointerdown rather than click: it answers at once on touch screens.
   const onPress = (id, fn) => document.getElementById(id).addEventListener("pointerdown", e => {
-    e.preventDefault(); fn();
+    e.preventDefault(); unlessPaused(fn)();
   });
   onPress("revUp", () => moveReverser(1));
   onPress("revDown", () => moveReverser(-1));
@@ -844,10 +868,14 @@
     camera.zoom = clampNotch(camera.zoom + delta, 0, ZOOM_LEVELS.length - 1);
     if (delta > 0 && camera.zoom === 1) camera.follow = true;
   }
-  onPress("zoomIn", () => zoomBy(1));
-  onPress("zoomOut", () => zoomBy(-1));
-  onPress("followBtn", () => { camera.follow = true; });
-  Object.assign(KEYS, { "+": () => zoomBy(1), "=": () => zoomBy(1), "-": () => zoomBy(-1) });
+  const onViewPress = (id, fn) => document.getElementById(id).addEventListener("pointerdown", e => {
+    e.preventDefault(); fn();
+  });
+  onViewPress("zoomIn", () => zoomBy(1));
+  onViewPress("zoomOut", () => zoomBy(-1));
+  onViewPress("followBtn", () => { camera.follow = true; });
+  onViewPress("pauseBtn", togglePause);
+  const VIEW_KEYS = { "+": () => zoomBy(1), "=": () => zoomBy(1), "-": () => zoomBy(-1), p: togglePause };
 
   // A press on the yard that moves more than DRAG_START_PX pans it; one that
   // doesn't is a tap, acted on when it lifts.
@@ -886,12 +914,12 @@
     };
     for (const id in SWITCHES) consider(NODES[id].x, NODES[id].y, () => throwSwitch(id));
     for (const c of couplings()) consider(c.at.x, c.at.y, () => uncouple(c.vehicle));
-    if (best) best();
+    if (best) unlessPaused(best)();
   }
 
   let last = performance.now(), acc = 0;
   function frame(now) {
-    acc += Math.min((now - last) / 1000, STEP_SECONDS * MAX_STEPS_PER_FRAME);
+    acc = paused ? 0 : acc + Math.min((now - last) / 1000, STEP_SECONDS * MAX_STEPS_PER_FRAME);
     last = now;
     while (acc >= STEP_SECONDS) { step(STEP_SECONDS); acc -= STEP_SECONDS; }
     render();
@@ -901,7 +929,8 @@
 
   // Exposed for testing in a browser console or headless check.
   window.switching = { get state() { return state; }, step, throwSwitch, uncouple, moveReverser, moveThrottle,
-    moveLocoBrake, moveTrainBrake, emergency, release, trainEnds, CONFIG: { ROLLING_RESISTANCE } };
+    moveLocoBrake, moveTrainBrake, emergency, release, trainEnds,
+    get paused() { return paused; }, togglePause, CONFIG: { ROLLING_RESISTANCE } };
 })();
 </script>
 </body>
