@@ -3,6 +3,14 @@
 Design calls Tom has made, newest first, with where they were made. The
 values these produced live in CONFIG and WORLD DATA in `index.html`.
 
+## 2026-10-08: Junín depot fan
+
+- **The yard is the depot fan at Junín**, from OpenStreetMap: seven
+  dead-end tracks and a turntable spur off one lead. Chosen over the east
+  throat. See [junin-yard.md](reference/junin-yard.md).
+- **The turntable doesn't turn** for now; its spur is a dead end (#21).
+- **A north arrow** sits in a corner of the view.
+
 ## 2026-10-08: Controls (PR #4, v0.3.0)
 
 - **Reverser** (Fwd / N / Rev, cab end first is forward) sets direction;
@@ -46,8 +54,9 @@ values these produced live in CONFIG and WORLD DATA in `index.html`.
 
 ## Open questions
 
-- Curve drag: add extra resistance on tight curves?
-- Switching without air: should moves stop on the loco brake alone?
+Pending work and open designs are GitHub Issues ([issues.md](issues.md)):
+saving #13, derailment #14, hand brakes #15, curve drag #16, switching
+without air #17, freight cars #18, phone playtest #19, Junín turntable #21,
+yard choice #22, close switches #23. Not yet filed:
+
 - Realistic drag once the yard is big enough?
-- Saving.
-- Recreating a real yard such as Junín (its own thread).

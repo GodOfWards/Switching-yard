@@ -8,7 +8,8 @@ build step, no dependencies. Open it in a browser to run it.
 - **Mobile first, portrait first.** The target is a phone held upright;
   landscape and desktop must still work. Touch targets are thumb-sized.
 - **Nothing is edited, committed or pushed without being asked.** A question
-  is a question: propose and wait.
+  is a question: propose and wait. GitHub Issues are the exception: file and
+  edit them as work surfaces. → `docs/issues.md`
 - **Design decisions are Tom's; implementation choices are made and named.**
   When unsure which it is, ask. Flag judgment calls as retunable.
 - **Section layout lives in the `ARCHITECTURE` comment** at the top of the
@@ -24,6 +25,10 @@ build step, no dependencies. Open it in a browser to run it.
 - **Facts are looked up in `docs/reference/` first.** Anything researched
   lands there in the same pull request, dated, sourced and with a status;
   Tom's design calls go in `docs/decisions.md`. → `docs/reference/README.md`
+- **Pending work and open designs live in GitHub Issues**: one kind label
+  each, the kind's template, the body kept as the current truth, closed by
+  the pull request that says `Closes #NN`. `designed` marks a design Tom has
+  confirmed done. → `docs/issues.md`
 
 ## The wrap
 
