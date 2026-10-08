@@ -14,6 +14,9 @@ Researched 2026-10-08 from OpenStreetMap (#52). The yard itself is in
   yards that are played.
 - **2026-10-08: First area: every line out of Junín to its next
   junction.**
+- **2026-10-08: The game is set in 1977 or later** (#66), so SM-5
+  (Pergamino–Junín, stopped 1977) counts as closed. No exact year is
+  fixed.
 - **2026-10-08: The graph goes in WORLD DATA**, simplified, made by
   `tools/rail_network.py`, so the game stays one file. It goes in when the
   overview (#53) or main-line traffic (#56) needs it.
@@ -72,9 +75,10 @@ needed", and where two articles disagree both are given.
   SM-B, SM-C… appear to follow that scheme. Whether FA used the same
   codes: unconfirmed; an FA ramal list or a CNRT network table would
   settle it.
-- **What it means for "active"**: of the four lines, SM-B and SM-C were
-  certainly open in the FA era; SM-7 probably; SM-5 was open until 1977,
-  so whether it's active depends on the year the game is set.
+- **What it means for "active"**: SM-B and SM-C were certainly open in
+  the FA era and SM-7 probably. SM-5 was open until 1977; with the game
+  set in 1977 or later (Tom, above), it is closed, leaving three active
+  lines out of Junín.
 
 Sources: es.wikipedia.org articles "Ramal ferroviario Pergamino-Junín",
 "Ramal ferroviario Saforcada-Santa Isabel", "Ramal ferroviario

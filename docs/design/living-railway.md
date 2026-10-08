@@ -17,7 +17,8 @@ switching puzzle. All of this is long-term.
   distances and shape, made from OpenStreetMap
   ([rail-network-junin.md](../reference/rail-network-junin.md)). Full
   switching track exists only in yards that are played. "Active" track
-  means track in the FA era: in use or disused, not lifted.
+  means track in the FA era, 1977 or later: in use or disused, not
+  lifted, and not closed before the game's time.
 
 ## Open
 

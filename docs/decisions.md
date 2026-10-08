@@ -17,6 +17,8 @@ Made in the "#52" thread. See
   game stays one file.
 - **Research first**: no game change until the overview (#53) or
   main-line traffic (#56) needs the network. #44 stays first for jobs.
+- **The game is set in 1977 or later** (#66): the Pergamino–Junín line
+  (SM-5), which stopped in 1977, is closed. No exact year is fixed.
 
 ## 2026-10-08: Railway operations
 
