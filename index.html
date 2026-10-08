@@ -612,7 +612,9 @@
 
   // The nearest thing ahead of a train end within `dist` metres: another
   // train's end facing it, or the end of track. null when the way is clear.
-  // Looking ahead never pushes switches over.
+  // An end facing it up to DRAFT_GEAR_TRAVEL behind still counts, touching:
+  // a coupling parted while bunched leaves its two ends pressed that far
+  // into each other. Looking ahead never pushes switches over.
   function findObstacle(end, dist, selfId) {
     const others = [];
     for (const id in state.trains) {
@@ -628,7 +630,7 @@
       for (const o of others) {
         if (o.seg !== seg || o.travel !== -travel) continue;
         const d = (o.s - s) * travel;
-        if (d >= -EPS && d <= reach + EPS && (!best || d < best.d)) best = { ...o, d };
+        if (d >= -DRAFT_GEAR_TRAVEL && d <= reach + EPS && (!best || d < best.d)) best = { ...o, d };
       }
       if (best) return { kind: "train", train: best.train, which: best.which, gap: gone + Math.max(0, best.d) };
       if (dist - gone <= room) return null;
