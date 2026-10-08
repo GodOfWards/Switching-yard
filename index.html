@@ -19,6 +19,14 @@
   canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; display: block; }
   #bar { display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--line);
     padding: 8px 16px calc(10px + env(safe-area-inset-bottom)); }
+  /* Zoom sits over the yard's top-left corner. */
+  #zoom { position: absolute; top: 8px; left: 8px; display: flex; flex-direction: column; gap: 6px; }
+  #zoom button { width: 40px; height: 40px; border-radius: 8px; border: 1px solid var(--line);
+    background: rgba(38, 42, 48, 0.85); color: var(--fg); font: 600 20px system-ui, sans-serif; padding: 0;
+    touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+  #zoom button:active { background: #343a42; }
+  #zoom #followBtn { font-size: 16px; }
+  #zoom #followBtn.on { color: #e3c55a; }
   #readout { font-variant-numeric: tabular-nums; display: flex; justify-content: space-between; }
   #readout small { color: var(--muted); font-size: 12px; align-self: center; }
   /* The reverser and three notched levers (throttle, loco brake, train
@@ -49,7 +57,13 @@
 </style>
 </head>
 <body>
-<div id="view"><canvas id="yard"></canvas></div>
+<div id="view"><canvas id="yard"></canvas>
+  <div id="zoom">
+    <button id="zoomIn" aria-label="Zoom in">+</button>
+    <button id="zoomOut" aria-label="Zoom out">−</button>
+    <button id="followBtn" aria-label="Follow the loco">◎&#xFE0E;</button>
+  </div>
+</div>
 <div id="bar">
   <div id="readout"></div>
   <div id="controls">
@@ -96,8 +110,9 @@
   //                they may. They change STATE; they never draw.
   //   PERSISTENCE  none yet. When saving arrives, SAVE_KEY changes with every
   //                change to the saved shape.
-  //   RENDERING    draws STATE to the canvas and the controls. It never holds
-  //                rules.
+  //   RENDERING    draws STATE to the canvas and the controls, through a
+  //                camera (zoom, follow or pan) that is display only. It
+  //                never holds rules.
   //   INPUT / LOOP keyboard, buttons and taps to ACTIONS; the fixed-step loop.
   //
   // Coordinates are metres, +x east, +y south. They are the world's, not the
@@ -119,6 +134,8 @@
   const STEP_SECONDS = 1 / 60;          // fixed simulation step
   const MAX_STEPS_PER_FRAME = 5;        // drop time rather than spiral after a stall
   const VIEW_MARGIN = 8;                // metres of ground kept around the yard
+  const ZOOM_LEVELS = [1, 1.5, 2, 3, 4]; // × the whole-yard fit; retunable
+  const DRAG_START_PX = 8;              // CSS px a press moves before it pans instead of tapping
   const TAP_RADIUS_PX = 32;             // CSS px from a switch or coupling that a tap counts; retunable (a fingertip)
   const G = 9.81;                       // m/s²
 
@@ -539,6 +556,7 @@
   const canvas = document.getElementById("yard");
   const ctx = canvas.getContext("2d");
   const readout = document.getElementById("readout");
+  const followBtn = document.getElementById("followBtn");
   const levers = { rev: document.getElementById("revLever"), thr: document.getElementById("thrLever"), lb: document.getElementById("lbLever"),
                    tb: document.getElementById("tbLever") };
 
@@ -549,30 +567,39 @@
              minY: Math.min(...ys) - VIEW_MARGIN, maxY: Math.max(...ys) + VIEW_MARGIN };
   })();
 
+  // What the screen shows. Zoomed out it fits the whole yard; zoomed in it
+  // follows the player's loco until a drag pans it to (cx, cy).
+  const camera = { zoom: 0, follow: true, cx: 0, cy: 0 };
+
   // The world→screen mapping for a canvas of w×h CSS px. A yard wider than
   // it is tall, on a screen taller than it is wide, is turned a quarter
-  // anticlockwise: east runs up the screen and south runs right.
+  // anticlockwise: east runs up the screen and south runs right. The view
+  // centres on the camera's point, kept so the yard never leaves the screen.
   function makeView(w, h) {
     const ww = BOUNDS.maxX - BOUNDS.minX, wh = BOUNDS.maxY - BOUNDS.minY;
     const turned = (h > w) === (ww > wh);
     const sw = turned ? wh : ww, sh = turned ? ww : wh;   // yard's extent on screen axes
-    const k = Math.min(w / sw, h / sh);
-    const ox = (w - sw * k) / 2, oy = (h - sh * k) / 2;
+    const k = Math.min(w / sw, h / sh) * ZOOM_LEVELS[camera.zoom];
+    let cx = camera.cx, cy = camera.cy;
+    if (camera.follow) { const p = pointOn(playerLoco().seg, playerLoco().s); cx = p.x; cy = p.y; }
+    const fit = (c, lo, hi, seen) => hi - lo <= seen ? (lo + hi) / 2 : Math.max(lo + seen / 2, Math.min(hi - seen / 2, c));
+    cx = fit(cx, BOUNDS.minX, BOUNDS.maxX, (turned ? h : w) / k);
+    cy = fit(cy, BOUNDS.minY, BOUNDS.maxY, (turned ? w : h) / k);
     return {
-      k,
+      k, turned, cx, cy,
       toScreen: turned
-        ? (x, y) => ({ x: ox + (y - BOUNDS.minY) * k, y: oy + (BOUNDS.maxX - x) * k })
-        : (x, y) => ({ x: ox + (x - BOUNDS.minX) * k, y: oy + (y - BOUNDS.minY) * k }),
+        ? (x, y) => ({ x: w / 2 + (y - cy) * k, y: h / 2 - (x - cx) * k })
+        : (x, y) => ({ x: w / 2 + (x - cx) * k, y: h / 2 + (y - cy) * k }),
     };
   }
-  let view = makeView(1, 1);
+  let screenW = 1, screenH = 1, view = makeView(1, 1);
 
   function resize() {
     const r = canvas.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
     canvas.width = Math.round(r.width * dpr);
     canvas.height = Math.round(r.height * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    view = makeView(r.width, r.height);
+    screenW = r.width; screenH = r.height;
   }
   new ResizeObserver(resize).observe(canvas);
 
@@ -601,6 +628,7 @@
   }
 
   function render() {
+    view = makeView(screenW, screenH);
     const k = view.k;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.lineCap = "round";
@@ -650,7 +678,7 @@
       ctx.globalAlpha = Math.min(1, state.notice.time);
       ctx.font = "600 15px system-ui, sans-serif"; ctx.textAlign = "center";
       ctx.fillStyle = "#f2e6d0";
-      ctx.fillText(state.notice.text, canvas.clientWidth / 2, 24);
+      ctx.fillText(state.notice.text, screenW / 2, 24);
       ctx.globalAlpha = 1; ctx.textAlign = "start";
     }
 
@@ -658,6 +686,7 @@
     const cars = t.vehicles.length - 1;
     readout.innerHTML = `<span>${(Math.abs(t.speed) * 3.6).toFixed(1)} km/h · ` +
       `${cars} car${cars === 1 ? "" : "s"}</span><small>v${GAME_CONFIG.VERSION}</small>`;
+    followBtn.classList.toggle("on", camera.follow);
     levers.rev.innerHTML = `Reverser<b>${c.reverser > 0 ? "Fwd" : c.reverser < 0 ? "Rev" : "N"}</b>`;
     levers.thr.innerHTML = `Throttle<b>${c.throttle}/${THROTTLE_NOTCHES}</b>`;
     levers.lb.innerHTML = `Loco brake<b>${c.locoBrake}/${LOCO_BRAKE_NOTCHES}</b>` +
@@ -669,7 +698,7 @@
   // ==================================================
   // INPUT / LOOP
   // ==================================================
-  // Keyboard: Q/A reverser, W/S or ↑/↓ throttle, R/F loco brake, E/D train brake,
+  // Keyboard: +/− zoom, Q/A reverser, W/S or ↑/↓ throttle, R/F loco brake, E/D train brake,
   // Space emergency, X release.
   const KEYS = {
     q: () => moveReverser(1), a: () => moveReverser(-1),
@@ -700,9 +729,44 @@
   onPress("releaseBtn", release);
   onPress("emergBtn", emergency);
 
+  // Zoom steps through ZOOM_LEVELS; zooming in follows the loco again.
+  function zoomBy(delta) {
+    camera.zoom = clampNotch(camera.zoom + delta, 0, ZOOM_LEVELS.length - 1);
+    if (delta > 0 && camera.zoom === 1) camera.follow = true;
+  }
+  onPress("zoomIn", () => zoomBy(1));
+  onPress("zoomOut", () => zoomBy(-1));
+  onPress("followBtn", () => { camera.follow = true; });
+  Object.assign(KEYS, { "+": () => zoomBy(1), "=": () => zoomBy(1), "-": () => zoomBy(-1) });
+
+  // A press on the yard that moves more than DRAG_START_PX pans it; one that
+  // doesn't is a tap, acted on when it lifts.
+  let press = null;
+  canvas.addEventListener("pointerdown", e => {
+    canvas.setPointerCapture(e.pointerId);
+    press = { id: e.pointerId, x: e.clientX, y: e.clientY, dragging: false, cx: view.cx, cy: view.cy };
+  });
+  canvas.addEventListener("pointermove", e => {
+    if (!press || e.pointerId !== press.id) return;
+    const dx = e.clientX - press.x, dy = e.clientY - press.y;
+    if (!press.dragging && Math.hypot(dx, dy) < DRAG_START_PX) return;
+    press.dragging = true;
+    camera.follow = false;
+    // Screen motion back into world metres, undoing makeView's turn.
+    camera.cx = press.cx - (view.turned ? -dy : dx) / view.k;
+    camera.cy = press.cy - (view.turned ? dx : dy) / view.k;
+  });
+  canvas.addEventListener("pointercancel", () => { press = null; });
+  canvas.addEventListener("pointerup", e => {
+    if (!press || e.pointerId !== press.id) return;
+    const tapped = !press.dragging;
+    press = null;
+    if (tapped) tap(e);
+  });
+
   // A tap acts on the nearest switch (throws it) or coupling (uncouples it)
   // within TAP_RADIUS_PX on screen.
-  canvas.addEventListener("pointerdown", e => {
+  function tap(e) {
     const r = canvas.getBoundingClientRect();
     const tx = e.clientX - r.left, ty = e.clientY - r.top;
     let best = null, bestD = TAP_RADIUS_PX;
@@ -713,7 +777,7 @@
     for (const id in SWITCHES) consider(NODES[id].x, NODES[id].y, () => throwSwitch(id));
     for (const c of couplings()) consider(c.at.x, c.at.y, () => uncouple(c.vehicle));
     if (best) best();
-  });
+  }
 
   let last = performance.now(), acc = 0;
   function frame(now) {
