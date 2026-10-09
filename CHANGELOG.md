@@ -2,6 +2,42 @@
 
 Newest first. One entry per version bump.
 
+## 0.10.0
+
+**Added**
+- Road trains: one arrival and one departure a shift, Retiro and Mendoza
+  in turn (07:00, 12:30, 15:00, 20:30, 23:00, 04:30). Arrivals stand on
+  Track 3 at the buffer end; departures leave from Track 1 (Retiro) or
+  Track 2 (Mendoza).
+- Break-up jobs: an arrival's cars to their block tracks, due at shift
+  change.
+- Build jobs: a departure's cars on its track as one coupled cut, nothing
+  else in it, the Retiro block in order, due when the train leaves. A
+  build taken and late holds the train, which leaves late.
+- The consist page of a build: tare, load, gross and length per car, and
+  the train's totals.
+- An arrival waits outside while Track 3 is occupied, and comes in late.
+- Cars travel: one that leaves comes back on a later arrival, empty if it
+  left loaded, loaded if it left empty. Loads on the local track are
+  unloaded, and empties on the empties track loaded, at shift change.
+- 24 more freight cars, 40 in all.
+
+**Changed**
+- Track 3 is the arrival track; the local block is Track 4 only.
+- The Skip menu lists arrivals and departures.
+- A yard saved by an earlier version starts fresh.
+
+## 0.9.1
+
+**Added**
+- The main line is track: single, running on off the map at both ends,
+  joined to the head-shunt by Junín's real crossover. The player may use
+  it; no trains run on it yet.
+
+**Changed**
+- The head-shunt follows its real line, bending in beside the main for
+  its last 200 m. A yard saved by an earlier version starts fresh.
+
 ## 0.9.0
 
 **Added**
