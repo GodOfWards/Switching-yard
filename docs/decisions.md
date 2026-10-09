@@ -3,6 +3,19 @@
 Design calls Tom has made, newest first, with where they were made. The
 values these produced live in CONFIG and WORLD DATA in `index.html`.
 
+## 2026-10-09: Traffic sources for the FA era (#45)
+
+Made in the "FA classification research" thread. See
+[fa-yard-operations.md](reference/fa-yard-operations.md).
+
+- **The era stays FA, 1977 or later.** Tom would switch it if research
+  on what the network moved proved too thin.
+- **Traffic is mixed from two sources**: the product mix, seasons and
+  destinations may come from modern data; the kinds of traffic and
+  trains (livestock, boxcar merchandise, small lots, pick-up freights)
+  come from FA's own rulebook. Volumes are estimates, labelled as such.
+  Modern operation (mostly block trains) isn't carried back.
+
 ## 2026-10-09: Jobs stage 1 on the east end
 
 - **Yard tracks get destination blocks** (#48): 1 Retiro, 2 Mendoza, 3–4
