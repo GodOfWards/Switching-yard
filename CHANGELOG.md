@@ -2,6 +2,25 @@
 
 Newest first. One entry per version bump.
 
+## 0.9.0
+
+**Added**
+- Jobs: a job opens at each shift change to sort the yard's cars onto
+  their tracks (1 Retiro, 2 Mendoza, 3–4 local, 5 storage, 6 empties,
+  7 repair), the Retiro block in order, due at the next shift change.
+  Take it from the Jobs board and follow it on its sheet; a job not taken
+  is done by another crew.
+- Reporting a job done assesses it: cars placed, block order, moves
+  against par, and on time or late.
+- Each car has a waybill and a history on its card. A car hit harder than
+  5 km/h is damaged and goes bad order, for the repair track.
+- Track numbers, and a clearance mark where each yard track stands clear
+  of the ladder.
+
+**Changed**
+- The cars start on the yard tracks. A yard saved by an earlier version
+  starts fresh.
+
 ## 0.8.0
 
 **Added**
