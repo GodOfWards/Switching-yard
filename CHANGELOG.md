@@ -2,6 +2,15 @@
 
 Newest first. One entry per version bump.
 
+## 0.8.0
+
+**Added**
+- A clock: the time of day, the day and the shift sit at the top of the
+  yard. It runs at real time from 06:00, day 1, and is saved with the
+  yard.
+- Skip: with everything standing still, jump to the next shift change or
+  to a time on a 10-minute mark.
+
 ## 0.7.3
 
 **Changed**
