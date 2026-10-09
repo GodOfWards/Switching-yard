@@ -9,9 +9,9 @@
   /* Dark palette: the yard and the bar sit on black. Cool greys for chrome,
      one amber accent for anything on or active, red only for Emergency;
      retunable. */
-  :root { --bg: #000; --ground: #000; --fg: #ecebe7; --muted: #7a7b80; --line: #26272b;
-    --button: #111214; --button-down: #1f2125; --overlay: rgba(17, 18, 20, 0.78);
-    --accent: #f2b13c; --warn: #f0905a; --sheet: #121316; --danger: #ff6b6b; --danger-bg: #2a0f10; --danger-line: #5c1d1f; }
+  :root { --bg: #000; --ground: #000; --fg: #ecebe7; --muted: #a0aaa2; --line: #3a443d;
+    --button: #171b19; --button-down: #35443a; --overlay: rgba(23, 27, 25, 0.88);
+    --accent: #829c85; --warn: #d4a052; --sheet: #171b19; --danger: #e16b60; --danger-bg: #2a1716; --danger-line: #63312c; }
   html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg);
     font: 15px/1.4 system-ui, sans-serif; overscroll-behavior: none; }
   /* Phone held upright is the target. The yard fills the screen and the
@@ -2272,21 +2272,21 @@
   // its own colours in WORLD DATA.
   const PALETTE = {
     bg: "#000",
-    trackFar: "#6f7378",   // track as one line, zoomed out: cool steel grey
-    ties: "#40392f",       // dark, so the rails lead and the ties are texture
-    rails: "#b7bbc0",
-    buffer: "#d9d6cf",
+    trackFar: "#777d80",   // track as one line, zoomed out: cool steel grey
+    ties: "#484039",       // dark, so the rails lead and the ties are texture
+    rails: "#b5b9b7",
+    buffer: "#d6d0c4",
     switchEdge: "#000",
-    switchNormal: "#34c06a",
-    switchReversed: "#f5c400",
-    light: "#f4efe6",      // cab, hand-brake band, notices
-    accent: "#f2b13c",     // reverser arrow, Paused; the CSS --accent
-    air: "#5aa9ff",
-    north: "#7a7b80",      // the CSS --muted
-    ballast: "#24272b",
-    signalClear: "#34c06a",
-    signalDanger: "#e5483d",    // under the running tracks, setting them apart from the yard's
-    label: "#1c1d20",      // a yard track's number disc
+    switchNormal: "#38b96b",
+    switchReversed: "#d4a052",
+    light: "#ecebe7",      // cab, hand-brake band, notices
+    accent: "#829c85",     // reverser arrow, Paused; the CSS --accent
+    air: "#78afc4",
+    north: "#a0aaa2",      // the CSS --muted
+    ballast: "#292b2a",
+    signalClear: "#38b96b",
+    signalDanger: "#e54840",    // under the running tracks, setting them apart from the yard's
+    label: "#252927",      // a yard track's number disc
   };
   const canvas = document.getElementById("yard");
   const ctx = canvas.getContext("2d");
