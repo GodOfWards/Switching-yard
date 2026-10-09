@@ -19,6 +19,10 @@ WORLD DATA in `index.html`.
 - **2026-10-08: OpenRailwayMap is the standard map reference.** It draws
   the same OpenStreetMap data used here; at Junín that data has no signals
   or track numbers. Re-download before laying more track (#44).
+- **2026-10-09: The main line becomes track** (#44), joined to the
+  head-shunt by the yard's one real crossover, for main-line traffic
+  (#56) and authority to move (#57). Open to the player; nothing runs on
+  it yet.
 
 ## The site
 
@@ -69,11 +73,19 @@ track. What it does:
   axis, east up the portrait screen. `NORTH` in WORLD DATA keeps true
   north.
 - **What is kept**: everything joined to the ladder between two cuts,
-  less the east throat and the through track nearest the main line. The
-  yard tracks are cut at a buffer on one line across the yard, 300 to
-  500 m west of their switches; the lead is cut at a buffer 281 m east of the ladder,
-  making a head-shunt. The main line is drawn as scenery and isn't
-  track.
+  less the rest of the east throat and the through track nearest the
+  main line. The yard tracks are cut at a buffer on one line across the
+  yard, 300 to 500 m west of their switches; the lead is cut at a buffer
+  281 m east of the ladder, making a head-shunt. The lead follows OSM's
+  track that carries the crossover, so for its last 200 m it bends in to
+  run 4 m from the main as the real one does.
+- **The main line** (since #44's main-line step) is laid between its
+  own cuts, 10 m west of the yard tracks' cut and 1 km past the crossover
+  (1810 m in all), and runs on off the map at both ends: no buffer stop
+  there. The crossover (53 m) is OSM's: a switch on the lead 197 m east
+  of the ladder, one on the main 52 m further east, facing a train from
+  Retiro. It is the only track joining the yard to the main in this
+  stretch; the main is the only `usage=main` way, so single track.
 - **Lines**: OSM's lines are simplified (to within 0.75 m) and each
   corner is rounded with a curve as wide as fits, up to 300 m.
 - **Switches** stand where OSM puts them. Each one's direction is read
@@ -99,4 +111,5 @@ side, 1: 494 m, 2: 453, 3: 412, 4: 383, 5: 345, 6: 294, 7: 143 (the
 northernmost, behind the fan's leads). Fan tracks, numbered from the
 turntable side, 1: 192 m, 2: 124, 3: 124, 4: 143, 5: 98, 6: 98, 7: 210,
 8: 239; turntable spur 73 m. Short tracks: 226 m (off the fan's second
-lead) and 275 m (off the northernmost yard track). Lead: 281 m.
+lead) and 275 m (off the northernmost yard track). Lead: 282 m. Main
+line: 1810 m. Crossover: 53 m.
