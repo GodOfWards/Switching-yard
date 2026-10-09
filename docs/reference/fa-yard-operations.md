@@ -5,6 +5,12 @@ order trains were formed in, how switching was done, the paperwork, and
 how a yard crew got the main line. Researched 2026-10-09 (#45) for jobs
 stages 2 and 3 (#49, #50).
 
+**Decided (Tom):**
+- **Traffic sources** (2026-10-09): the era stays FA, 1977 or later.
+  Product mix, seasons and destinations may come from modern data; the
+  kinds of traffic and trains come from the FA sources here; volumes are
+  labelled estimates. Modern block-train operation isn't carried back.
+
 **Status:** the rules are **Confirmed**, read on FA's own rulebook, the
 *Reglamento Interno Técnico Operativo* (RITO), in the text that carries
 FA's amendments to May 1993, so it covers the game's era (1977 or later).
