@@ -79,7 +79,17 @@
     border: 1px solid var(--line); background: var(--overlay); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
     color: var(--fg); font: 13px system-ui, sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     font-variant-numeric: tabular-nums; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
-  #jobChip.open { display: block; }
+  #jobChip.open, #mainChip.open { display: block; }
+  /* The main line: a chip under the clock (and job chip) while a through
+     train is offered or the player holds the main; holding it, it reports
+     clear. */
+  #mainChip { position: absolute; display: none; top: 54px; left: 50%; transform: translateX(-50%);
+    max-width: calc(100% - 112px); height: 32px; padding: 0 12px; box-sizing: border-box; border-radius: 16px;
+    border: 1px solid var(--line); background: var(--overlay); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+    color: var(--fg); font: 13px system-ui, sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    font-variant-numeric: tabular-nums; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+  #mainChip em { font-style: normal; font-weight: 600; color: var(--accent); }
+  #mainChip.warn { border-color: var(--warn); }
   #jobChip em { font-style: normal; font-weight: 600; color: var(--accent); }
   #jobsBtn { position: absolute; right: 8px; bottom: 8px; min-height: 44px; padding: 0 16px; border-radius: 14px;
     border: 1px solid var(--line); background: var(--overlay); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
@@ -158,12 +168,17 @@
   .meter i { display: block; height: 100%; width: 0; background: var(--accent); }
   /* The coupling menu: two thumb-sized buttons over the yard, next to the
      coupling tapped. */
-  #couplingMenu { position: absolute; display: none; gap: 6px; }
-  #couplingMenu.open { display: flex; }
-  #couplingMenu button { min-width: 80px; min-height: 40px; border-radius: 11px; border: 1px solid var(--line);
+  #couplingMenu, #mainMenu { position: absolute; display: none; gap: 6px; }
+  #couplingMenu.open, #mainMenu.open { display: flex; }
+  #couplingMenu button, #mainMenu button { min-width: 80px; min-height: 40px; border-radius: 11px; border: 1px solid var(--line);
     background: var(--overlay); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); color: var(--fg); font: 600 13px system-ui, sans-serif;
     touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
-  #couplingMenu button:active { background: var(--button-down); }
+  #couplingMenu button:active, #mainMenu button:active { background: var(--button-down); }
+  /* Asking for the main: how long for, over a padlocked switch tapped. */
+  #mainMenu { align-items: center; padding: 6px; border-radius: 14px; border: 1px solid var(--line);
+    background: var(--overlay); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+  #mainMenu span { padding: 0 4px 0 6px; color: var(--muted); font: 600 12px system-ui, sans-serif; white-space: nowrap; }
+  #mainMenu button { min-width: 64px; }
   /* The car card: what is stencilled on a tapped car, and its hand brake,
      next to the car. */
   #carCard { position: absolute; display: none; min-width: 180px; padding: 10px 12px; border-radius: 12px;
@@ -214,12 +229,14 @@
     <button id="skipBtn">Skip ▸&#xFE0E;</button>
   </div>
   <button id="jobChip"></button>
+  <button id="mainChip"></button>
   <button id="jobsBtn">Jobs</button>
   <div id="skipMenu"></div>
   <div id="couplingMenu">
     <button id="airBtn">Air</button>
     <button id="uncoupleBtn">Uncouple</button>
   </div>
+  <div id="mainMenu"><span>Ask for the main</span></div>
   <div id="carCard"><div id="carText"></div><button id="handBrakeBtn"></button></div>
   <div id="sheet"></div>
 </div>
@@ -259,13 +276,15 @@
   //                the kinds of rolling stock, the cars with their
   //                markings and loads, and where it all starts; the yard
   //                tracks' blocks, the destinations waybills name, the
-  //                cars' traffic at the start, and the road trains'
-  //                timetable.
+  //                cars' traffic at the start, and the road trains' and
+  //                through trains' timetables.
   //                Content passes (a new siding, a new yard) touch only this.
   //   STATE        what changes while playing: the time of day, switch
   //                positions, vehicles, the trains they are coupled into,
   //                the loco's controls, the cars' traffic (away off the
-  //                map included), the jobs, and the arrivals held outside.
+  //                map included), the jobs, the arrivals held outside,
+  //                the through trains offered or running, and who holds
+  //                the main.
   //                Built from WORLD DATA by makeState(); never edits WORLD DATA.
   //   UTILITIES    small geometry, track-walking and lookup helpers.
   //   SIMULATION   advances STATE by one fixed step, step(dt): the clock, and
@@ -278,11 +297,13 @@
   //                cars' traffic and dispositions, road trains arriving
   //                and leaving, jobs opening with them and at shift
   //                changes, their lines checked against the yard, work done
-  //                off-screen, rough handling, and results.
+  //                off-screen, rough handling, and results; through trains
+  //                offered, held or run past on the main.
   //   ACTIONS      what the player can do (reverser, levers, Emergency,
   //                Release, throw a switch, connect or part the air,
   //                uncouple, set a hand brake, skip ahead, take, hand back
-  //                or report a job), and the rules on
+  //                or report a job, ask for the main or report it clear),
+  //                and the rules on
   //                when they may. They change STATE; they never draw.
   //   PERSISTENCE  keeps STATE in localStorage between visits, and starts a
   //                new yard. SAVE_KEY changes with every change to the saved
@@ -420,6 +441,17 @@
   const ARRIVAL_CARS_MIN = 8;           // retunable
   const ARRIVAL_CARS_MAX = 12;          // retunable
   const DEPARTURE_MAX_CARS = 16;        // retunable
+  // Main-line traffic and authority to move (#56, #57; see
+  // docs/design/living-railway.md). A through train is offered
+  // OFFER_LEAD_SECONDS before it reaches the map's edge and runs through at
+  // THROUGH_SPEED; held, it stands at the east home signal, HOME_SIGNAL_IN
+  // metres in from the map's east edge, or waits off the map at the station
+  // side. The player asks for the main for one of MAIN_ASK_MINUTES.
+  const OFFER_LEAD_SECONDS = 10 * 60;   // roughly the run from La Oriental; retunable
+  const THROUGH_SPEED = 40 / 3.6;       // m/s; retunable
+  const THROUGH_ACCEL = 0.15;           // m/s², a held train starting away; retunable
+  const HOME_SIGNAL_IN = 330;           // m; more than the longest through train (14 m + 15 cars: 243 m); retunable
+  const MAIN_ASK_MINUTES = [10, 20, 30];  // retunable
   // A job is inefficient when its moves pass this many per car handled
   // and per block. A move is each start of the player's loco from a stand.
   const PAR_PER_CAR_AND_BLOCK = 1.5;    // retunable
@@ -941,6 +973,20 @@
     { id: "a1105", number: "1105", arrives: true, from: "Retiro",  notBlock: "retiro",  at: 23 * HOUR },
     { id: "d1206", number: "1206", arrives: false, to: "Mendoza", block: "mendoza",    at: 4.5 * HOUR },
   ];
+  // Through freights (#56): they pass on the main without working the yard.
+  // `enters` is the edge of the map they come in at: from Retiro the east,
+  // from Mendoza the west, the station side. `at` is when the head reaches
+  // that edge. Each is a G12 and THROUGH_CONSIST, loaded. Numbers and times
+  // are the game's; retunable.
+  const THROUGH_TIMETABLE = [
+    { id: "x2401", number: "2401", from: "Retiro",  to: "Mendoza", enters: "east", at: 9.5 * HOUR },
+    { id: "x2402", number: "2402", from: "Mendoza", to: "Retiro",  enters: "west", at: 13.75 * HOUR },
+    { id: "x2403", number: "2403", from: "Retiro",  to: "Mendoza", enters: "east", at: 17.25 * HOUR },
+    { id: "x2404", number: "2404", from: "Mendoza", to: "Retiro",  enters: "west", at: 2 * HOUR },
+  ];
+  const THROUGH_CONSIST = ["tolva", "tolva", "tolva", "cubierto", "cubierto", "tolva", "bordeAlto", "tanque",
+    "tanque", "tolva", "tolva", "cubierto", "plataforma", "tolva", "tolva"];
+  const THROUGH_EDGES = { east: "mainEastEnd", west: "mainWestEnd" };
   const YARD_NAME = "Junín, east end";
 
   // ==================================================
@@ -959,11 +1005,16 @@
     // JOBS_KEPT finished. `moves` counts the loco's starts from a stand;
     // `nextShiftAt` is the next shift change to act on, and `timetableAt`
     // the time from which road trains are still to run; `held` lists the
-    // arrivals held outside, waiting for the arrival track. `seed` drives
-    // the game's choices of traffic.
+    // arrivals held outside, waiting for the arrival track. `throughAt` is
+    // the time from which through trains are still to be offered;
+    // `through` lists those offered, held or running, each with its
+    // vehicles on the map and its speed. `main` says whether the player
+    // holds the main, and until when. `seed` drives the game's choices of
+    // traffic.
     const st = { clock: START_CLOCK, switches: {}, vehicles: {}, trains: {}, air: {}, gaps: {}, nextTrain: 1,
                  cars: {}, jobs: [], nextJob: 1, moves: 0, locoMoving: false, nextShiftAt: START_CLOCK,
-                 timetableAt: START_CLOCK, held: [], seed: Math.floor(Math.random() * 2 ** 31), notice: null };
+                 timetableAt: START_CLOCK, held: [], throughAt: START_CLOCK, through: [], main: { held: false, until: null },
+                 seed: Math.floor(Math.random() * 2 ** 31), notice: null };
     for (const id in SWITCHES) st.switches[id] = { set: SWITCHES[id].normal };
     state = st;                           // walk() reads the switches as it lays trains out
     for (const t of START_TRAINS) {
@@ -1088,7 +1139,8 @@
   const loadedNow = id => state.cars[id].loaded;
   function vehicleMass(v) {
     const type = vehicleType(v);
-    return CARS[v.id] ? (type.tare + (loadedNow(v.id) ? type.carga : 0)) * 1000 : type.mass;
+    if (CARS[v.id]) return (type.tare + (loadedNow(v.id) ? type.carga : 0)) * 1000;
+    return type.loco ? type.mass : (type.tare + type.carga) * 1000;    // a through train's car, loaded
   }
   // A vehicle's two ends: `head` toward its train's head, `tail` away. Each
   // carries `travel`, the segment sense pointing outward from the vehicle.
@@ -1159,6 +1211,10 @@
   const ofTrack = (seg, t) => seg === t || seg.startsWith(t + "_");
   for (const p of PLACES) for (const seg in SEGMENTS) if (p.tracks.some(t => ofTrack(seg, t))) PLACE_OF[seg] = p.name;
   const RUNNING = new Set(Object.keys(SEGMENTS).filter(seg => RUNNING_TRACKS.some(t => ofTrack(seg, t))));
+  // The switches on the running tracks, padlocked lying for the main
+  // unless the player holds it (RITO art. 154).
+  const MAIN_SWITCHES = Object.keys(SWITCHES).filter(id => [SWITCHES[id].trunk, ...SWITCHES[id].legs].some(seg => RUNNING.has(seg)));
+  const MAIN_LENGTH = [...RUNNING].filter(seg => ofTrack(seg, "main")).reduce((sum, seg) => sum + segmentLength(seg), 0);
 
   // A clock time as HH:MM, and the day it falls on, counted from 1.
   const pad2 = n => String(n).padStart(2, "0");
@@ -1403,15 +1459,18 @@
     for (const { v, lead, hit, other } of hits) {
       if (hit.kind === "buffer") {
         // A buffer stop: the vehicle stops against it. The map's edge stops
-        // it the same way, for now: what lies beyond is for main-line
-        // traffic (#56).
-        if (MAP_EDGES.includes(hit.node)) setNotice("The line runs on beyond the map");
+        // the player's train the same way; a through train leaves the map
+        // there (stepThrough).
+        if (MAP_EDGES.includes(hit.node)) { if (!drivenBy(trainOf(v))) setNotice("The line runs on beyond the map"); }
         else if (Math.abs(v.speed) > COUPLE_MAX_SPEED) setNotice(`Hit the buffers at ${(Math.abs(v.speed) * 3.6).toFixed(0)} km/h`);
         v.speed = 0;
         continue;
       }
       // An earlier meeting this substep may have joined or turned the trains.
+      // A through train is never coupled to: meeting one stops the
+      // vehicle as a buffer would.
       const X = trainOf(v), Y = trainOf(other);
+      if (X !== Y && (drivenBy(X) || drivenBy(Y))) { v.speed = 0; continue; }
       if (X !== Y) contact(X, endOf(X, v, lead), Y, endOf(Y, other, hit.which));
     }
   }
@@ -1419,7 +1478,8 @@
   // One substep: coupler forces, then speeds, then moves.
   function substep(forces, dt) {
     for (const id in state.trains) {
-      const ids = state.trains[id].vehicles, applied = {};
+      const ids = state.trains[id].vehicles, applied = {}, run = drivenBy(state.trains[id]);
+      if (run) { for (const vid of ids) state.vehicles[vid].speed = run.speed; continue; }   // the game drives it
       for (const vid of ids) applied[vid] = forces[vid].pull;
       for (let i = 0; i + 1 < ids.length; i++) {
         const tension = couplerForce(state.vehicles[ids[i]], state.vehicles[ids[i + 1]]);
@@ -1440,6 +1500,7 @@
     for (const id in state.trains) vehicleForces(state.trains[id], forces);
     for (let i = 0; i < SLACK_SUBSTEPS; i++) substep(forces, dt / SLACK_SUBSTEPS);
     countMoves();
+    stepThrough(dt);
     runEvents();
     if (state.notice && (state.notice.time -= dt) <= 0) state.notice = null;
   }
@@ -1452,8 +1513,8 @@
   }
   // The events ahead of the clock, soonest first, up to and including the
   // end of this shift: jobs falling due, road trains arriving and leaving
-  // (a departure with its build job), and the shift change, when the next
-  // jobs open.
+  // (a departure with its build job), through trains offered, and the
+  // shift change, when the next jobs open.
   function eventsAhead() {
     const end = shiftAt(state.clock).end, out = [];
     for (const j of state.jobs) if (!j.result && j.kind !== "build" && j.due > state.clock && j.due <= end) out.push({ at: j.due, kind: "due", job: j.id });
@@ -1462,6 +1523,8 @@
       const j = state.jobs.find(j => j.run === r.id);
       out.push({ at: r.at, kind: "train", tt: r.tt, job: j && !j.result ? j.id : null });
     }
+    for (const r of runsBetween(Math.max(state.throughAt, state.clock + 1) + OFFER_LEAD_SECONDS, end + OFFER_LEAD_SECONDS, THROUGH_TIMETABLE))
+      out.push({ at: r.at - OFFER_LEAD_SECONDS, kind: "offer", through: r.tt });
     out.push({ at: end, kind: "shift" });
     return out.sort((a, b) => a.at - b.at);
   }
@@ -1611,13 +1674,15 @@
       letInArrivals(run.at);
     }
     letInArrivals(state.clock);
+    mainEvents();
   }
-  // The road trains that run from `from` to `to`, soonest first: each a
-  // timetable entry's id, the time it runs, and an id for that day's run.
-  function runsBetween(from, to) {
+  // The road trains (or the through trains of `table`) that run from
+  // `from` to `to`, soonest first: each a timetable entry's id, the time it
+  // runs, and an id for that day's run.
+  function runsBetween(from, to, table = TIMETABLE) {
     const out = [];
     for (let day = Math.floor(from / DAY); day * DAY <= to; day++)
-      for (const tt of TIMETABLE) {
+      for (const tt of table) {
         const at = day * DAY + tt.at;
         if (at >= from && at <= to) out.push({ id: `${tt.id}.${day}`, tt: tt.id, at });
       }
@@ -1669,7 +1734,7 @@
     const blockOrder = Object.keys(BLOCKS);
     job.cars.sort((a, b) => blockOrder.indexOf(dispositionOf(a)) - blockOrder.indexOf(dispositionOf(b)));
     const j = { id: "job" + state.nextJob++, blocks: new Set(job.cars.map(dispositionOf)).size,
-                taken: false, movesAtTake: 0, damaged: [], result: null, ...job };
+                taken: false, movesAtTake: 0, damaged: [], trainsHeld: [], overruns: [], result: null, ...job };
     state.jobs.push(j);
     return j;
   }
@@ -1840,6 +1905,108 @@
                    moves, par, late: Math.max(0, at - job.due) };
   }
 
+  // The main line (#56, #57; docs/design/living-railway.md). Through
+  // trains are offered OFFER_LEAD_SECONDS before they reach the map's edge.
+  // With the main clear (no one holding it), the station gives line clear
+  // and the train runs through, driven by the game; otherwise it is held,
+  // standing at the east home signal or off the map at the station side,
+  // until the player reports clear, and the wait is the player's delay. The
+  // player holds the main by asking for it for a time, when no train is due
+  // in it; a train offered while they hold it calls them off.
+  const throughEntry = id => THROUGH_TIMETABLE.find(t => t.id === id);
+  const throughName = tt => `${tt.number} from ${tt.from}`;
+  const throughRun = id => state.through.find(r => r.id === id);
+  // The through train a train belongs to, if it is one: the game drives it.
+  function drivenBy(t) {
+    const v = t && state.vehicles[t.vehicles[0]];
+    return v && v.run ? throughRun(v.run) : null;
+  }
+  // Where a train coming in at map edge `edge` stands `d` metres in from
+  // it, facing in: the segment, how far along it, and the sense it faces.
+  function inFromEdge(edge, d) {
+    const node = THROUGH_EDGES[edge], seg = SEGMENTS_AT[node][0];
+    const atA = SEGMENTS[seg].a === node;
+    const w = walk(seg, atA ? 0 : segmentLength(seg), atA ? 1 : -1, d);
+    return { seg: w.seg, s: w.s, dir: w.travel };
+  }
+  const homeSignal = () => inFromEdge("east", HOME_SIGNAL_IN);
+  const throughIds = r => [`${r.id}/0`, ...THROUGH_CONSIST.map((_, i) => `${r.id}/${i + 1}`)];
+  const throughType = id => { const i = Number(id.split("/")[1]); return i ? THROUGH_CONSIST[i - 1] : "g12"; };
+  const throughLength = () => throughIds({ id: "" }).reduce((sum, id) => sum + VEHICLE_TYPES[throughType(id)].length, 0);
+  // The main is clear for a train when no one holds it: the player gives it
+  // back only with the crossover lying for the main and nothing of theirs on
+  // the running tracks (reportClear).
+  const mainClear = () => !state.main.held;
+
+  // Offers each through train whose time has come, gives line clear or holds
+  // each one reaching the map, and lets go those held once the main is
+  // clear.
+  function mainEvents() {
+    for (const run of runsBetween(state.throughAt + OFFER_LEAD_SECONDS, state.clock + OFFER_LEAD_SECONDS, THROUGH_TIMETABLE)) {
+      state.throughAt = run.at - OFFER_LEAD_SECONDS + 1;
+      state.through.push({ id: run.id, tt: run.tt, at: run.at, status: "offered", speed: 0, vehicles: [] });
+      if (state.main.held) setNotice(`Clear the main for ${throughName(throughEntry(run.tt))}`);
+    }
+    for (const r of state.through) {
+      if (r.status === "offered" && r.at <= state.clock) {
+        if (!mainClear()) holdThrough(r);
+        else if (state.clock - r.at < (MAIN_LENGTH + throughLength()) / THROUGH_SPEED) runThrough(r, THROUGH_SPEED);
+        else r.status = "gone";                       // passed while the clock skipped
+      }
+      if (r.status === "held" && mainClear()) {
+        const delay = state.clock - r.at, tt = throughEntry(r.tt);
+        for (const j of openJobs()) if (j.taken) j.trainsHeld.push({ number: tt.number, delay });
+        setNotice(`${throughName(tt)} held ${lateText(delay)} for the main`);
+        if (r.vehicles.length) { r.status = "running"; r.speed = 0; } else runThrough(r, THROUGH_SPEED);
+      }
+    }
+    state.through = state.through.filter(r => r.status !== "gone");
+  }
+  // A through train reaches the map with the main not clear: from the east
+  // it stands at the home signal, if nothing is in the way there; otherwise
+  // it waits off the map.
+  function holdThrough(r) {
+    r.status = "held";
+    const tt = throughEntry(r.tt), sig = homeSignal(), sx = pointOn(sig.seg, sig.s).x;
+    const inTheWay = Object.values(state.vehicles).some(v => RUNNING.has(v.seg) && pointOn(v.seg, v.s).x > sx - 20);
+    if (tt.enters === "east" && !inTheWay) layThrough(r, sig);
+  }
+  // A through train comes in at its edge of the map at `speed`.
+  function runThrough(r, speed) {
+    r.status = "running"; r.speed = speed;
+    layThrough(r, inFromEdge(throughEntry(r.tt).enters, throughLength()));
+  }
+  function layThrough(r, at) {
+    const ids = throughIds(r);
+    for (const id of ids) { addVehicle(id, throughType(id)); state.vehicles[id].run = r.id; }
+    layTrain(at.seg, at.s, at.dir, ids);
+    r.vehicles = ids;
+  }
+  // Each step: a train starting away gathers speed, and a running train's
+  // vehicles leave the map one by one at its far edge; gone, it's done.
+  function stepThrough(dt) {
+    for (const r of state.through) {
+      if (r.status !== "running") continue;
+      r.speed = Math.min(THROUGH_SPEED, r.speed + THROUGH_ACCEL * dt);
+      for (;;) {
+        const v = state.vehicles[r.vehicles[0]];
+        if (!v) break;
+        const e = vehicleEnds(v).head;
+        if (walk(e.seg, e.s, e.travel, 1).short <= 0) break;
+        detach(v.id);
+        delete state.vehicles[v.id];
+        r.vehicles.shift();
+      }
+      if (!r.vehicles.length) r.status = "gone";
+    }
+    state.through = state.through.filter(r => r.status !== "gone");
+  }
+  // When the next through train not yet offered will be.
+  function nextOfferAt() {
+    const run = runsBetween(state.throughAt + OFFER_LEAD_SECONDS, state.clock + DAY + OFFER_LEAD_SECONDS, THROUGH_TIMETABLE)[0];
+    return run ? { at: run.at - OFFER_LEAD_SECONDS, tt: throughEntry(run.tt) } : null;
+  }
+
   state = makeState();
 
   // ==================================================
@@ -1885,6 +2052,7 @@
   }
   // A switch with a vehicle over it cannot be thrown.
   function throwSwitch(swId) {
+    if (MAIN_SWITCHES.includes(swId) && !state.main.held) { setNotice("Padlocked: ask the station for the main"); return false; }
     if (nodeOccupied(swId)) { setNotice("A train is on that switch"); return false; }
     const sw = SWITCHES[swId], cur = state.switches[swId];
     cur.set = cur.set === sw.legs[0] ? sw.legs[1] : sw.legs[0];
@@ -1925,6 +2093,43 @@
     return true;
   }
 
+  // The main (#57): the player asks the station for it for `minutes`. It's
+  // granted, unlocking the crossover, when no through train is offered or
+  // on the map and none will be offered in that time; otherwise refused,
+  // saying why.
+  function askForMain(minutes) {
+    if (state.main.held || !MAIN_ASK_MINUTES.includes(minutes)) return false;
+    const r = state.through[0];
+    if (r) { setNotice(`Refused: ${throughName(throughEntry(r.tt))} is ${r.status === "offered" ? "offered" : "on the main"}`); return false; }
+    const next = nextOfferAt();
+    if (next && next.at < state.clock + minutes * 60) {
+      setNotice(`Refused: ${throughName(next.tt)} is due at ${clockText(next.at + OFFER_LEAD_SECONDS)}`);
+      return false;
+    }
+    state.main = { held: true, until: state.clock + minutes * 60 };
+    setNotice(`The main is yours until ${clockText(state.main.until)}`);
+    return true;
+  }
+  // The player reports the main clear: the crossover lying for the main,
+  // and nothing but through trains on the running tracks. The station
+  // padlocks the crossover. Kept past the time asked for, it's noted on the
+  // jobs being worked.
+  function reportClear() {
+    if (!state.main.held) return false;
+    const wrong = MAIN_SWITCHES.find(id => state.switches[id].set !== SWITCHES[id].normal);
+    if (wrong) { setNotice(`Set ${wrong} for the main first`); return false; }
+    for (const id in state.vehicles) {
+      const v = state.vehicles[id], e = vehicleEnds(v);
+      if (!v.run && [v, e.head, e.tail].some(p => RUNNING.has(p.seg))) { setNotice("Not clear: get off the main first"); return false; }
+    }
+    const over = state.clock - state.main.until;
+    if (over >= 60) for (const j of openJobs()) if (j.taken) j.overruns.push(over);
+    state.main = { held: false, until: null };
+    setNotice("Main reported clear");
+    mainEvents();
+    return true;
+  }
+
   // Skips the clock ahead to `at`, an event ahead or a SKIP_MARK_SECONDS
   // mark, only while every vehicle stands still. Nothing else moves or
   // changes: no physics runs during a skip.
@@ -1932,7 +2137,12 @@
     if (!(at > state.clock) || !(at % SKIP_MARK_SECONDS === 0 || eventsAhead().some(e => e.at === at))) return false;
     if (playerLoco().speed !== 0) { setNotice("Stop the loco before skipping"); return false; }
     for (const id in state.vehicles) {
-      if (state.vehicles[id].speed !== 0) { setNotice("Wait for the cars to stop"); return false; }
+      if (state.vehicles[id].speed !== 0 && !state.vehicles[id].run) { setNotice("Wait for the cars to stop"); return false; }
+    }
+    // A through train running passes on during the skip.
+    for (const r of state.through) if (r.status === "running") {
+      for (const id of r.vehicles) { detach(id); delete state.vehicles[id]; }
+      r.status = "gone";
     }
     state.clock = at;
     runEvents();
@@ -1945,7 +2155,7 @@
   function takeJob(jobId) {
     const j = jobById(jobId);
     if (!j || j.result || j.taken) return false;
-    Object.assign(j, { taken: true, movesAtTake: state.moves, damaged: [] });
+    Object.assign(j, { taken: true, movesAtTake: state.moves, damaged: [], trainsHeld: [], overruns: [] });
     return true;
   }
   function handBack(jobId) {
@@ -1978,7 +2188,7 @@
   // expect them, and none are away. A save
   // that doesn't fit the yard (WORLD DATA changed since) is set aside for a
   // fresh yard. SAVE_KEY changes with every change to the saved shape.
-  const SAVE_KEY = "switching-game.yard.5";
+  const SAVE_KEY = "switching-game.yard.6";
 
   function saveYard() {
     try {
@@ -1998,6 +2208,10 @@
     if (!sameKeys(st.cars, CARS) || !Array.isArray(st.jobs) || !Number.isInteger(st.nextJob) || !Number.isInteger(st.moves)
         || !Number.isInteger(st.seed) || !Number.isFinite(st.nextShiftAt) || !Number.isFinite(st.timetableAt)) return false;
     if (!Array.isArray(st.held) || !st.held.every(r => isObj(r) && timetableEntry(r.tt) && Number.isFinite(r.at))) return false;
+    if (!Number.isFinite(st.throughAt) || !isObj(st.main) || typeof st.main.held !== "boolean"
+        || (st.main.held && !Number.isFinite(st.main.until))) return false;
+    if (!Array.isArray(st.through) || !st.through.every(r => isObj(r) && throughEntry(r.tt) && Number.isFinite(r.at)
+        && ["offered", "held", "running"].includes(r.status) && Number.isFinite(r.speed) && Array.isArray(r.vehicles))) return false;
     for (const id in st.cars) {
       const c = st.cars[id];
       if (!Array.isArray(c.history) || (c.waybill !== null && !DESTINATIONS[c.waybill]) || typeof c.loaded !== "boolean") return false;
@@ -2009,10 +2223,12 @@
     const startIds = {};
     for (const t of START_TRAINS) for (const v of t.vehicles) if (!CARS[v.id]) startIds[v.id] = v.type;
     for (const id in CARS) if (st.cars[id].away === null) startIds[id] = CARS[id].type;
+    const runOf = {};                     // a through train's vehicles on the map
+    for (const r of st.through) for (const id of r.vehicles) { startIds[id] = throughType(id); runOf[id] = r.id; }
     if (!sameKeys(st.vehicles, startIds)) return false;
     for (const id in st.vehicles) {
       const v = st.vehicles[id], type = VEHICLE_TYPES[v.type];
-      if (v.id !== id || v.type !== startIds[id] || !SEGMENTS[v.seg] || !st.trains[v.train]) return false;
+      if (v.id !== id || v.type !== startIds[id] || !SEGMENTS[v.seg] || !st.trains[v.train] || (v.run || null) !== (runOf[id] || null)) return false;
       if (!(v.s >= 0 && v.s <= segmentLength(v.seg)) || !Number.isFinite(v.speed)) return false;
       if (Math.abs(v.dir) !== 1 || Math.abs(v.flip) !== 1 || !!type.loco !== isObj(v.controls)) return false;
     }
@@ -2067,7 +2283,9 @@
     accent: "#f2b13c",     // reverser arrow, Paused; the CSS --accent
     air: "#5aa9ff",
     north: "#7a7b80",      // the CSS --muted
-    ballast: "#24272b",    // under the running tracks, setting them apart from the yard's
+    ballast: "#24272b",
+    signalClear: "#34c06a",
+    signalDanger: "#e5483d",    // under the running tracks, setting them apart from the yard's
     label: "#1c1d20",      // a yard track's number disc
   };
   const canvas = document.getElementById("yard");
@@ -2241,6 +2459,25 @@
         ctx.closePath();
       }
       ctx.stroke(); ctx.fill();
+      if (MAIN_SWITCHES.includes(id) && !state.main.held) {   // padlocked: a small lock beside it
+        const lx = c.x + r * 1.3, ly = c.y - r * 1.3, w = Math.max(7, r * 0.9);
+        ctx.strokeStyle = PALETTE.light; ctx.lineWidth = Math.max(1.5, w * 0.18);
+        ctx.beginPath(); ctx.arc(lx, ly - w * 0.25, w * 0.3, Math.PI, 0); ctx.stroke();
+        ctx.fillStyle = PALETTE.light; ctx.fillRect(lx - w / 2, ly - w * 0.25, w, w * 0.65);
+      }
+    }
+    // The east home signal, beside the main on the side away from the yard:
+    // clear while a through train from the east runs in past it, at danger
+    // otherwise.
+    {
+      const sig = homeSignal(), p = pointOn(sig.seg, sig.s), side = 3.5;
+      const clear = state.through.some(r => r.status === "running" && throughEntry(r.tt).enters === "east"
+        && r.vehicles.some(id => pointOn(state.vehicles[id].seg, state.vehicles[id].s).x > p.x));
+      const foot = { x: p.x - p.uy * 2, y: p.y + p.ux * 2 }, top = { x: p.x - p.uy * (2 + side), y: p.y + p.ux * (2 + side) };
+      line(foot.x, foot.y, top.x, top.y, PALETTE.light, Math.max(1.5, k * 0.25));
+      const c = view.toScreen(top.x, top.y);
+      ctx.fillStyle = clear ? PALETTE.signalClear : PALETTE.signalDanger; ctx.strokeStyle = PALETTE.switchEdge; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(c.x, c.y, Math.max(5, k * 1.1), 0, Math.PI * 2); ctx.stroke(); ctx.fill();
     }
 
     // Vehicles, each drawn end to end with a small gap; couplings bridge it.
@@ -2319,6 +2556,7 @@
     }
     placeCouplingMenu();
     placeCarCard();
+    placeMainMenu();
 
     // North arrow in the top right corner, turned with the view.
     {
@@ -2341,7 +2579,8 @@
       ctx.globalAlpha = Math.min(1, state.notice.time);
       ctx.font = "600 15px system-ui, sans-serif"; ctx.textAlign = "center";
       ctx.fillStyle = PALETTE.light;
-      ctx.fillText(state.notice.text, screenW / 2, jobChip.classList.contains("open") ? 108 : 72);   // under the clock and job chip
+      const chips = (jobChip.classList.contains("open") ? 1 : 0) + (mainChip.classList.contains("open") ? 1 : 0);
+      ctx.fillText(state.notice.text, screenW / 2, 72 + 38 * chips);   // under the clock and the chips
       ctx.globalAlpha = 1; ctx.textAlign = "start";
     }
     if (paused) {
@@ -2359,6 +2598,7 @@
       `<small>v${GAME_CONFIG.VERSION}</small>`;
     renderClock();
     renderJobs();
+    renderMainChip();
     followBtn.classList.toggle("on", camera.follow);
     pauseBtn.classList.toggle("on", paused);
     pauseBtn.innerHTML = paused ? "▶&#xFE0E;" : "❚❚";
@@ -2477,9 +2717,10 @@
   });
 
   // A tap acts on the nearest thing within TAP_RADIUS_PX on screen: a
-  // switch (throws it), a coupling (opens its menu) or a car's middle (opens
-  // its card). Any tap closes an open menu or card. Opening a card only
-  // shows, so it works while paused.
+  // switch (throws it, or, padlocked, opens the menu to ask for the main),
+  // a coupling (opens its menu) or a car's middle (opens its card). Any tap
+  // closes an open menu or card. Opening a card only shows, so it works
+  // while paused. A through train's couplings aren't the player's.
   function tap(e) {
     const r = canvas.getBoundingClientRect();
     const tx = e.clientX - r.left, ty = e.clientY - r.top;
@@ -2488,16 +2729,62 @@
       const c = view.toScreen(x, y), d = Math.hypot(c.x - tx, c.y - ty);
       if (d < bestD) { best = act; bestD = d; bestShows = shows; }
     };
-    for (const id in SWITCHES) consider(NODES[id].x, NODES[id].y, () => throwSwitch(id));
-    for (const c of couplings()) consider(c.at.x, c.at.y, () => { menuFor = c.key; });
+    for (const id in SWITCHES)
+      consider(NODES[id].x, NODES[id].y, () => MAIN_SWITCHES.includes(id) && !state.main.held ? (askFor = id) : throwSwitch(id));
+    for (const c of couplings()) if (!state.vehicles[c.vehicle].run) consider(c.at.x, c.at.y, () => { menuFor = c.key; });
     for (const id in state.vehicles) {
       const v = state.vehicles[id];
       if (!v.controls) { const p = pointOn(v.seg, v.s); consider(p.x, p.y, () => { cardFor = id; }, true); }
     }
-    menuFor = null; cardFor = null; sheet = null;
+    menuFor = null; cardFor = null; sheet = null; askFor = null;
     if (skipOpen) closeSkipMenu();
     if (best) (bestShows ? best : unlessPaused(best))();
   }
+
+  // Asking for the main (#57): the menu over the padlocked switch `askFor`
+  // tapped, a button per time the player may ask for, until a button or
+  // another tap closes it.
+  const mainMenu = document.getElementById("mainMenu");
+  for (const m of MAIN_ASK_MINUTES) mainMenu.insertAdjacentHTML("beforeend", `<button data-min="${m}">${m} min</button>`);
+  let askFor = null;
+  function placeMainMenu() {
+    if (askFor && state.main.held) askFor = null;
+    mainMenu.classList.toggle("open", !!askFor);
+    if (!askFor) return;
+    const p = view.toScreen(NODES[askFor].x, NODES[askFor].y);
+    mainMenu.style.left = `${Math.max(170, Math.min(screenW - 170, p.x))}px`;
+    mainMenu.style.top = `${p.y}px`;
+    mainMenu.style.transform = `translate(-50%, ${p.y < 120 ? "40%" : "-140%"})`;
+  }
+  mainMenu.addEventListener("pointerdown", e => {
+    e.preventDefault(); e.stopPropagation();
+    const b = e.target.closest("button");
+    if (b) { unlessPaused(askForMain)(Number(b.dataset.min)); askFor = null; }
+  });
+  // The main-line chip: holding the main, until when and Report clear (a
+  // train offered meanwhile calls the player off); otherwise the through
+  // train offered, held or passing.
+  const mainChip = document.getElementById("mainChip");
+  let mainChipHtml = "";
+  function renderMainChip() {
+    const r = state.through[0], tt = r && throughEntry(r.tt);
+    let html = "", warn = false;
+    if (state.main.held) {
+      warn = !!r || state.clock > state.main.until;
+      html = (r ? `Clear the main for ${tt.number}` : `Main yours until ${clockText(state.main.until)}${state.clock > state.main.until ? " · over time" : ""}`)
+        + " · <em>Report clear</em>";
+    } else if (r) {
+      html = `${throughName(tt)} · ${r.status === "offered" ? `due ${clockText(r.at)}` : r.status === "held" ? "held for the main" : "passing"}`;
+    }
+    if (html !== mainChipHtml) mainChip.innerHTML = mainChipHtml = html;
+    mainChip.classList.toggle("open", !!html);
+    mainChip.classList.toggle("warn", warn);
+    mainChip.style.top = jobChip.classList.contains("open") ? "92px" : "54px";
+  }
+  mainChip.addEventListener("pointerdown", e => {
+    e.preventDefault();
+    if (state.main.held) unlessPaused(reportClear)();
+  });
 
   // The coupling menu, open over the coupling `menuFor` (its pair key) until
   // a button or another tap closes it, or the coupling is gone.
@@ -2577,6 +2864,12 @@
     // A job not taken that a skip passes the due time of goes to another
     // crew: the menu says so before the skip, beside the event and the marks.
     for (const e of eventsAhead()) {
+      if (e.kind === "offer") {
+        const tt = throughEntry(e.through);
+        html += `<button class="event" data-at="${e.at}"><b>${clockText(e.at)}</b><span>${throughName(tt)} offered` +
+          `<small>Through to ${tt.to}, due ${clockText(e.at + OFFER_LEAD_SECONDS)}${state.main.held ? "; clear the main" : ""}</small></span>${dayNote(e.at)}</button>`;
+        continue;
+      }
       const j = e.job && jobById(e.job), crew = j && !j.taken ? `<small class="warn">Not taken: another crew does it</small>` : "";
       const tt = e.tt && timetableEntry(e.tt);
       const text = tt ? (tt.arrives ? `${trainName(tt)} arrives<small>Onto Track ${YARD_TRACKS[ARRIVAL_TRACK].number}</small>`
@@ -2744,7 +3037,9 @@
       `${r.moves} move${r.moves === 1 ? "" : "s"}, par ${+r.par.toFixed(1)}`,
       r.late ? `<span class="warn">Late by ${lateText(r.late)}</span>, at ${shortTime(r.at)}` : `On time, at ${shortTime(r.at)}`].filter(Boolean);
     return `<div class="result"><b>${r.outcome}</b>${rows.map(t => `<small>${t}</small>`).join("")}${train}` +
-      `${j.damaged.length ? `<small class="warn">Rough handling: ${j.damaged.map(carName).join(", ")} damaged, bad order</small>` : ""}</div>`;
+      `${j.damaged.length ? `<small class="warn">Rough handling: ${j.damaged.map(carName).join(", ")} damaged, bad order</small>` : ""}` +
+      `${j.trainsHeld.length ? `<small class="warn">Main line: ${j.trainsHeld.map(h => `${h.number} held ${lateText(h.delay)}`).join(", ")}</small>` : ""}` +
+      `${j.overruns.length ? `<small class="warn">Main kept past the time asked: ${j.overruns.map(lateText).join(", ")}</small>` : ""}</div>`;
   }
   // The consist page of a build job: a line per car of its train, as it
   // stands on its track from the ladder end (cars elsewhere after), and the
@@ -2819,7 +3114,7 @@
   window.switching = { get state() { return state; }, step, throwSwitch, uncouple, moveReverser, moveThrottle,
     moveLocoBrake, moveTrainBrake, emergency, release, trainEnds, toggleAir, toggleHandBrake, brakeReach, skipTo, eventsAhead,
     takeJob, handBack, reportDone, jobStatus, dispositionOf, dispositionMet, blockInOrder, damageCar, TRACK_GEOM,
-    get paused() { return paused; }, togglePause, saveYard, loadYard, newYard, fitsYard, SAVE_KEY };
+    get paused() { return paused; }, togglePause, askForMain, reportClear, homeSignal, NODES, get view() { return view; }, saveYard, loadYard, newYard, fitsYard, SAVE_KEY };
 })();
 </script>
 </body>
