@@ -1,5 +1,7 @@
 # Time
 
+The clock underneath is #70.
+
 ## Rules
 
 - **The clock runs at real time.** Shifts are 8 hours: 06–14, 14–22,

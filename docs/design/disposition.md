@@ -16,6 +16,10 @@ formation are related but distinct processes.
 - **Cars aren't sent straight to their ultimate destination track** on
   arrival: the disposition decides the next step only.
 
+- **Placeholder rule until the research is in** (#45): a car's waybill
+  destination sends it to its block track; a bad-order car goes to the
+  repair track; a car with no new waybill stays where it is.
+
 ## Open
 
 - How the game decides, from real FA practice: #45 (classification and
