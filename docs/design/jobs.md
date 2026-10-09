@@ -42,4 +42,10 @@ can span the yard and the industries near it.
 ## Open
 
 - Stage 1 on the new basis: #48.
+- When a car counts as left on its track. Stage 1 asks for it uncoupled
+  from the loco and clear of the track's fouling point (implementation
+  choices, retunable, until decided).
+- Which destinations make up the Retiro block, and their order. Stage 1
+  uses O'Higgins, Membrillar, Retiro from the ladder end (content,
+  retunable).
 - Building and breaking up consists: #49. Industry work: #50.

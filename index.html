@@ -11,7 +11,7 @@
      retunable. */
   :root { --bg: #000; --ground: #000; --fg: #ecebe7; --muted: #7a7b80; --line: #26272b;
     --button: #111214; --button-down: #1f2125; --overlay: rgba(17, 18, 20, 0.78);
-    --accent: #f2b13c; --danger: #ff6b6b; --danger-bg: #2a0f10; --danger-line: #5c1d1f; }
+    --accent: #f2b13c; --warn: #f0905a; --sheet: #121316; --danger: #ff6b6b; --danger-bg: #2a0f10; --danger-line: #5c1d1f; }
   html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg);
     font: 15px/1.4 system-ui, sans-serif; overscroll-behavior: none; }
   /* Phone held upright is the target. The yard fills the screen and the
@@ -62,9 +62,71 @@
   #skipMenu .event { display: flex; gap: 12px; align-items: baseline; width: 100%; min-height: 44px;
     padding: 0 10px; border-color: transparent; background: none; font: 15px system-ui, sans-serif; text-align: left; }
   #skipMenu .event b { font-weight: 600; }
+  #skipMenu .event { padding-top: 6px; padding-bottom: 6px; }
   #skipMenu .event small { color: var(--muted); font-size: 12px; }
+  #skipMenu .event span small { display: block; }
   #skipMenu .marks { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
   #skipMenu .marks button { min-height: 40px; background: var(--button); font: 600 15px system-ui, sans-serif; }
+  #skipMenu .warn, #skipMenu .event small.warn { color: var(--warn); }
+  #skipMenu .marks button.warn { color: var(--warn); }
+  #skipMenu .note { margin: 8px 2px 0; color: var(--warn); font-size: 12px; }
+  /* A job being worked: a chip under the clock with its progress, which
+     opens its sheet. The Jobs button sits in the yard's bottom-right corner;
+     the board and the job sheet slide up from the bottom of the yard and
+     stop above the controls. */
+  #jobChip { position: absolute; display: none; top: 54px; left: 50%; transform: translateX(-50%);
+    max-width: calc(100% - 112px); height: 32px; padding: 0 12px; box-sizing: border-box; border-radius: 16px;
+    border: 1px solid var(--line); background: var(--overlay); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+    color: var(--fg); font: 13px system-ui, sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    font-variant-numeric: tabular-nums; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+  #jobChip.open { display: block; }
+  #jobChip em { font-style: normal; font-weight: 600; color: var(--accent); }
+  #jobsBtn { position: absolute; right: 8px; bottom: 8px; min-height: 44px; padding: 0 16px; border-radius: 14px;
+    border: 1px solid var(--line); background: var(--overlay); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+    color: var(--fg); font: 600 15px system-ui, sans-serif; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+  #jobsBtn.on { color: var(--accent); border-color: var(--accent); }
+  #sheet { position: absolute; left: 0; right: 0; bottom: 0; max-width: 560px; margin: 0 auto; max-height: calc(100% - 52px);
+    overflow-y: auto; box-sizing: border-box; padding: 0 16px 16px; border: 1px solid var(--line); border-bottom: 0;
+    border-radius: 18px 18px 0 0; background: var(--sheet); transform: translateY(100%); visibility: hidden;
+    transition: transform 0.2s ease, visibility 0.2s; font-variant-numeric: tabular-nums; -webkit-user-select: text; user-select: text; }
+  #sheet.open { transform: none; visibility: visible; }
+  #sheet .grab { width: 40px; height: 4px; margin: 8px auto 4px; border-radius: 2px; background: var(--line); }
+  #sheet header { display: flex; align-items: center; gap: 8px; margin: 4px 0 8px; }
+  #sheet h2 { flex: 1; margin: 0; font-size: 18px; font-weight: 600; }
+  #sheet header [data-act="board"] { font-size: 24px; }
+  #sheet header button { min-width: 40px; min-height: 40px; padding: 0 8px; border: 0; background: none; color: var(--muted);
+    font: 15px system-ui, sans-serif; }
+  #sheet .job { display: flex; align-items: center; gap: 12px; margin: 8px 0; padding: 10px 12px; border-radius: 14px;
+    border: 1px solid var(--line); }
+  #sheet .job > div { flex: 1; min-width: 0; }
+  #sheet .job b { display: block; font-weight: 600; }
+  #sheet small { display: block; color: var(--muted); font-size: 13px; }
+  #sheet .later { opacity: 0.5; }
+  #sheet button.act { flex: none; min-width: 88px; min-height: 44px; padding: 0 14px; border-radius: 12px;
+    border: 1px solid var(--line); background: var(--button); color: var(--fg); font: 600 15px system-ui, sans-serif;
+    touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+  #sheet button.act:active { background: var(--button-down); }
+  #sheet button.primary { color: var(--accent); border-color: var(--accent); }
+  #sheet h3 { display: flex; justify-content: space-between; margin: 16px 0 4px; padding-top: 12px; border-top: 1px solid var(--line);
+    color: var(--muted); font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+  #sheet h3 span:last-child { color: var(--accent); }
+  #sheet .meta { display: grid; grid-template-columns: auto 1fr auto 1fr; gap: 2px 10px; font-size: 14px; }
+  #sheet .meta span:nth-child(odd) { color: var(--muted); }
+  #sheet .remarks { margin: 6px 0 0; font-size: 14px; }
+  #sheet .remarks span { color: var(--muted); }
+  #sheet .line { display: flex; gap: 12px; align-items: flex-start; padding: 8px 0; border-top: 1px solid var(--line); }
+  #sheet h3 + .line { border-top: 0; }
+  #sheet .line > div:nth-child(2) { flex: 1; min-width: 0; }
+  #sheet .line .where { text-align: right; }
+  #sheet .line.met:not(.order) b { text-decoration: line-through; color: var(--muted); }
+  #sheet .tick { flex: none; width: 22px; height: 22px; margin-top: 1px; box-sizing: border-box; border-radius: 6px;
+    border: 1.5px solid var(--muted); color: #000; font: 700 14px/19px system-ui, sans-serif; text-align: center; }
+  #sheet .met .tick { border-color: var(--accent); background: var(--accent); }
+  #sheet .warn { color: var(--warn); }
+  #sheet .buttons { display: flex; gap: 8px; margin-top: 16px; }
+  #sheet .buttons button { flex: 1; }
+  #sheet .result { margin-top: 12px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); }
+  #sheet .result b { display: block; font-size: 16px; color: var(--accent); }
   #readout { font-variant-numeric: tabular-nums; display: flex; justify-content: space-between; }
   #readout small { color: var(--muted); font-size: 12px; align-self: center; }
   /* The reverser and three notched levers (throttle, loco brake, train
@@ -101,6 +163,10 @@
   #carCard.open { display: block; }
   #carCard b { display: block; font-size: 16px; letter-spacing: 0.03em; }
   #carCard small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+  #carCard { max-width: 260px; }
+  #carCard .traffic { color: var(--fg); margin-top: 6px; }
+  #carCard .warn { color: var(--warn); }
+  #carCard .history { margin-top: 6px; color: var(--muted); font-size: 12px; }
   #carCard button { display: block; width: 100%; min-height: 40px; margin-top: 8px; border-radius: 11px;
     border: 1px solid var(--line); background: var(--button); color: var(--fg); font: 600 13px system-ui, sans-serif;
     touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
@@ -138,12 +204,15 @@
     <div id="clock"><b id="clockTime"></b><span id="clockShift"></span></div>
     <button id="skipBtn">Skip ▸&#xFE0E;</button>
   </div>
+  <button id="jobChip"></button>
+  <button id="jobsBtn">Jobs</button>
   <div id="skipMenu"></div>
   <div id="couplingMenu">
     <button id="airBtn">Air</button>
     <button id="uncoupleBtn">Uncouple</button>
   </div>
   <div id="carCard"><div id="carText"></div><button id="handBrakeBtn"></button></div>
+  <div id="sheet"></div>
 </div>
 <div id="bar">
   <div id="readout"></div>
@@ -178,27 +247,35 @@
   //   WORLD DATA   the yard: track nodes, straight or curved segments between
   //                them, switches, and scenery that is drawn but not track;
   //                the kinds of rolling stock, the cars with their
-  //                markings and loads, and where it all starts.
+  //                markings and loads, and where it all starts; the yard
+  //                tracks' blocks, the destinations waybills name, and the
+  //                cars' traffic at the start.
   //                Content passes (a new siding, a new yard) touch only this.
   //   STATE        what changes while playing: the time of day, switch
   //                positions, vehicles, the trains they are coupled into,
-  //                the loco's controls.
+  //                the loco's controls, the cars' traffic and the jobs.
   //                Built from WORLD DATA by makeState(); never edits WORLD DATA.
   //   UTILITIES    small geometry, track-walking and lookup helpers.
   //   SIMULATION   advances STATE by one fixed step, step(dt): the clock, and
   //                all movement rules: forces, brakes, slack, contact,
-  //                coupling. The events ahead (a shift change) come from here
-  //                too. The
+  //                coupling. The events ahead (a job due, a shift change)
+  //                come from here too. The
   //                loop calls it at a fixed rate, so behaviour never depends
   //                on the display's frame rate.
+  //   OPERATIONS   the rules of the railway's work, stepped from SIMULATION:
+  //                cars' traffic and dispositions, jobs opening at shift
+  //                changes, their lines checked against the yard, work done
+  //                off-screen, rough handling, and results.
   //   ACTIONS      what the player can do (reverser, levers, Emergency,
   //                Release, throw a switch, connect or part the air,
-  //                uncouple, set a hand brake, skip ahead), and the rules on
+  //                uncouple, set a hand brake, skip ahead, take, hand back
+  //                or report a job), and the rules on
   //                when they may. They change STATE; they never draw.
   //   PERSISTENCE  keeps STATE in localStorage between visits, and starts a
   //                new yard. SAVE_KEY changes with every change to the saved
   //                shape.
-  //   RENDERING    draws STATE to the canvas and the controls, through a
+  //   RENDERING    draws STATE to the canvas and the controls (the job
+  //                board and sheet are drawn in INPUT, beside their menus), through a
   //                camera (zoom, follow or pan) that is display only. It
   //                never holds rules.
   //   INPUT / LOOP keyboard, buttons and taps to ACTIONS; the fixed-step loop,
@@ -322,6 +399,24 @@
   const START_CLOCK = FIRST_SHIFT_HOUR * HOUR;  // 06:00, day 1
   const SKIP_MARK_SECONDS = 10 * 60;    // marks at xx:x0
   const SKIP_MARKS_SHOWN = 4;           // marks the Skip menu lists, and adds a press of "…"; retunable
+  // Operations, stage 1 (#48): traffic, dispositions, jobs and results.
+  // See docs/design/. One job opens at each shift change, due at the next.
+  const CARS_PER_JOB = 6;               // retunable
+  const JOBS_PER_SHIFT = 1;             // retunable
+  // A job is inefficient when its moves pass this many per car handled
+  // and per block. A move is each start of the player's loco from a stand.
+  const PAR_PER_CAR_AND_BLOCK = 1.5;    // retunable
+  // A coupling closing faster than this damages the car: it goes bad order.
+  const DAMAGE_SPEED = COUPLE_MAX_SPEED;  // retunable
+  // A car stands clear of the ladder where its yard track is this far from
+  // any other track, centre to centre: about a car's width. Each track's
+  // fouling point is worked out from it. Tracks 4 and 5 run as little as
+  // 3.2 m apart in the game's layout, so it can't be more. Unconfirmed;
+  // retunable.
+  const FOULING_CLEARANCE = 3;          // m
+  const SET_BACK = 1;                   // m off the buffer that cars set by another crew stand
+  const HISTORY_KEPT = 20;              // entries a car's history keeps
+  const JOBS_KEPT = 6;                  // finished jobs the board keeps
   const NOTICE_SECONDS = 2;             // how long a message stays up
   const SAVE_SECONDS = 5;               // s of play between saves; leaving the page saves too; retunable
   const EPS = 1e-6;                     // metres; positions this close are the same
@@ -676,15 +771,75 @@
   // metres along `segment` and faces `dir` (+1 toward the segment's `b`).
   // Vehicles are named by id: a car's kind comes from CARS, a loco gives its
   // `type`. A loco's cab faces the head unless it has `flip: -1`.
+  // Each yard track's cut is listed from the buffer end.
   const START_TRAINS = [
     { segment: "lead", s: 230, dir: 1, vehicles: [{ id: "loco1", type: "g12" }] },
-    { segment: "yard2_2", s: 400, dir: 1, vehicles: [{ id: "car1" }, { id: "car2" }, { id: "car9" }, { id: "car10" }] },
-    { segment: "yard4_2", s: 320, dir: 1, vehicles: [{ id: "car3" }, { id: "car7" }, { id: "car11" }, { id: "car8" }, { id: "car15" }] },
-    { segment: "yard6_2", s: 250, dir: 1, vehicles: [{ id: "car4" }, { id: "car12" }, { id: "car5" }] },
-    { segment: "fan3", s: 100, dir: 1, vehicles: [{ id: "car6" }, { id: "car13" }] },
-    { segment: "stub1_6", s: 120, dir: 1, vehicles: [{ id: "car14" }, { id: "car16" }] },
+    { segment: "yard1_2", s: 430, dir: 1, vehicles: [{ id: "car1" }, { id: "car2" }] },
+    { segment: "yard2_2", s: 370, dir: 1, vehicles: [{ id: "car9" }, { id: "car12" }] },
+    { segment: "yard3_2", s: 320, dir: 1, vehicles: [{ id: "car6" }, { id: "car13" }, { id: "car11" }] },
+    { segment: "yard4_2", s: 290, dir: 1, vehicles: [{ id: "car3" }, { id: "car7" }, { id: "car8" }, { id: "car15" }] },
+    { segment: "yard5_2", s: 260, dir: 1, vehicles: [{ id: "car14" }, { id: "car16" }] },
+    { segment: "yard6_2", s: 220, dir: 1, vehicles: [{ id: "car4" }, { id: "car5" }, { id: "car10" }] },
   ];
   const PLAYER_LOCO = "loco1";
+
+  // Operations (docs/design/). The yard tracks, numbered from the main-line
+  // side, each with its switch, its segments from the switch to the buffer,
+  // and the block it holds. The rest of the track holds no block: the fan
+  // and the turntable spur are for locos, the lead (the head-shunt) and the
+  // ladder for switching, and the two short tracks aren't used. PLACES
+  // names those for the player, by track name (a track's segments are
+  // `name` or `name_1`, `name_2`...); anything else is the ladder.
+  const YARD_TRACKS = {
+    yard1: { name: "Track 1", number: 1, switch: "J2",  segments: ["yard1_1", "yard1_2"], block: "retiro" },
+    yard2: { name: "Track 2", number: 2, switch: "J3",  segments: ["yard2_1", "yard2_2"], block: "mendoza" },
+    yard3: { name: "Track 3", number: 3, switch: "J4",  segments: ["yard3_1", "yard3_2"], block: "local" },
+    yard4: { name: "Track 4", number: 4, switch: "J6",  segments: ["yard4_1", "yard4_2"], block: "local" },
+    yard5: { name: "Track 5", number: 5, switch: "J9",  segments: ["yard5_1", "yard5_2"], block: "storage" },
+    yard6: { name: "Track 6", number: 6, switch: "J8",  segments: ["yard6_1", "yard6_2"], block: "empties" },
+    yard7: { name: "Track 7", number: 7, switch: "J11", segments: ["yard7_1", "yard7_2"], block: "repair" },
+  };
+  const PLACES = [
+    { name: "the head-shunt", tracks: ["lead"] },
+    { name: "the fan", tracks: ["fan1", "fan2", "fan3", "fan4", "fan5", "fan6", "fan7", "fan8", "turntableSpur",
+      "J10J12", "J11J13", "J13J14", "J13J15", "J14J16", "J14J18", "J15J17", "J17J19"] },
+    { name: "a short track", tracks: ["stub1", "stub2"] },
+  ];
+  // Blocks, in the order the job sheet lists them. A block in `block`
+  // order stands with its cars' destinations in the order of `groups`,
+  // from the ladder end; one with ordering `none` only needs its cars there.
+  const BLOCKS = {
+    retiro:  { name: "Retiro",    ordering: "block", groups: ["ohiggins", "membrillar", "retiro"] },
+    mendoza: { name: "Mendoza",   ordering: "none" },
+    local:   { name: "Local",     ordering: "none" },
+    empties: { name: "Empties",   ordering: "none" },
+    storage: { name: "Storage",   ordering: "none" },
+    repair:  { name: "Bad order", ordering: "none" },
+  };
+  // Where a waybill can send a car, and its block. `loaded` limits it to
+  // loaded (true) or empty (false) cars.
+  const DESTINATIONS = {
+    ohiggins:   { name: "O'Higgins",          block: "retiro",  loaded: true },
+    membrillar: { name: "Membrillar",         block: "retiro",  loaded: true },
+    retiro:     { name: "Retiro",             block: "retiro" },
+    vedia:      { name: "Vedia",              block: "mendoza", loaded: true },
+    mendoza:    { name: "Mendoza",            block: "mendoza", loaded: true },
+    junin:      { name: "Junín, to unload",   block: "local",   loaded: true },
+    forLoading: { name: "Junín, for loading", block: "empties", loaded: false },
+    stored:     { name: "Storage",            block: "storage", loaded: false },
+  };
+  // Each car's traffic at the start: its waybill's destination, and why
+  // it's bad order, if it is.
+  const START_TRAFFIC = {
+    car1:  { waybill: "retiro" },     car2:  { waybill: "membrillar" },
+    car9:  { waybill: "mendoza" },    car12: { waybill: "ohiggins" },
+    car6:  { waybill: "mendoza" },    car13: { waybill: "junin" },     car11: { waybill: "stored" },
+    car3:  { waybill: "forLoading" }, car7:  { badOrder: "Brake rigging" },
+    car8:  { waybill: "junin" },      car15: { waybill: "retiro" },
+    car14: { waybill: "stored" },     car16: { waybill: "stored" },
+    car4:  { waybill: "forLoading" }, car5:  { waybill: "forLoading" }, car10: { waybill: "forLoading" },
+  };
+  const YARD_NAME = "Junín, east end";
 
   // ==================================================
   // STATE
@@ -695,31 +850,53 @@
     // how far its charge has come (0 to 1).
     // `gaps` holds each coupling's opening past touching, by its pair key: 0
     // fully bunched, COUPLER_FREE_PLAY fully stretched before the draft gear.
+    // `cars` holds each car's traffic, by id: its waybill (a DESTINATIONS
+    // id, or null), why it is bad order (or null) and its history. `jobs`
+    // holds the jobs open and the last JOBS_KEPT finished. `moves` counts
+    // the loco's starts from a stand; `nextShiftAt` is the next shift
+    // change to act on; `seed` drives the game's choices of traffic.
     const st = { clock: START_CLOCK, switches: {}, vehicles: {}, trains: {}, air: {}, gaps: {}, nextTrain: 1,
-                 notice: null };
+                 cars: {}, jobs: [], nextJob: 1, moves: 0, locoMoving: false, nextShiftAt: START_CLOCK,
+                 seed: Math.floor(Math.random() * 2 ** 31), notice: null };
     for (const id in SWITCHES) st.switches[id] = { set: SWITCHES[id].normal };
     state = st;                           // walk() reads the switches as it lays trains out
     for (const t of START_TRAINS) {
-      const train = { id: "t" + st.nextTrain++, vehicles: [] };
-      let end = { seg: t.segment, s: t.s, travel: -t.dir };   // walking back from the head
       for (const v of t.vehicles) {
-        const type = startType(v), half = VEHICLE_TYPES[type].length / 2;
-        const c = walk(end.seg, end.s, end.travel, half);
-        const veh = { id: v.id, type, train: train.id, seg: c.seg, s: c.s, dir: -c.travel,
-                      flip: v.flip || 1, speed: 0, handBrake: false };
-        if (VEHICLE_TYPES[type].loco) veh.controls = { reverser: 0, throttle: 0, locoBrake: 0, trainBrake: 0,
+        const type = startType(v);
+        st.vehicles[v.id] = { id: v.id, type, flip: v.flip || 1, speed: 0, handBrake: false };
+        if (VEHICLE_TYPES[type].loco) st.vehicles[v.id].controls = { reverser: 0, throttle: 0, locoBrake: 0, trainBrake: 0,
           locoApplied: 0, trainApplied: 0, emergency: false };
-        st.vehicles[v.id] = veh;
-        if (train.vehicles.length) st.gaps[pairKey(train.vehicles[train.vehicles.length - 1], v.id)] = 0;
-        train.vehicles.push(v.id);
-        end = walk(c.seg, c.s, c.travel, half);
       }
-      st.trains[train.id] = train;
+      layTrain(t.segment, t.s, t.dir, t.vehicles.map(v => v.id));
     }
-    for (const id in st.vehicles) trailSwitches(st.vehicles[id]);
+    for (const id in CARS) {
+      const t = START_TRAFFIC[id] || {};
+      st.cars[id] = { waybill: t.waybill || null, badOrder: t.badOrder || null, history: [] };
+      if (t.waybill) logCar(id, `Waybill: ${DESTINATIONS[t.waybill].name}`);
+      if (t.badOrder) logCar(id, `Bad order: ${t.badOrder}`);
+    }
+    runShifts();                          // the first shift's jobs open
     return st;
   }
-  let state = null;                     // made once every helper exists, at the end of SIMULATION
+  // Lays vehicles `ids` out as one train, coupled and bunched, back from
+  // its head end, which stands `s` metres along `segment` facing `dir` (+1
+  // toward the segment's `b`). Each vehicle must already be in no train.
+  function layTrain(segment, s, dir, ids) {
+    const train = { id: "t" + state.nextTrain++, vehicles: [] };
+    let end = { seg: segment, s, travel: -dir };              // walking back from the head
+    for (const id of ids) {
+      const v = state.vehicles[id], half = vehicleType(v).length / 2;
+      const c = walk(end.seg, end.s, end.travel, half);
+      Object.assign(v, { train: train.id, seg: c.seg, s: c.s, dir: -c.travel, speed: 0 });
+      if (train.vehicles.length) state.gaps[pairKey(train.vehicles[train.vehicles.length - 1], id)] = 0;
+      train.vehicles.push(id);
+      end = walk(c.seg, c.s, c.travel, half);
+    }
+    state.trains[train.id] = train;
+    for (const id of ids) trailSwitches(state.vehicles[id]);
+    return train;
+  }
+  let state = null;                     // made once every helper exists, at the end of OPERATIONS
 
   // ==================================================
   // UTILITIES
@@ -821,6 +998,63 @@
   // A coupling's identity: the ids of the two vehicles it joins, in order.
   const pairKey = (a, b) => a < b ? a + "|" + b : b + "|" + a;
   const trainOf = v => state.trains[v.train];
+
+  // Each yard track's shape, built once from WORLD DATA: for each of its
+  // segments, `from` (metres from the switch to the segment's start) and
+  // `fromA` (whether its `a` end is the switch's side); its length; its
+  // buffer node, `end`; and `fouling`, how far from the switch a vehicle's
+  // end must be to stand clear of every other track (FOULING_CLEARANCE).
+  const TRACK_GEOM = {};
+  for (const id in YARD_TRACKS) {
+    const segs = {};
+    let node = YARD_TRACKS[id].switch, from = 0;
+    for (const seg of YARD_TRACKS[id].segments) {
+      const fromA = SEGMENTS[seg].a === node;
+      segs[seg] = { from, fromA };
+      from += segmentLength(seg);
+      node = fromA ? SEGMENTS[seg].b : SEGMENTS[seg].a;
+    }
+    TRACK_GEOM[id] = { segs, length: from, end: node, fouling: 0 };
+  }
+  // How far along yard track `trackId` from its switch the point `s` on
+  // `seg` is, or null when `seg` isn't part of it.
+  function trackOffset(trackId, seg, s) {
+    const g = TRACK_GEOM[trackId].segs[seg];
+    return g ? g.from + (g.fromA ? s : segmentLength(seg) - s) : null;
+  }
+  // The point `d` metres along yard track `trackId` from its switch.
+  function trackPoint(trackId, d) {
+    const g = TRACK_GEOM[trackId];
+    for (const seg of YARD_TRACKS[trackId].segments) {
+      const { from, fromA } = g.segs[seg], len = segmentLength(seg);
+      if (d <= from + len) return pointOn(seg, fromA ? d - from : len - (d - from));
+    }
+    return null;
+  }
+  // The fouling points: the last metre near the switch where another track
+  // comes within FOULING_CLEARANCE, measured against points every metre
+  // along every other segment.
+  {
+    const samples = [];
+    for (const seg in SEGMENTS) for (let s = 0, len = segmentLength(seg); s <= len; s += 1) samples.push({ seg, p: pointOn(seg, s) });
+    for (const id in TRACK_GEOM) {
+      const g = TRACK_GEOM[id], sw = NODES[YARD_TRACKS[id].switch];
+      const near = samples.filter(o => !g.segs[o.seg] && Math.hypot(o.p.x - sw.x, o.p.y - sw.y) < 250);
+      for (let d = 0; d < Math.min(200, g.length); d += 0.5) {
+        const p = trackPoint(id, d);
+        if (near.some(o => Math.hypot(o.p.x - p.x, o.p.y - p.y) < FOULING_CLEARANCE)) g.fouling = d + 0.5;
+      }
+    }
+  }
+  // The yard track a segment belongs to, or what PLACES calls it, by id.
+  const TRACK_OF = {}, PLACE_OF = {};
+  for (const id in YARD_TRACKS) for (const seg of YARD_TRACKS[id].segments) TRACK_OF[seg] = id;
+  for (const p of PLACES) for (const seg in SEGMENTS) if (p.tracks.some(t => seg === t || seg.startsWith(t + "_"))) PLACE_OF[seg] = p.name;
+
+  // A clock time as HH:MM, and the day it falls on, counted from 1.
+  const pad2 = n => String(n).padStart(2, "0");
+  const clockText = at => { const m = Math.floor(at / 60) % (24 * 60); return `${pad2(Math.floor(m / 60))}:${pad2(m % 60)}`; };
+  const dayOf = at => Math.floor(at / DAY) + 1;
 
   // ==================================================
   // SIMULATION
@@ -1009,10 +1243,12 @@
     if (closing <= 0) return;                                   // already parting
     const mA = vehicleMass(a), mB = vehicleMass(b);
     const shared = (mA * uA + mB * uB) / (mA + mB);              // momentum is kept
+    const damaged = closing > DAMAGE_SPEED ? [a, b].filter(v => damageCar(v.id, closing)).map(v => carName(v.id)) : [];
+    if (damaged.length) setNotice(`${damaged.join(", ")} damaged at ${(closing * 3.6).toFixed(0)} km/h: bad order`);
     if (closing > COUPLE_MAX_SPEED) {
       a.speed = (shared + HARD_HIT_RESTITUTION * (shared - uA)) * xs;
       b.speed = (shared + HARD_HIT_RESTITUTION * (shared - uB)) * ys;
-      setNotice(`Hard hit at ${(closing * 3.6).toFixed(0)} km/h`);
+      if (!damaged.length) setNotice(`Hard hit at ${(closing * 3.6).toFixed(0)} km/h`);
       return;
     }
     const k = pairKey(a.id, b.id);
@@ -1089,6 +1325,8 @@
     const forces = {};
     for (const id in state.trains) vehicleForces(state.trains[id], forces);
     for (let i = 0; i < SLACK_SUBSTEPS; i++) substep(forces, dt / SLACK_SUBSTEPS);
+    countMoves();
+    runShifts();
     if (state.notice && (state.notice.time -= dt) <= 0) state.notice = null;
   }
 
@@ -1099,10 +1337,13 @@
     return { start, end: start + len };
   }
   // The events ahead of the clock, soonest first, up to and including the
-  // end of this shift. Only the shift change so far; jobs and arrivals join
-  // it with jobs stage 1 (#48).
+  // end of this shift: jobs falling due, and the shift change, when the
+  // next jobs open.
   function eventsAhead() {
-    return [{ at: shiftAt(state.clock).end, kind: "shift" }];
+    const end = shiftAt(state.clock).end, out = [];
+    for (const j of state.jobs) if (!j.result && j.due > state.clock && j.due <= end) out.push({ at: j.due, kind: "due", job: j.id });
+    out.push({ at: end, kind: "shift" });
+    return out;
   }
   // The first SKIP_MARK_SECONDS mark after the clock.
   const nextMark = () => (Math.floor(state.clock / SKIP_MARK_SECONDS) + 1) * SKIP_MARK_SECONDS;
@@ -1115,6 +1356,244 @@
       if (nodes.includes(nodeId)) return true;
     }
     return false;
+  }
+
+  // ==================================================
+  // OPERATIONS
+  // ==================================================
+  // Traffic, dispositions, jobs and results, in stage 1's simplest form
+  // (docs/design/, #48). Each car has a waybill, is sound or bad order, and
+  // keeps a history. Its disposition, the next step the game decides for
+  // it, sends it to a block's yard track, or leaves it where it is. A job
+  // is the cars whose dispositions aren't met when it opens; its lines are
+  // checked against the yard as it stands, so a car damaged mid-job
+  // changes its line. Jobs open at a shift change and fall due at the next;
+  // one not taken is done off-screen then, by another crew.
+
+  // The game's own choices (which cars get new waybills, and where to)
+  // come from `state.seed`, so a saved yard goes on the same way.
+  function random() {
+    let t = state.seed = (state.seed + 0x6D2B79F5) | 0;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  }
+  const carName = id => `${CARS[id].line || "FA"} ${CARS[id].number}`;
+  function logCar(id, text, at = state.clock) {
+    const h = state.cars[id].history;
+    h.push({ at, text });
+    if (h.length > HISTORY_KEPT) h.shift();
+  }
+  const jobById = id => state.jobs.find(j => j.id === id);
+  const openJobs = () => state.jobs.filter(j => !j.result);
+
+  // The block a car goes to next, or null when it stays where it is.
+  // Placeholder rule until #45: a bad-order car goes to repair; otherwise
+  // its waybill's destination decides.
+  function dispositionOf(id) {
+    const c = state.cars[id];
+    if (c.badOrder) return "repair";
+    return c.waybill ? DESTINATIONS[c.waybill].block : null;
+  }
+  const blockTracks = block => Object.keys(YARD_TRACKS).filter(t => YARD_TRACKS[t].block === block);
+  const inPlayerTrain = v => v.train === playerLoco().train;
+  // The yard track a vehicle's middle is on, or null.
+  const trackAt = v => TRACK_OF[v.seg] || null;
+  // Whether a vehicle stands wholly on yard track `trackId`, clear of its
+  // fouling point.
+  function clearOn(v, trackId) {
+    const e = vehicleEnds(v);
+    return [e.head, e.tail].every(end => {
+      const d = trackOffset(trackId, end.seg, end.s);
+      return d !== null && d >= TRACK_GEOM[trackId].fouling;
+    });
+  }
+  // A car's disposition is met when it is left (not in the loco's train)
+  // clear on one of its block's tracks, or when it has none.
+  function dispositionMet(id) {
+    const block = dispositionOf(id), v = state.vehicles[id];
+    return !block || (!inPlayerTrain(v) && blockTracks(block).some(t => clearOn(v, t)));
+  }
+  // Whether a block in `block` order stands in it on each of its tracks:
+  // from the ladder end, its cars' destinations come in its groups' order.
+  // Cars on the track with another disposition don't count.
+  function blockInOrder(block) {
+    const groups = BLOCKS[block].groups;
+    for (const t of blockTracks(block)) {
+      const order = Object.keys(state.cars)
+        .filter(id => dispositionOf(id) === block && trackAt(state.vehicles[id]) === t)
+        .map(id => { const v = state.vehicles[id]; return { g: groups.indexOf(state.cars[id].waybill), d: trackOffset(t, v.seg, v.s) }; })
+        .sort((a, b) => a.d - b.d);
+      if (order.some((o, i) => i && o.g < order[i - 1].g)) return false;
+    }
+    return true;
+  }
+  // A job checked against the yard: a line per car (its block, and whether
+  // it's met), how many are met, and whether each block in block order the
+  // job touches stands in it (null when it touches none).
+  function jobStatus(job) {
+    const lines = job.cars.map(id => ({ id, block: dispositionOf(id), met: dispositionMet(id) }));
+    const ordered = [...new Set(lines.map(l => l.block))].filter(b => b && BLOCKS[b].ordering === "block");
+    return { lines, met: lines.filter(l => l.met).length,
+             inOrder: ordered.length ? ordered.every(blockInOrder) : null };
+  }
+
+  // Each start of the player's loco from a stand is a move.
+  function countMoves() {
+    const moving = playerLoco().speed !== 0;
+    if (moving && !state.locoMoving) state.moves++;
+    state.locoMoving = moving;
+  }
+
+  // Rough handling: a car hit harder than DAMAGE_SPEED goes bad order.
+  // Returns whether it was damaged now. Jobs being worked note it.
+  function damageCar(id, speed) {
+    if (!CARS[id] || state.cars[id].badOrder) return false;
+    state.cars[id].badOrder = `Damaged in a hit at ${(speed * 3.6).toFixed(0)} km/h`;
+    logCar(id, `Bad order: ${state.cars[id].badOrder}`);
+    for (const j of openJobs()) if (j.taken) j.damaged.push(id);
+    return true;
+  }
+
+  // Acts on every shift change the clock has reached.
+  function runShifts() {
+    while (state.clock >= state.nextShiftAt) {
+      shiftChange(state.nextShiftAt);
+      state.nextShiftAt += SHIFT_HOURS * HOUR;
+    }
+  }
+  // At a shift change: cars left on the repair track are repaired, jobs
+  // not taken that fall due are done off-screen, and the next jobs open.
+  function shiftChange(at) {
+    for (const id in state.cars) {
+      const v = state.vehicles[id];
+      if (state.cars[id].badOrder && dispositionMet(id) && v.speed === 0) {
+        Object.assign(state.cars[id], { badOrder: null, waybill: null });
+        logCar(id, `Repaired on ${YARD_TRACKS[trackAt(v)].name}`, at);
+      }
+    }
+    for (const j of openJobs()) if (!j.taken && j.due <= at) doOffScreen(j, at);
+    openShiftJobs(at);
+    const done = state.jobs.filter(j => j.result);
+    if (done.length > JOBS_KEPT) state.jobs = state.jobs.filter(j => !j.result || done.indexOf(j) >= done.length - JOBS_KEPT);
+  }
+
+  // Opens a shift's jobs at `at`: the cars whose dispositions aren't met
+  // and aren't already in an open job, topped up to CARS_PER_JOB a job with
+  // new waybills, dealt out a block at a time.
+  function openShiftJobs(at) {
+    const busy = new Set(openJobs().flatMap(j => j.cars));
+    const needing = Object.keys(CARS).filter(id => !busy.has(id) && !dispositionMet(id));
+    const want = CARS_PER_JOB * JOBS_PER_SHIFT;
+    if (needing.length < want) needing.push(...rebill(want - needing.length, busy, at));
+    const blockOrder = Object.keys(BLOCKS);
+    needing.sort((a, b) => blockOrder.indexOf(dispositionOf(a)) - blockOrder.indexOf(dispositionOf(b)));
+    const per = Math.ceil(needing.length / JOBS_PER_SHIFT), due = at + SHIFT_HOURS * HOUR;
+    for (let i = 0; i < JOBS_PER_SHIFT; i++) {
+      const cars = needing.slice(i * per, (i + 1) * per);
+      if (!cars.length) continue;
+      state.jobs.push({ id: "job" + state.nextJob++, title: `Sort the yard for the ${clockText(due)} shift`,
+        opens: at, due, cars, blocks: new Set(cars.map(dispositionOf)).size,
+        taken: false, movesAtTake: 0, damaged: [], result: null });
+    }
+  }
+  // Issues new waybills to up to `count` cars standing where they belong,
+  // sound and not in the loco's train or a job, those with no waybill
+  // first. Each goes to a destination for its load, in another block than
+  // the one it stands in. Returns their ids.
+  function rebill(count, busy, at) {
+    const pool = Object.keys(CARS).filter(id => !busy.has(id) && !state.cars[id].badOrder && dispositionMet(id)
+      && state.vehicles[id].speed === 0 && !inPlayerTrain(state.vehicles[id]));
+    for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+    pool.sort((a, b) => !!state.cars[a].waybill - !!state.cars[b].waybill);
+    const out = [];
+    for (const id of pool) {
+      if (out.length >= count) break;
+      const here = trackAt(state.vehicles[id]), block = here && YARD_TRACKS[here].block;
+      const choices = Object.keys(DESTINATIONS).filter(d =>
+        DESTINATIONS[d].block !== block && (DESTINATIONS[d].loaded === undefined || DESTINATIONS[d].loaded === CARS[id].loaded));
+      if (!choices.length) continue;
+      const d = choices[Math.floor(random() * choices.length)];
+      state.cars[id].waybill = d;
+      logCar(id, `Waybill: ${DESTINATIONS[d].name}`, at);
+      out.push(id);
+    }
+    return out;
+  }
+
+  // Another crew does a job off-screen at `at`: each car not yet where it
+  // belongs, standing and not in the loco's train, is set on a track of its
+  // block. Cars it can't set (the track blocked or full) stay put.
+  function doOffScreen(job, at) {
+    const left = [];
+    for (const id of job.cars) {
+      if (dispositionMet(id)) continue;
+      const v = state.vehicles[id];
+      const track = v.speed === 0 && !inPlayerTrain(v) && blockTracks(dispositionOf(id)).find(t => setOnTrack(t, id));
+      if (track) logCar(id, `Set on ${YARD_TRACKS[track].name} by another crew`, at);
+      else left.push(id);
+    }
+    job.result = { by: "crew", at, left };
+  }
+  // Takes vehicle `id` out of its train, splitting the train around it.
+  function detach(id) {
+    const v = state.vehicles[id], t = trainOf(v), i = t.vehicles.indexOf(id);
+    for (const j of [i - 1, i + 1]) if (t.vehicles[j]) {
+      const k = pairKey(id, t.vehicles[j]);
+      delete state.air[k]; delete state.gaps[k];
+    }
+    delete state.trains[t.id];
+    for (const part of [t.vehicles.slice(0, i), t.vehicles.slice(i + 1)]) {
+      if (!part.length) continue;
+      const nt = { id: "t" + state.nextTrain++, vehicles: part };
+      for (const p of part) state.vehicles[p].train = nt.id;
+      state.trains[nt.id] = nt;
+    }
+    v.train = null;
+  }
+  // Sets car `id` on yard track `trackId`, off-screen: the cars already
+  // there and it are laid out again as one cut from the buffer, it at the
+  // ladder end, or in its group's place for a block in block order. Not
+  // done, and false, when a vehicle on the track is moving, is the loco or
+  // reaches off it, or when the cut wouldn't stand clear.
+  function setOnTrack(trackId, id) {
+    const g = TRACK_GEOM[trackId], trains = new Set();
+    for (const vid in state.vehicles) {
+      const v = state.vehicles[vid], e = vehicleEnds(v);
+      if ([v, e.head, e.tail].some(p => g.segs[p.seg])) trains.add(v.train);
+    }
+    const there = [];
+    for (const tid of trains) for (const vid of state.trains[tid].vehicles) {
+      const v = state.vehicles[vid], e = vehicleEnds(v);
+      if (v.controls || v.speed !== 0 || !g.segs[e.head.seg] || !g.segs[e.tail.seg]) return false;
+      if (vid !== id) there.push({ vid, d: trackOffset(trackId, v.seg, v.s) });
+    }
+    const cut = there.sort((a, b) => b.d - a.d).map(o => o.vid).concat(id);   // from the buffer
+    const block = BLOCKS[YARD_TRACKS[trackId].block];
+    if (block.ordering === "block") {
+      const rank = vid => { const g = block.groups.indexOf(state.cars[vid].waybill); return dispositionOf(vid) === YARD_TRACKS[trackId].block && g >= 0 ? g : -1; };
+      cut.sort((a, b) => rank(b) - rank(a));
+    }
+    const length = cut.reduce((sum, vid) => sum + vehicleType(state.vehicles[vid]).length, 0);
+    if (length + SET_BACK > g.length - g.fouling) return false;
+    for (const vid of cut) detach(vid);
+    const segs = YARD_TRACKS[trackId].segments, last = segs[segs.length - 1], dir = SEGMENTS[last].b === g.end ? 1 : -1;
+    layTrain(last, dir > 0 ? segmentLength(last) - SET_BACK : SET_BACK, dir, cut);
+    return true;
+  }
+
+  // Assesses a job the player reports done at `at` (docs/design/results.md):
+  // correctness, ordering, moves against par, timeliness, and the cars
+  // damaged while it was worked.
+  function assess(job, at) {
+    const st = jobStatus(job), moves = state.moves - job.movesAtTake;
+    const par = PAR_PER_CAR_AND_BLOCK * (job.cars.length + job.blocks);
+    let outcome;
+    if (st.met === st.lines.length) outcome = st.inOrder === false ? "Invalid formation" : moves > par ? "Valid but inefficient" : "Operationally valid";
+    else outcome = st.met ? "Partially complete" : "Incomplete";
+    for (const l of st.lines) if (l.met && l.block) logCar(l.id, `Left on ${YARD_TRACKS[trackAt(state.vehicles[l.id])].name}, ${BLOCKS[l.block].name}`, at);
+    job.result = { by: "player", at, outcome, met: st.met, total: st.lines.length, inOrder: st.inOrder,
+                   moves, par, late: Math.max(0, at - job.due) };
   }
 
   state = makeState();
@@ -1212,6 +1691,30 @@
       if (state.vehicles[id].speed !== 0) { setNotice("Wait for the cars to stop"); return false; }
     }
     state.clock = at;
+    runShifts();
+    return true;
+  }
+
+  // Jobs: the player takes one from the board, hands it back, or reports it
+  // done, which assesses it. A job handed back after it fell due goes to
+  // another crew at once.
+  function takeJob(jobId) {
+    const j = jobById(jobId);
+    if (!j || j.result || j.taken) return false;
+    Object.assign(j, { taken: true, movesAtTake: state.moves, damaged: [] });
+    return true;
+  }
+  function handBack(jobId) {
+    const j = jobById(jobId);
+    if (!j || j.result || !j.taken) return false;
+    j.taken = false;
+    if (j.due <= state.clock) doOffScreen(j, state.clock);
+    return true;
+  }
+  function reportDone(jobId) {
+    const j = jobById(jobId);
+    if (!j || j.result || !j.taken) return false;
+    assess(j, state.clock);
     return true;
   }
 
@@ -1220,13 +1723,12 @@
   // ==================================================
   // The yard is saved as it stands, mid-move included: every vehicle with
   // its speed, the trains, couplings' slack and air, switches, hand brakes,
-  // the loco's controls and the clock. That is all of STATE but the
-  // notice. A yard saved before the clock (SAVE_KEY_BEFORE_CLOCK) is
-  // carried over with a new yard's clock. A save
+  // the loco's controls, the clock, the cars' traffic and the jobs. That is
+  // all of STATE but the notice. A yard saved before jobs isn't carried
+  // over: its cars stand where jobs didn't expect them. A save
   // that doesn't fit the yard (WORLD DATA changed since) is set aside for a
   // fresh yard. SAVE_KEY changes with every change to the saved shape.
-  const SAVE_KEY = "switching-game.yard.2";
-  const SAVE_KEY_BEFORE_CLOCK = "switching-game.yard.1";
+  const SAVE_KEY = "switching-game.yard.3";
 
   function saveYard() {
     try {
@@ -1243,6 +1745,13 @@
     if (!isObj(st) || !(st.clock >= 0 && Number.isFinite(st.clock))) return false;
     if (!isObj(st.trains) || !isObj(st.air) || !isObj(st.gaps) || !Number.isInteger(st.nextTrain)) return false;
     if (!sameKeys(st.switches, SWITCHES)) return false;
+    if (!sameKeys(st.cars, CARS) || !Array.isArray(st.jobs) || !Number.isInteger(st.nextJob) || !Number.isInteger(st.moves)
+        || !Number.isInteger(st.seed) || !Number.isFinite(st.nextShiftAt)) return false;
+    for (const id in st.cars) {
+      const c = st.cars[id];
+      if (!Array.isArray(c.history) || (c.waybill !== null && !DESTINATIONS[c.waybill])) return false;
+    }
+    for (const j of st.jobs) if (!isObj(j) || !Array.isArray(j.cars) || !j.cars.every(id => CARS[id]) || !Number.isFinite(j.due)) return false;
     for (const id in SWITCHES) if (!SWITCHES[id].legs.includes(st.switches[id].set)) return false;
     const startIds = {};
     for (const t of START_TRAINS) for (const v of t.vehicles) startIds[v.id] = startType(v);
@@ -1271,11 +1780,7 @@
   // makeState() built stays.
   function loadYard() {
     try {
-      let saved = JSON.parse(localStorage.getItem(SAVE_KEY));
-      if (!saved) {
-        saved = JSON.parse(localStorage.getItem(SAVE_KEY_BEFORE_CLOCK));
-        if (saved && saved.state && typeof saved.state === "object") saved.state.clock = START_CLOCK;
-      }
+      const saved = JSON.parse(localStorage.getItem(SAVE_KEY));
       if (saved && fitsYard(saved.state)) { state = saved.state; return true; }
     } catch (e) { /* unreadable or blocked: start fresh */ }
     return false;
@@ -1309,6 +1814,7 @@
     air: "#5aa9ff",
     north: "#7a7b80",      // the CSS --muted
     scenery: "#3b3e42",    // the main line: track the player can't use, dimmer than the yard's
+    label: "#1c1d20",      // a yard track's number disc
   };
   const canvas = document.getElementById("yard");
   const ctx = canvas.getContext("2d");
@@ -1530,6 +2036,27 @@
       ctx.beginPath(); ctx.arc(p.x, p.y, r * 1.1, 0, Math.PI * 2); ctx.fill();
       ctx.globalAlpha = 1;
     }
+    // Each yard track: a clearance mark across it at its fouling point, and
+    // its number on a disc a little past it.
+    for (const id in YARD_TRACKS) {
+      const g = TRACK_GEOM[id], p = trackPoint(id, g.fouling), h = GAUGE * 1.2;
+      line(p.x - p.uy * h, p.y + p.ux * h, p.x + p.uy * h, p.y - p.ux * h, PALETTE.buffer, Math.max(1.5, k * 0.3));
+      const at = trackPoint(id, g.fouling + 12), c = view.toScreen(at.x, at.y), r = Math.max(8, Math.min(12, k * 2));
+      ctx.fillStyle = PALETTE.label; ctx.strokeStyle = PALETTE.trackFar; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(c.x, c.y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = PALETTE.light; ctx.font = `600 ${Math.round(r * 1.1)}px system-ui, sans-serif`;
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(YARD_TRACKS[id].number, c.x, c.y + 0.5);
+      ctx.textAlign = "start"; ctx.textBaseline = "alphabetic";
+    }
+    // The cars of a job being worked that aren't yet where they belong: an
+    // amber dot on each.
+    for (const j of openJobs()) if (j.taken) for (const l of jobStatus(j).lines) {
+      if (l.met) continue;
+      const v = state.vehicles[l.id], at = pointOn(v.seg, v.s), c = view.toScreen(at.x, at.y);
+      ctx.fillStyle = PALETTE.accent; ctx.strokeStyle = PALETTE.bg; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(c.x, c.y, Math.max(4, k * 0.7), 0, Math.PI * 2); ctx.stroke(); ctx.fill();
+    }
     placeCouplingMenu();
     placeCarCard();
 
@@ -1554,7 +2081,7 @@
       ctx.globalAlpha = Math.min(1, state.notice.time);
       ctx.font = "600 15px system-ui, sans-serif"; ctx.textAlign = "center";
       ctx.fillStyle = PALETTE.light;
-      ctx.fillText(state.notice.text, screenW / 2, 72);   // under the clock
+      ctx.fillText(state.notice.text, screenW / 2, jobChip.classList.contains("open") ? 108 : 72);   // under the clock and job chip
       ctx.globalAlpha = 1; ctx.textAlign = "start";
     }
     if (paused) {
@@ -1571,6 +2098,7 @@
       `${cars} car${cars === 1 ? "" : "s"}${cars ? ` · air ${braked}/${cars}` : ""}</span>` +
       `<small>v${GAME_CONFIG.VERSION}</small>`;
     renderClock();
+    renderJobs();
     followBtn.classList.toggle("on", camera.follow);
     pauseBtn.classList.toggle("on", paused);
     pauseBtn.innerHTML = paused ? "▶&#xFE0E;" : "❚❚";
@@ -1582,12 +2110,6 @@
     levers.tb.innerHTML = `Train brake<b>${c.emergency ? "EMERG" : c.trainBrake + "/" + TRAIN_BRAKE_NOTCHES}</b>` +
       `<div class="meter"><i style="width:${c.trainApplied * 100}%"></i></div>`;
   }
-
-  // A clock time as HH:MM, and the day it falls on, counted from 1.
-  const pad2 = n => String(n).padStart(2, "0");
-  const clockText = at => { const m = Math.floor(at / 60) % (24 * 60); return `${pad2(Math.floor(m / 60))}:${pad2(m % 60)}`; };
-  const dayOf = at => Math.floor(at / DAY) + 1;
-  const EVENT_TEXT = { shift: "Shift change" };
 
   // The clock at the top: the time, then the day and the shift. Written
   // only when it changes.
@@ -1665,7 +2187,7 @@
   // New yard asks first: the yard as it stands can't be had back. A click,
   // not a press, so the question doesn't open under a finger still down.
   document.getElementById("newYardBtn").addEventListener("click", () => {
-    if (confirm("Start a new yard? The yard as it stands will be lost.")) { newYard(); menuFor = null; cardFor = null; closeSkipMenu(); }
+    if (confirm("Start a new yard? The yard as it stands will be lost.")) { newYard(); menuFor = null; cardFor = null; sheet = null; closeSkipMenu(); }
   });
   const VIEW_KEYS = { "+": () => zoomBy(1), "=": () => zoomBy(1), "-": () => zoomBy(-1), p: togglePause };
 
@@ -1712,7 +2234,7 @@
       const v = state.vehicles[id];
       if (!v.controls) { const p = pointOn(v.seg, v.s); consider(p.x, p.y, () => { cardFor = id; }, true); }
     }
-    menuFor = null; cardFor = null;
+    menuFor = null; cardFor = null; sheet = null;
     if (skipOpen) closeSkipMenu();
     if (best) (bestShows ? best : unlessPaused(best))();
   }
@@ -1760,8 +2282,15 @@
     const type = vehicleType(v), at = pointOn(v.seg, v.s), p = view.toScreen(at.x, at.y);
     // FA's stencils (NEFA 771): T the tare and C the load limit, in kg.
     const kg = (t, digits) => String(t * 1000).padStart(digits, "0");
+    // Then its traffic: the waybill, where it goes next, why it's bad
+    // order, and the last of its history.
+    const c = state.cars[cardFor], block = dispositionOf(cardFor);
+    const next = !block ? "stays where it is" : dispositionMet(cardFor) ? `${BLOCKS[block].name}, in place` : `to ${tracksText(block)}`;
     carText.innerHTML = `<b>${car.line || "FA"} ${car.number}</b>${type.name} · ${car.loaded ? "loaded" : "empty"}` +
-      `<small>${car.line ? "" : `${type.code} ${FA_OPERATING_CODE} · `}T ${kg(type.tare, 5)} K · C ${kg(type.carga, 6)} K</small>`;
+      `<small>${car.line ? "" : `${type.code} ${FA_OPERATING_CODE} · `}T ${kg(type.tare, 5)} K · C ${kg(type.carga, 6)} K</small>` +
+      `<small class="traffic">${c.waybill ? `Waybill: ${DESTINATIONS[c.waybill].name}` : "No waybill"} · ${next}</small>` +
+      (c.badOrder ? `<small class="warn">Bad order: ${c.badOrder}</small>` : "") +
+      `<div class="history">${c.history.slice(-3).reverse().map(e => `${dayClock(e.at)} · ${e.text}`).join("<br>")}</div>`;
     handBrakeBtn.textContent = v.handBrake ? "Release hand brake" : "Set hand brake";
     handBrakeBtn.classList.toggle("on", v.handBrake);
     // Beside the car, kept on screen and clear of the zoom buttons.
@@ -1785,20 +2314,32 @@
     if (!skipOpen) return;
     const day = dayOf(state.clock), dayNote = at => dayOf(at) === day ? "" : ` <small>Day ${dayOf(at)}</small>`;
     let html = "<h3>Skip to next</h3>";
+    // A job not taken that a skip passes the due time of goes to another
+    // crew: the menu says so before the skip, beside the event and the marks.
     for (const e of eventsAhead()) {
-      html += `<button class="event" data-at="${e.at}"><b>${clockText(e.at)}</b>${EVENT_TEXT[e.kind]}${dayNote(e.at)}</button>`;
+      const j = e.job && jobById(e.job);
+      const text = j ? `${j.title} falls due${j.taken ? "" : `<small class="warn">Not taken: another crew does it</small>`}`
+        : `Shift change<small>The next jobs open</small>`;
+      html += `<button class="event" data-at="${e.at}"><b>${clockText(e.at)}</b><span>${text}</span>${dayNote(e.at)}</button>`;
     }
+    const handed = openJobs().filter(j => !j.taken);
     html += `<h3>Skip to time</h3><div class="marks">`;
+    let last = 0;
     for (let i = 0, at = nextMark(); i < marksShown; i++, at += SKIP_MARK_SECONDS) {
-      html += `<button data-at="${at}">${clockText(at)}</button>`;
+      const warn = handed.some(j => j.due <= at);
+      html += `<button data-at="${at}"${warn ? ' class="warn"' : ""}>${clockText(at)}</button>`;
+      last = at;
     }
-    skipMenu.innerHTML = html + `<button data-more="1" aria-label="More times">…</button></div>`;
+    html += `<button data-more="1" aria-label="More times">…</button></div>`;
+    const passed = handed.filter(j => j.due <= last);
+    if (passed.length) html += `<p class="note">From ${clockText(passed[0].due)}, another crew does: ${passed.map(j => j.title).join("; ")}</p>`;
+    skipMenu.innerHTML = html;
   }
   function closeSkipMenu() { skipOpen = false; placeSkipMenu(); }
   skipBtn.addEventListener("pointerdown", e => {
     e.preventDefault();
     unlessPaused(() => {
-      skipOpen = !skipOpen; marksShown = SKIP_MARKS_SHOWN; menuFor = null; cardFor = null;
+      skipOpen = !skipOpen; marksShown = SKIP_MARKS_SHOWN; menuFor = null; cardFor = null; sheet = null;
       placeSkipMenu();
     })();
   });
@@ -1809,6 +2350,141 @@
     if (b.dataset.more) { marksShown += SKIP_MARKS_SHOWN; placeSkipMenu(); return; }
     unlessPaused(skipTo)(Number(b.dataset.at));
     closeSkipMenu();
+  });
+
+  // Jobs: the chip under the clock for the job being worked, which opens
+  // its sheet; the Jobs button, which opens the board; and the sheet, which
+  // shows the board or one job's sheet. A tap on a car's line shows that
+  // car. The sheet is rewritten only when what it shows changes, and opens
+  // only to look: taking, handing back and reporting done are actions.
+  const jobChip = document.getElementById("jobChip"), jobsBtn = document.getElementById("jobsBtn");
+  const sheetEl = document.getElementById("sheet");
+  let sheet = null, sheetHtml = "", chipHtml = "";   // sheet: null, {} for the board, or { job: id }
+  const shortTime = at => `${clockText(at)}${dayOf(at) === dayOf(state.clock) ? "" : `, day ${dayOf(at)}`}`;
+  const dayClock = at => `Day ${dayOf(at)} ${clockText(at)}`;
+  const lateText = s => s >= HOUR ? `${Math.floor(s / HOUR)} h ${Math.floor(s % HOUR / 60)} min` : `${Math.ceil(s / 60)} min`;
+  function tracksText(block) {
+    const n = blockTracks(block).map(t => YARD_TRACKS[t].number);
+    return `Track ${n.join(" or ")}`;
+  }
+  // Where a vehicle stands, for the player.
+  function placeName(v) {
+    const t = trackAt(v);
+    if (!t) return PLACE_OF[v.seg] || "the ladder";
+    return YARD_TRACKS[t].name + (clearOn(v, t) ? "" : ", fouling the ladder");
+  }
+  function renderJobs() {
+    const open = openJobs(), taken = open.filter(j => j.taken), fresh = open.filter(j => !j.taken), worked = taken[0];
+    let chip = "";
+    if (worked) {
+      const st = jobStatus(worked);
+      chip = `Sort for the ${clockText(worked.due)} shift · <em>${st.met} of ${st.lines.length}</em> done${worked.due <= state.clock ? " · late" : ""}`;
+    }
+    if (chip !== chipHtml) jobChip.innerHTML = chipHtml = chip;
+    jobChip.classList.toggle("open", !!worked);
+    const label = taken.length ? `Jobs · ${taken.length} taken` : fresh.length ? `Jobs · ${fresh.length} new` : "Jobs";
+    if (jobsBtn.textContent !== label) jobsBtn.textContent = label;
+    jobsBtn.classList.toggle("on", !!open.length);
+    if (sheet && sheet.job && !jobById(sheet.job)) sheet = {};
+    if (sheet) {
+      const html = sheet.job ? jobSheetHtml(jobById(sheet.job)) : boardHtml();
+      if (html !== sheetHtml) sheetEl.innerHTML = sheetHtml = html;
+    }
+    sheetEl.classList.toggle("open", !!sheet);
+  }
+  const outcomeText = j => j.result.by === "crew" ? `Done by another crew at ${shortTime(j.result.at)}`
+    : `${j.result.outcome} · ${shortTime(j.result.at)}`;
+  function boardHtml() {
+    let h = `<div class="grab"></div><header><h2>Jobs · ${YARD_NAME}</h2><button data-act="close">Close ✕&#xFE0E;</button></header>`;
+    for (const j of openJobs()) {
+      const late = j.due <= state.clock ? ` · <span class="warn">late</span>` : "";
+      h += `<div class="job" data-job="${j.id}"><div><b>${j.title}</b><small>${j.cars.length} cars · due ${shortTime(j.due)}` +
+        `${j.taken ? " · taken" : ""}${late}</small></div>` + (j.taken
+          ? `<button class="act primary" data-act="open" data-job="${j.id}">Open</button>`
+          : `<button class="act" data-act="take" data-job="${j.id}">Take</button>`) + `</div>`;
+    }
+    const opens = state.nextShiftAt, due = opens + SHIFT_HOURS * HOUR;
+    h += `<div class="job later"><div><b>Sort the yard for the ${clockText(due)} shift</b><small>opens ${shortTime(opens)}</small></div></div>`;
+    const done = state.jobs.filter(j => j.result).reverse();
+    if (done.length) h += `<h3><span>Finished</span><span></span></h3>`;
+    for (const j of done) h += `<div class="job" data-job="${j.id}"><div><b>${j.title}</b><small>${outcomeText(j)}</small></div></div>`;
+    return h;
+  }
+  function jobSheetHtml(j) {
+    const st = jobStatus(j), shift = shiftAt(j.opens);
+    let h = `<div class="grab"></div><header><button data-act="board" aria-label="All jobs">‹</button><h2>${j.title}</h2>` +
+      `<button data-act="close" aria-label="Close">✕&#xFE0E;</button></header>` +
+      `<div class="meta"><span>Place</span><span>${YARD_NAME}</span><span>Loco</span><span>${vehicleType(playerLoco()).name}</span>` +
+      `<span>Shift</span><span>${clockText(shift.start).slice(0, 2)}–${clockText(shift.end).slice(0, 2)}, day ${dayOf(j.opens)}</span>` +
+      `<span>Due</span><span>${shortTime(j.due)}</span></div>`;
+    const ordered = Object.keys(BLOCKS).filter(b => BLOCKS[b].ordering === "block" && st.lines.some(l => l.block === b));
+    if (ordered.length) h += `<p class="remarks"><span>Remarks:</span> ${ordered.map(b =>
+      `${BLOCKS[b].name} block in order from the ladder end: ${BLOCKS[b].groups.map(g => DESTINATIONS[g].name).join(", ")}`).join("; ")}.</p>`;
+    if (j.result) h += resultHtml(j);
+    else if (j.taken) h += `<div class="buttons"><button class="act" data-act="handback" data-job="${j.id}">Hand back</button>` +
+      `<button class="act primary" data-act="done" data-job="${j.id}">Report done</button></div>`;
+    else h += `<div class="buttons"><button class="act primary" data-act="take" data-job="${j.id}">Take</button></div>`;
+    for (const b of Object.keys(BLOCKS)) {
+      const lines = st.lines.filter(l => l.block === b);
+      if (!lines.length) continue;
+      h += `<h3><span>${BLOCKS[b].name} block · ${tracksText(b)}</span><span>${lines.filter(l => l.met).length} of ${lines.length}</span></h3>`;
+      for (const l of lines) h += lineHtml(l);
+      if (BLOCKS[b].ordering === "block") {
+        const ok = blockInOrder(b);
+        h += `<div class="line order${ok ? " met" : ""}"><div class="tick">${ok ? "✓" : ""}</div><div><b>In block order</b>` +
+          `<small>${BLOCKS[b].groups.map(g => DESTINATIONS[g].name).join(", ")}, from the ladder end</small></div></div>`;
+      }
+    }
+    return h;
+  }
+  function lineHtml(l) {
+    const id = l.id, car = CARS[id], c = state.cars[id], v = state.vehicles[id];
+    const to = l.block === "repair" ? tracksText(l.block) : `${tracksText(l.block)} · ${DESTINATIONS[c.waybill].name}`;
+    return `<div class="line${l.met ? " met" : ""}" data-car="${id}"><div class="tick">${l.met ? "✓" : ""}</div>` +
+      `<div><b>${carName(id)}</b><small>${VEHICLE_TYPES[car.type].name} · ${car.loaded ? "loaded" : "empty"}</small>` +
+      `${c.badOrder ? `<small class="warn">Bad order: ${c.badOrder}</small>` : ""}</div>` +
+      `<div class="where"><span>${to}</span><small>${inPlayerTrain(v) ? "in your train" : `on ${placeName(v)}`}</small></div></div>`;
+  }
+  function resultHtml(j) {
+    const r = j.result;
+    if (r.by === "crew") return `<div class="result"><b>Done by another crew</b><small>At ${shortTime(r.at)}</small>` +
+      `${r.left.length ? `<small class="warn">Left where they stood, the track blocked or full: ${r.left.map(carName).join(", ")}</small>` : ""}</div>`;
+    const rows = [
+      `${r.met} of ${r.total} cars where they belong${r.inOrder === null || r.met < r.total ? "" : r.inOrder ? ", in block order" : ", out of block order"}`,
+      `${r.moves} move${r.moves === 1 ? "" : "s"}, par ${+r.par.toFixed(1)}`,
+      r.late ? `<span class="warn">Late by ${lateText(r.late)}</span>, at ${shortTime(r.at)}` : `On time, at ${shortTime(r.at)}`];
+    return `<div class="result"><b>${r.outcome}</b>${rows.map(t => `<small>${t}</small>`).join("")}` +
+      `${j.damaged.length ? `<small class="warn">Rough handling: ${j.damaged.map(carName).join(", ")} damaged, bad order</small>` : ""}</div>`;
+  }
+  sheetEl.addEventListener("click", e => {
+    const b = e.target.closest("[data-act]"), line = e.target.closest("[data-car]"), row = e.target.closest(".job[data-job]");
+    if (b) {
+      const act = b.dataset.act, id = b.dataset.job;
+      if (act === "close") sheet = null;
+      else if (act === "board") sheet = {};
+      else if (act === "open") sheet = { job: id };
+      else if (act === "take") unlessPaused(() => { if (takeJob(id)) sheet = { job: id }; })();
+      else if (act === "handback") unlessPaused(handBack)(id);
+      else if (act === "done") unlessPaused(() => {
+        const st = jobStatus(jobById(id)), left = st.lines.length - st.met;
+        if (!left || confirm(`Report done with ${left} car${left === 1 ? "" : "s"} still to place?`)) reportDone(id);
+      })();
+    } else if (line) {                    // show the car, with its card
+      const v = state.vehicles[line.dataset.car], p = pointOn(v.seg, v.s);
+      Object.assign(camera, { follow: false, cx: p.x, cy: p.y, zoom: Math.max(camera.zoom, 2) });
+      sheet = null; cardFor = line.dataset.car; menuFor = null;
+    } else if (row) sheet = { job: row.dataset.job };
+  });
+  jobsBtn.addEventListener("pointerdown", e => {
+    e.preventDefault();
+    sheet = sheet ? null : {}; menuFor = null; cardFor = null;
+    if (skipOpen) closeSkipMenu();
+  });
+  jobChip.addEventListener("pointerdown", e => {
+    e.preventDefault();
+    const j = openJobs().find(j => j.taken);
+    sheet = j ? { job: j.id } : null; menuFor = null; cardFor = null;
+    if (skipOpen) closeSkipMenu();
   });
 
   // The yard is saved every SAVE_SECONDS of play, counted in steps.
@@ -1826,6 +2502,7 @@
   // Exposed for testing in a browser console or headless check.
   window.switching = { get state() { return state; }, step, throwSwitch, uncouple, moveReverser, moveThrottle,
     moveLocoBrake, moveTrainBrake, emergency, release, trainEnds, toggleAir, toggleHandBrake, brakeReach, skipTo, eventsAhead,
+    takeJob, handBack, reportDone, jobStatus, dispositionOf, dispositionMet, blockInOrder, damageCar, TRACK_GEOM,
     get paused() { return paused; }, togglePause, saveYard, loadYard, newYard, fitsYard, SAVE_KEY };
 })();
 </script>
