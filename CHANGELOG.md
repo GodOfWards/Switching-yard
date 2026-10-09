@@ -2,6 +2,17 @@
 
 Newest first. One entry per version bump.
 
+## 0.7.3
+
+**Changed**
+- The yard is now the east end of Junín: seven yard tracks ladder into
+  one lead, with the depot fan, two short tracks and a head-shunt. The
+  fan is laid again to follow the real track. The main line runs
+  alongside but can't be used.
+- Sixteen cars instead of eight.
+- Play starts zoomed in, following the loco, and zoom reaches further for
+  the bigger yard.
+
 ## 0.7.2
 
 **Changed**
