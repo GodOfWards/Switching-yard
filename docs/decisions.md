@@ -3,6 +3,30 @@
 Design calls Tom has made, newest first, with where they were made. The
 values these produced live in CONFIG and WORLD DATA in `index.html`.
 
+## 2026-10-09: Main-line traffic and authority to move (#56, #57)
+
+Made in the "#56 and #57" thread. The rules are in
+[design/living-railway.md](design/living-railway.md).
+
+- **The main is off limits unless authorized**, after the train-sim
+  practice Tom knows: ask, wait for authority, report back when off. In
+  FA's terms the station grants it, and the main's hand switches are
+  padlocked lying for the main (RITO art. 154).
+- **Asking gives a time estimate** (10, 20 or 30 minutes); the station
+  refuses if a train is due in it. Each authority is one use; overrunning
+  is noted on results.
+- **Through trains are real trains on the map**, offered 10 minutes
+  ahead, held at the home signal when the main isn't clear, the wait the
+  player's delay. No wreck.
+- **Freight only in the first pass**; the *Aconcagua* waits for coaches
+  (#77). Retiro road trains over the crossover later (#78).
+
+## 2026-10-09: Main line as track (#44)
+
+Made in the "#56 and #57" thread. The single-track main runs from the
+yard's west cut to 1 km past the crossover, joined to the head-shunt by
+Junín's real crossover, open to the player until #57 (built in v0.9.1).
+
 ## 2026-10-09: Jobs stage 2, road trains (#49)
 
 Made in the "Stage 2" thread. The rules are in

@@ -3,7 +3,8 @@
 How a Ferrocarriles Argentinos yard handled freight: who did the work, the
 order trains were formed in, how switching was done, the paperwork, and
 how a yard crew got the main line. Researched 2026-10-09 (#45) for jobs
-stages 2 and 3 (#49, #50).
+stages 2 and 3 (#49, #50); articles 63, 154, 155 and 163 added the same day
+for the main line (#56, #57).
 
 **Decided (Tom):**
 - **Traffic sources** (2026-10-09): the era stays FA, 1977 or later.
@@ -149,6 +150,10 @@ light repairs, including lifting a car to change wheelsets or a bogie; a
 | **Double track: to switch out beyond the home signal** into the block section, the station asks the block station behind for permission with bell code No. 3, only if the instruments show the section clear | art. 44 | Confirmed |
 | While a train is in the section ahead, the station it left **may occupy that section with switching** | art. 61 a 2 | Confirmed |
 | Single track: no train enters a block section without a departure order (staff or ticket), **except when switching** | art. 49 | Confirmed |
+| **Line clear** may be given only if the main inside the station's limits is clear to the starting signal (or, without one, 400 m past the home signal); once given, **the main set for that train may not be occupied** until it has stopped at the home signal or passed | art. 63 a, d | Confirmed |
+| **Hand switches on the main** normally lie for the main, secured with a lock, clamp and padlock; switches on other tracks lie so as to keep vehicles off the main | art. 154 a | Confirmed |
+| A facing hand switch on the main is clamped and padlocked before a train passes over it; clamps are always padlocked, the key kept | art. 155 b, 163 a | Confirmed |
+| **Asking for the main with a time estimate, and reporting back clear**: Tom's account of train-sim practice (yard limits, a dispatcher), North American. The RITO has the station consent to switching (art. 391) but no time estimate from the crew | Tom, 2026-10-09 | Unconfirmed for FA |
 | A station whose tracks are obstructed by switching may still accept a train with a **conditional line clear**; the train is stopped at the station behind and told in writing it must stop at the home signal | art. 64 | Confirmed |
 | **Stopping the switching for a train**: the station or signalman waves a red flag or light up and down. The switchman stops at once, clears the switches, sets hand switches to normal, and acknowledges with the same signal; nothing moves on them until he has | art. 392 a, b | Confirmed |
 | Switching beyond station limits: pull out, push back; otherwise make sure no car was left outside (a man rides the far car, or the far car's number or the count is checked) | art. 379 | Confirmed |
