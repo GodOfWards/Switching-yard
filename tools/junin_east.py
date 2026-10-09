@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Junín's east end as game track: WORLD DATA's NODES, SEGMENTS, SWITCHES and SCENERY.
+"""Junín's east end as game track: WORLD DATA's NODES, SEGMENTS, SWITCHES and MAP_EDGES.
 
 Content tool for #44, not part of the game. Reads the saved OpenStreetMap
 export of Junín yard and prints JavaScript to paste into WORLD DATA in
 index.html, replacing everything from `const NODES` to the end of
-`const SCENERY`. The method is in docs/reference/junin-yard.md.
+`const MAP_EDGES`. The method is in docs/reference/junin-yard.md.
 
 Needs only the standard library.
 
@@ -17,13 +17,16 @@ import xml.etree.ElementTree as ET
 ORIGIN = (-60.95, -34.585)  # lon, lat the projection is measured from
 ALPHA = math.radians(20.6)  # the main line's bearing, north of east
 X_WEST, X_EAST = 580, 1380  # m along the main line where the yard tracks and the lead are cut off
+MAIN_WEST, MAIN_EAST = 570, 2380  # m along the main line where it leaves the map; retunable
 OFFSET = (580, -80)         # frame point that becomes the game's (0, 0): yard track 1's cut end
 
 # What is laid. The slice is everything joined to the ladder's first switch
-# between the two cuts, less the east throat and the through track.
+# between the two cuts, less the rest of the east throat and the through
+# track; the main line is laid between its own cuts. The lead follows OSM's
+# track that carries the crossover to the main.
 ROOT = "12107781967"                                  # the ladder's first switch, on the lead
-LEFT_OUT_WAYS = {"1000697115", "1000697116", "884552631", "358973317", "1181520561"}
-LEFT_OUT_LINKS = {frozenset(("9236975595", "9236975594"))}  # the lead's link to the main line
+LEFT_OUT_WAYS = {"1000697115", "1000697116", "1000697117", "1181520561"}
+CROSSOVER = {"3892462373": "X1", "3892462372": "X2"}  # its switches: X1 on the lead, X2 on the main
 TURNTABLE_END = "1300539013"
 STUBS = {"12107781968": "stub1", "12107781962": "stub2"}
 
@@ -72,33 +75,37 @@ def simplify(pts, tol):
 def read(path):
     root = ET.parse(path).getroot()
     P = {n.get("id"): project(float(n.get("lon")), float(n.get("lat"))) for n in root.iter("node")}
-    adj, main = collections.defaultdict(set), []
+    adj, main = collections.defaultdict(set), set()
     for w in root.iter("way"):
         tags = {t.get("k"): t.get("v") for t in w.iter("tag")}
         nds = [nd.get("ref") for nd in w.iter("nd")]
-        if tags.get("railway") != "rail": continue
-        if tags.get("usage") == "main": main.append([P[n] for n in nds]); continue
-        if w.get("id") in LEFT_OUT_WAYS: continue
+        if tags.get("railway") != "rail" or w.get("id") in LEFT_OUT_WAYS: continue
         for a, b in zip(nds, nds[1:]):
-            if frozenset((a, b)) not in LEFT_OUT_LINKS: adj[a].add(b); adj[b].add(a)
+            adj[a].add(b); adj[b].add(a)
+            if tags.get("usage") == "main": main.add(frozenset((a, b)))
     return P, adj, main
 
 
-def slice_graph(P, adj):
-    """Track joined to ROOT between the cuts; a track crossing a cut ends there."""
-    G, seen, todo = collections.defaultdict(set), {ROOT}, [ROOT]
+def slice_graph(P, adj, main):
+    """Track joined to ROOT between the cuts; a track crossing a cut ends there.
+    Also returns the main line's two cut ends, west first."""
+    G, seen, todo, main_ends = collections.defaultdict(set), {ROOT}, [ROOT], []
     while todo:
         n = todo.pop()
         for m in sorted(adj[n]):
             x = P[m][0]
-            if not X_WEST <= x <= X_EAST:
-                X = X_WEST if x < X_WEST else X_EAST
+            on_main = frozenset((n, m)) in main
+            lo, hi = (MAIN_WEST, MAIN_EAST) if on_main else (X_WEST, X_EAST)
+            if not lo <= x <= hi:
+                X = lo if x < lo else hi
                 a, b = P[n], P[m]; f = (X - a[0]) / (b[0] - a[0])
                 cut = "cut" + m; P[cut] = (X, a[1] + (b[1] - a[1]) * f)
-                G[n].add(cut); G[cut].add(n); continue
+                G[n].add(cut); G[cut].add(n)
+                if on_main: main_ends.append(cut)
+                continue
             G[n].add(m); G[m].add(n)
             if m not in seen: seen.add(m); todo.append(m)
-    return G
+    return G, sorted(main_ends, key=lambda c: P[c][0])
 
 
 def chains(G):
@@ -230,33 +237,45 @@ def lay(P, sw, edges, order):
     return pieces, moved
 
 
-def name_all(P, G, sw, edges, order, pieces):
+def name_all(P, G, sw, edges, order, pieces, main_ends):
     ends = [n for e in edges for n in (e[0], e[-1]) if n not in sw]
-    names = {}
-    west = sorted((n for n in ends if n.startswith("cut") and P[n][0] < X_WEST + 1), key=lambda n: -P[n][1])
+    names = dict(zip(main_ends, ("mainWest", "mainEast")))
+    west = sorted((n for n in ends if n not in names and n.startswith("cut") and P[n][0] < X_WEST + 1), key=lambda n: -P[n][1])
     for i, n in enumerate(west): names[n] = "yard%d" % (i + 1)            # from the main-line side
-    names[next(n for n in ends if P[n][0] > X_EAST - 1)] = "lead"
+    lead_end = next(n for n in ends if n not in names and P[n][0] > X_EAST - 1)
+    names[lead_end] = "lead"
     names[TURNTABLE_END] = "turntableSpur"
     names.update(STUBS)
     fan = sorted((n for n in ends if n not in names), key=lambda n: P[n][1])
     for i, n in enumerate(fan): names[n] = "fan%d" % (i + 1)               # from the turntable side
-    swn = {s: "J%d" % (i + 1) for i, s in enumerate(sorted(sw, key=lambda s: (order[s], P[s])))}
+    swn = {s: "J%d" % (i + 1) for i, s in enumerate(sorted((s for s in sw if s not in CROSSOVER), key=lambda s: (order[s], P[s])))}
+    swn.update(CROSSOVER)
 
     def key(p): return (round(p[0] - OFFSET[0], 2), round(p[1] - OFFSET[1], 2))
     node_at = {key(P[s]): swn[s] for s in sw}
     for n in ends: node_at[key(P[n])] = names[n] + "End"
-    edge_name = [names.get(e[-1]) or names.get(e[0]) or swn[e[0]] + swn[e[-1]] for e in edges]
-    by_edge = collections.defaultdict(list)
-    for p in pieces: by_edge[p[0]].append(p)
+    # The main line's two runs are one track, `main`; so are the lead's two,
+    # either side of the crossover. Their pieces are numbered west to east.
+    def edge_name(e):
+        if e[0] in main_ends or e[-1] in main_ends: return "main"
+        if e[0] in CROSSOVER and e[-1] in CROSSOVER: return "crossover"
+        if lead_end in (e[0], e[-1]) or {e[0], e[-1]} == {"3892462373", ROOT}: return "lead"
+        return names.get(e[-1]) or names.get(e[0]) or swn[e[0]] + swn[e[-1]]
+    by_name = collections.defaultdict(list)
+    for p in pieces: by_name[edge_name(edges[p[0]])].append(p)
     segs = {}
-    for ei, ps in sorted(by_edge.items()):
-        nm = edge_name[ei]
-        for j, (_, a, b, r) in enumerate(ps):
+    for nm, ps in by_name.items():
+        if len({p[0] for p in ps}) > 1: ps = sorted(ps, key=lambda p: p[1][0] + p[2][0])
+        for j, (ei, a, b, r) in enumerate(ps):
             sid = nm if len(ps) == 1 else "%s_%d" % (nm, j + 1)
             for k, label in ((key(a), j), (key(b), j + 1)):
                 node_at.setdefault(k, "%sBend%d" % (nm, label))
             segs[sid] = dict(a=node_at[key(a)], b=node_at[key(b)], r=round(r, 1), edge=ei)
     nodes = {v: k for k, v in node_at.items()}
+    first = {}
+    for sid, sg in segs.items(): first.setdefault(sid.split("_")[0], sg["edge"])
+    segs = dict(sorted(segs.items(), key=lambda kv: (first[kv[0].split("_")[0]], int(kv[0].split("_")[1]) if "_" in kv[0] else 0)))
+    assert len(nodes) == len(node_at), "two places share a node name"
 
     def seg_toward(s, nb):
         for sid, sg in segs.items():
@@ -265,24 +284,15 @@ def name_all(P, G, sw, edges, order, pieces):
                 return sid
     sws = {swn[s]: dict(trunk=seg_toward(s, v["trunk"]), legs=[seg_toward(s, x) for x in v["legs"]],
                         normal=seg_toward(s, v["straight"])) for s, v in sw.items()}
-    return nodes, segs, sws
-
-
-def main_line(main):
-    pts = sorted({(round(p[0] - OFFSET[0], 1), round(p[1] - OFFSET[1], 1)) for m in main for p in m})
-    pts = simplify(pts, 0.3)
-    lo, hi = -10, X_EAST - OFFSET[0] + 10
-    def at(p, q, x): return (x, round(p[1] + (q[1] - p[1]) * (x - p[0]) / (q[0] - p[0]), 1))
-    i0 = max(i for i, p in enumerate(pts) if p[0] <= lo); i1 = min(i for i, p in enumerate(pts) if p[0] >= hi)
-    return [at(pts[i0], pts[i0 + 1], lo)] + pts[i0 + 1:i1] + [at(pts[i1 - 1], pts[i1], hi)]
+    return nodes, segs, sws, [names[n] + "End" for n in main_ends]
 
 
 def main():
     P, adj, main = read(sys.argv[1])
-    G = slice_graph(P, adj)
+    G, main_ends = slice_graph(P, adj, main)
     key, edges = chains(G)
     sw = switches(G, P, key, edges)
-    lead_end = next(k for k in key if len(G[k]) == 1 and P[k][0] > X_EAST - 1)
+    lead_end = next(k for k in key if len(G[k]) == 1 and k not in main_ends and P[k][0] > X_EAST - 1)
     order, todo = {lead_end: 0}, [lead_end]           # distance from the lead's buffer, in links
     while todo:
         n = todo.pop(0)
@@ -290,7 +300,7 @@ def main():
             if m not in order: order[m] = order[n] + 1; todo.append(m)
     edges = [e if order[e[0]] < order[e[-1]] else e[::-1] for e in edges]
     pieces, moved = lay(P, sw, edges, order)
-    nodes, segs, sws = name_all(P, G, sw, edges, order, pieces)
+    nodes, segs, sws, edge_nodes = name_all(P, G, sw, edges, order, pieces, main_ends)
     print("Switches moved out (OSM node, metres):", moved, file=sys.stderr)
     out = ["  const NODES = {"]
     w = max(map(len, nodes)) + 2
@@ -303,11 +313,8 @@ def main():
     out += ['    %s{ trunk: "%s", legs: ["%s", "%s"], normal: "%s" },' % ((k + ":").ljust(5), s["trunk"], *s["legs"], s["normal"])
             for k, s in sorted(sws.items(), key=lambda kv: int(kv[0][1:]))]
     out += ["  };",
-            "  // What is drawn but is not track: the main line, as a line through its",
-            "  // corners.",
-            "  const SCENERY = {",
-            "    mainLine: [" + ", ".join("{ x: %s, y: %s }" % p for p in main_line(main)) + "],",
-            "  };"]
+            "  // Ends of track where the line runs on beyond the map: no buffer stop.",
+            "  const MAP_EDGES = [" + ", ".join('"%s"' % n for n in edge_nodes) + "];"]
     print("\n".join(out))
 
 

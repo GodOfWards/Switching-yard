@@ -2,6 +2,17 @@
 
 Newest first. One entry per version bump.
 
+## 0.9.1
+
+**Added**
+- The main line is track: single, running on off the map at both ends,
+  joined to the head-shunt by Junín's real crossover. The player may use
+  it; no trains run on it yet.
+
+**Changed**
+- The head-shunt follows its real line, bending in beside the main for
+  its last 200 m. A yard saved by an earlier version starts fresh.
+
 ## 0.9.0
 
 **Added**
