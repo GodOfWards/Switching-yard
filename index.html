@@ -37,6 +37,34 @@
   #zoom #pauseBtn { margin-top: 8px; font-size: 14px; }
   #zoom #pauseBtn.on { color: var(--accent); border-color: var(--accent); }
   #zoom #newYardBtn { margin-top: 8px; font-size: 16px; }
+  /* The clock, then Skip, across the top of the yard between the zoom
+     buttons and the north arrow; Skip's menu opens beneath them. */
+  #clockBar { position: absolute; top: 8px; left: 52px; right: 52px; display: flex; justify-content: center; gap: 6px; }
+  #clock { display: flex; align-items: baseline; gap: 8px; min-width: 0; height: 40px; box-sizing: border-box;
+    padding: 0 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--overlay);
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); line-height: 38px;
+    font-variant-numeric: tabular-nums; white-space: nowrap; }
+  #clock b { font-size: 18px; font-weight: 600; }
+  #clock span { color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; }
+  #skipBtn, #skipMenu button { border-radius: 11px; border: 1px solid var(--line); color: var(--fg);
+    touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+  #skipBtn { flex: none; height: 40px; padding: 0 14px; background: var(--overlay);
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); font: 600 14px system-ui, sans-serif; }
+  #skipBtn:active, #skipMenu button:active { background: var(--button-down); }
+  #skipBtn.on { color: var(--accent); border-color: var(--accent); }
+  #skipMenu { position: absolute; display: none; top: 56px; left: 50%; transform: translateX(-50%);
+    width: min(360px, calc(100% - 16px)); max-height: calc(100% - 64px); overflow-y: auto; box-sizing: border-box;
+    padding: 4px 12px 12px; border-radius: 14px; border: 1px solid var(--line); background: var(--overlay);
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); font-variant-numeric: tabular-nums; }
+  #skipMenu.open { display: block; }
+  #skipMenu h3 { margin: 10px 0 6px; color: var(--muted); font-size: 11px; font-weight: 600;
+    letter-spacing: 0.06em; text-transform: uppercase; }
+  #skipMenu .event { display: flex; gap: 12px; align-items: baseline; width: 100%; min-height: 44px;
+    padding: 0 10px; border-color: transparent; background: none; font: 15px system-ui, sans-serif; text-align: left; }
+  #skipMenu .event b { font-weight: 600; }
+  #skipMenu .event small { color: var(--muted); font-size: 12px; }
+  #skipMenu .marks { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  #skipMenu .marks button { min-height: 40px; background: var(--button); font: 600 15px system-ui, sans-serif; }
   #readout { font-variant-numeric: tabular-nums; display: flex; justify-content: space-between; }
   #readout small { color: var(--muted); font-size: 12px; align-self: center; }
   /* The reverser and three notched levers (throttle, loco brake, train
@@ -106,6 +134,11 @@
     <button id="pauseBtn" aria-label="Pause">❚❚</button>
     <button id="newYardBtn" aria-label="New yard">↺&#xFE0E;</button>
   </div>
+  <div id="clockBar">
+    <div id="clock"><b id="clockTime"></b><span id="clockShift"></span></div>
+    <button id="skipBtn">Skip ▸&#xFE0E;</button>
+  </div>
+  <div id="skipMenu"></div>
   <div id="couplingMenu">
     <button id="airBtn">Air</button>
     <button id="uncoupleBtn">Uncouple</button>
@@ -147,18 +180,21 @@
   //                the kinds of rolling stock, the cars with their
   //                markings and loads, and where it all starts.
   //                Content passes (a new siding, a new yard) touch only this.
-  //   STATE        what changes while playing: switch positions, vehicles,
-  //                the trains they are coupled into, the loco's controls.
+  //   STATE        what changes while playing: the time of day, switch
+  //                positions, vehicles, the trains they are coupled into,
+  //                the loco's controls.
   //                Built from WORLD DATA by makeState(); never edits WORLD DATA.
   //   UTILITIES    small geometry, track-walking and lookup helpers.
-  //   SIMULATION   advances STATE by one fixed step, step(dt). All movement
-  //                rules live here: forces, brakes, slack, contact, coupling. The
+  //   SIMULATION   advances STATE by one fixed step, step(dt): the clock, and
+  //                all movement rules: forces, brakes, slack, contact,
+  //                coupling. The events ahead (a shift change) come from here
+  //                too. The
   //                loop calls it at a fixed rate, so behaviour never depends
   //                on the display's frame rate.
   //   ACTIONS      what the player can do (reverser, levers, Emergency,
   //                Release, throw a switch, connect or part the air,
-  //                uncouple, set a hand brake), and the rules on when they
-  //                may. They change STATE; they never draw.
+  //                uncouple, set a hand brake, skip ahead), and the rules on
+  //                when they may. They change STATE; they never draw.
   //   PERSISTENCE  keeps STATE in localStorage between visits, and starts a
   //                new yard. SAVE_KEY changes with every change to the saved
   //                shape.
@@ -274,6 +310,18 @@
   const DRAFT_GEAR_DAMPING = 0.5;       // share of critical damping; friction draft gears soak up a lot; estimated, retunable
   const SLACK_SUBSTEPS = 8;             // keeps the spring stable: about 0.1 rad of its swing a substep
   const HARD_HIT_RESTITUTION = 0.3;     // retunable
+  // The clock runs at real time, one game second a step-second, and counts
+  // seconds from midnight before day 1. Shifts are SHIFT_HOURS long from
+  // FIRST_SHIFT_HOUR; a new yard starts at the first. Skip jumps, with
+  // everything standing, to an event ahead or a SKIP_MARK_SECONDS mark.
+  // See docs/design/time.md.
+  const HOUR = 3600;                    // s
+  const DAY = 24 * HOUR;                // s
+  const SHIFT_HOURS = 8;                // 06–14, 14–22, 22–06
+  const FIRST_SHIFT_HOUR = 6;
+  const START_CLOCK = FIRST_SHIFT_HOUR * HOUR;  // 06:00, day 1
+  const SKIP_MARK_SECONDS = 10 * 60;    // marks at xx:x0
+  const SKIP_MARKS_SHOWN = 4;           // marks the Skip menu lists, and adds a press of "…"; retunable
   const NOTICE_SECONDS = 2;             // how long a message stays up
   const SAVE_SECONDS = 5;               // s of play between saves; leaving the page saves too; retunable
   const EPS = 1e-6;                     // metres; positions this close are the same
@@ -642,11 +690,13 @@
   // STATE
   // ==================================================
   function makeState() {
+    // `clock` is the time of day, in seconds since midnight before day 1.
     // `air` holds each coupling whose air is connected, by its pair key, with
     // how far its charge has come (0 to 1).
     // `gaps` holds each coupling's opening past touching, by its pair key: 0
     // fully bunched, COUPLER_FREE_PLAY fully stretched before the draft gear.
-    const st = { switches: {}, vehicles: {}, trains: {}, air: {}, gaps: {}, nextTrain: 1, notice: null };
+    const st = { clock: START_CLOCK, switches: {}, vehicles: {}, trains: {}, air: {}, gaps: {}, nextTrain: 1,
+                 notice: null };
     for (const id in SWITCHES) st.switches[id] = { set: SWITCHES[id].normal };
     state = st;                           // walk() reads the switches as it lays trains out
     for (const t of START_TRAINS) {
@@ -1033,6 +1083,7 @@
   }
 
   function step(dt) {
+    state.clock += dt;
     for (const id in state.vehicles) if (state.vehicles[id].controls) stepBrakes(state.vehicles[id].controls, dt);
     for (const id in state.trains) stepAir(state.trains[id], dt);
     const forces = {};
@@ -1040,6 +1091,21 @@
     for (let i = 0; i < SLACK_SUBSTEPS; i++) substep(forces, dt / SLACK_SUBSTEPS);
     if (state.notice && (state.notice.time -= dt) <= 0) state.notice = null;
   }
+
+  // The shift the clock `at` falls in: when it began and when it ends.
+  function shiftAt(at) {
+    const len = SHIFT_HOURS * HOUR;
+    const start = START_CLOCK + Math.floor((at - START_CLOCK) / len) * len;
+    return { start, end: start + len };
+  }
+  // The events ahead of the clock, soonest first, up to and including the
+  // end of this shift. Only the shift change so far; jobs and arrivals join
+  // it with jobs stage 1 (#48).
+  function eventsAhead() {
+    return [{ at: shiftAt(state.clock).end, kind: "shift" }];
+  }
+  // The first SKIP_MARK_SECONDS mark after the clock.
+  const nextMark = () => (Math.floor(state.clock / SKIP_MARK_SECONDS) + 1) * SKIP_MARK_SECONDS;
 
   // Whether any vehicle stands over a node.
   function nodeOccupied(nodeId) {
@@ -1136,15 +1202,31 @@
     return true;
   }
 
+  // Skips the clock ahead to `at`, an event ahead or a SKIP_MARK_SECONDS
+  // mark, only while every vehicle stands still. Nothing else moves or
+  // changes: no physics runs during a skip.
+  function skipTo(at) {
+    if (!(at > state.clock) || !(at % SKIP_MARK_SECONDS === 0 || eventsAhead().some(e => e.at === at))) return false;
+    if (playerLoco().speed !== 0) { setNotice("Stop the loco before skipping"); return false; }
+    for (const id in state.vehicles) {
+      if (state.vehicles[id].speed !== 0) { setNotice("Wait for the cars to stop"); return false; }
+    }
+    state.clock = at;
+    return true;
+  }
+
   // ==================================================
   // PERSISTENCE
   // ==================================================
   // The yard is saved as it stands, mid-move included: every vehicle with
-  // its speed, the trains, couplings' slack and air, switches, hand brakes
-  // and the loco's controls. That is all of STATE but the notice. A save
+  // its speed, the trains, couplings' slack and air, switches, hand brakes,
+  // the loco's controls and the clock. That is all of STATE but the
+  // notice. A yard saved before the clock (SAVE_KEY_BEFORE_CLOCK) is
+  // carried over with a new yard's clock. A save
   // that doesn't fit the yard (WORLD DATA changed since) is set aside for a
   // fresh yard. SAVE_KEY changes with every change to the saved shape.
-  const SAVE_KEY = "switching-game.yard.1";
+  const SAVE_KEY = "switching-game.yard.2";
+  const SAVE_KEY_BEFORE_CLOCK = "switching-game.yard.1";
 
   function saveYard() {
     try {
@@ -1158,7 +1240,8 @@
   function fitsYard(st) {
     const isObj = o => !!o && typeof o === "object";
     const sameKeys = (o, ref) => isObj(o) && Object.keys(o).sort().join() === Object.keys(ref).sort().join();
-    if (!isObj(st) || !isObj(st.trains) || !isObj(st.air) || !isObj(st.gaps) || !Number.isInteger(st.nextTrain)) return false;
+    if (!isObj(st) || !(st.clock >= 0 && Number.isFinite(st.clock))) return false;
+    if (!isObj(st.trains) || !isObj(st.air) || !isObj(st.gaps) || !Number.isInteger(st.nextTrain)) return false;
     if (!sameKeys(st.switches, SWITCHES)) return false;
     for (const id in SWITCHES) if (!SWITCHES[id].legs.includes(st.switches[id].set)) return false;
     const startIds = {};
@@ -1188,7 +1271,11 @@
   // makeState() built stays.
   function loadYard() {
     try {
-      const saved = JSON.parse(localStorage.getItem(SAVE_KEY));
+      let saved = JSON.parse(localStorage.getItem(SAVE_KEY));
+      if (!saved) {
+        saved = JSON.parse(localStorage.getItem(SAVE_KEY_BEFORE_CLOCK));
+        if (saved && saved.state && typeof saved.state === "object") saved.state.clock = START_CLOCK;
+      }
       if (saved && fitsYard(saved.state)) { state = saved.state; return true; }
     } catch (e) { /* unreadable or blocked: start fresh */ }
     return false;
@@ -1467,7 +1554,7 @@
       ctx.globalAlpha = Math.min(1, state.notice.time);
       ctx.font = "600 15px system-ui, sans-serif"; ctx.textAlign = "center";
       ctx.fillStyle = PALETTE.light;
-      ctx.fillText(state.notice.text, screenW / 2, 24);
+      ctx.fillText(state.notice.text, screenW / 2, 72);   // under the clock
       ctx.globalAlpha = 1; ctx.textAlign = "start";
     }
     if (paused) {
@@ -1483,6 +1570,7 @@
     readout.innerHTML = `<span>${(Math.abs(loco.speed) * 3.6).toFixed(1)} km/h · ` +
       `${cars} car${cars === 1 ? "" : "s"}${cars ? ` · air ${braked}/${cars}` : ""}</span>` +
       `<small>v${GAME_CONFIG.VERSION}</small>`;
+    renderClock();
     followBtn.classList.toggle("on", camera.follow);
     pauseBtn.classList.toggle("on", paused);
     pauseBtn.innerHTML = paused ? "▶&#xFE0E;" : "❚❚";
@@ -1493,6 +1581,25 @@
       `<div class="meter"><i style="width:${c.locoApplied * 100}%"></i></div>`;
     levers.tb.innerHTML = `Train brake<b>${c.emergency ? "EMERG" : c.trainBrake + "/" + TRAIN_BRAKE_NOTCHES}</b>` +
       `<div class="meter"><i style="width:${c.trainApplied * 100}%"></i></div>`;
+  }
+
+  // A clock time as HH:MM, and the day it falls on, counted from 1.
+  const pad2 = n => String(n).padStart(2, "0");
+  const clockText = at => { const m = Math.floor(at / 60) % (24 * 60); return `${pad2(Math.floor(m / 60))}:${pad2(m % 60)}`; };
+  const dayOf = at => Math.floor(at / DAY) + 1;
+  const EVENT_TEXT = { shift: "Shift change" };
+
+  // The clock at the top: the time, then the day and the shift. Written
+  // only when it changes.
+  const clockTime = document.getElementById("clockTime"), clockShift = document.getElementById("clockShift");
+  let clockMinute = null;
+  function renderClock() {
+    if (Math.floor(state.clock / 60) === clockMinute) return;
+    clockMinute = Math.floor(state.clock / 60);
+    const shift = shiftAt(state.clock);
+    clockTime.textContent = clockText(state.clock);
+    clockShift.textContent = `Day ${dayOf(state.clock)} · Shift ${clockText(shift.start).slice(0, 2)}–${clockText(shift.end).slice(0, 2)}`;
+    placeSkipMenu();
   }
 
   // ==================================================
@@ -1558,7 +1665,7 @@
   // New yard asks first: the yard as it stands can't be had back. A click,
   // not a press, so the question doesn't open under a finger still down.
   document.getElementById("newYardBtn").addEventListener("click", () => {
-    if (confirm("Start a new yard? The yard as it stands will be lost.")) { newYard(); menuFor = null; cardFor = null; }
+    if (confirm("Start a new yard? The yard as it stands will be lost.")) { newYard(); menuFor = null; cardFor = null; closeSkipMenu(); }
   });
   const VIEW_KEYS = { "+": () => zoomBy(1), "=": () => zoomBy(1), "-": () => zoomBy(-1), p: togglePause };
 
@@ -1606,6 +1713,7 @@
       if (!v.controls) { const p = pointOn(v.seg, v.s); consider(p.x, p.y, () => { cardFor = id; }, true); }
     }
     menuFor = null; cardFor = null;
+    if (skipOpen) closeSkipMenu();
     if (best) (bestShows ? best : unlessPaused(best))();
   }
 
@@ -1666,6 +1774,43 @@
     if (cardFor) unlessPaused(toggleHandBrake)(cardFor);
   });
 
+  // Skip: a menu of the events ahead and the next SKIP_MARK_SECONDS marks,
+  // open until an item, Skip again or a tap on the yard closes it. "…"
+  // lists SKIP_MARKS_SHOWN more marks. It is redrawn as the clock moves on.
+  const skipBtn = document.getElementById("skipBtn"), skipMenu = document.getElementById("skipMenu");
+  let skipOpen = false, marksShown = SKIP_MARKS_SHOWN;
+  function placeSkipMenu() {
+    skipMenu.classList.toggle("open", skipOpen);
+    skipBtn.classList.toggle("on", skipOpen);
+    if (!skipOpen) return;
+    const day = dayOf(state.clock), dayNote = at => dayOf(at) === day ? "" : ` <small>Day ${dayOf(at)}</small>`;
+    let html = "<h3>Skip to next</h3>";
+    for (const e of eventsAhead()) {
+      html += `<button class="event" data-at="${e.at}"><b>${clockText(e.at)}</b>${EVENT_TEXT[e.kind]}${dayNote(e.at)}</button>`;
+    }
+    html += `<h3>Skip to time</h3><div class="marks">`;
+    for (let i = 0, at = nextMark(); i < marksShown; i++, at += SKIP_MARK_SECONDS) {
+      html += `<button data-at="${at}">${clockText(at)}</button>`;
+    }
+    skipMenu.innerHTML = html + `<button data-more="1" aria-label="More times">…</button></div>`;
+  }
+  function closeSkipMenu() { skipOpen = false; placeSkipMenu(); }
+  skipBtn.addEventListener("pointerdown", e => {
+    e.preventDefault();
+    unlessPaused(() => {
+      skipOpen = !skipOpen; marksShown = SKIP_MARKS_SHOWN; menuFor = null; cardFor = null;
+      placeSkipMenu();
+    })();
+  });
+  skipMenu.addEventListener("pointerdown", e => {
+    const b = e.target.closest("button");
+    if (!b) return;
+    e.preventDefault();
+    if (b.dataset.more) { marksShown += SKIP_MARKS_SHOWN; placeSkipMenu(); return; }
+    unlessPaused(skipTo)(Number(b.dataset.at));
+    closeSkipMenu();
+  });
+
   // The yard is saved every SAVE_SECONDS of play, counted in steps.
   let last = performance.now(), acc = 0, sinceSave = 0;
   function frame(now) {
@@ -1680,7 +1825,7 @@
 
   // Exposed for testing in a browser console or headless check.
   window.switching = { get state() { return state; }, step, throwSwitch, uncouple, moveReverser, moveThrottle,
-    moveLocoBrake, moveTrainBrake, emergency, release, trainEnds, toggleAir, toggleHandBrake, brakeReach,
+    moveLocoBrake, moveTrainBrake, emergency, release, trainEnds, toggleAir, toggleHandBrake, brakeReach, skipTo, eventsAhead,
     get paused() { return paused; }, togglePause, saveYard, loadYard, newYard, fitsYard, SAVE_KEY };
 })();
 </script>
