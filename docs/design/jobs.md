@@ -32,12 +32,29 @@ can span the yard and the industries near it.
   being built.
 - **Stage 1 uses a simplified form**: destination blocks on the east
   end's yard tracks (#48). It's an early-game representation, not the
-  model. Yard tracks, numbered from the main-line side: 1 Retiro,
-  2 Mendoza, 3–4 local, 5 storage, 6 empties, 7 repair (bad order). The
-  fan and turntable spur hold locos only; the lead and head-shunt are for
-  switching, never a block. A stage 1 job classifies named cars onto their
-  block tracks (ordering: none) with the Retiro block in block order, due
-  at shift change. Exact order comes with industries (#50).
+  model. A stage 1 job classifies named cars onto their block tracks
+  (ordering: none) with the Retiro block in block order, due at shift
+  change. Exact order comes with industries (#50).
+- **Yard tracks**, numbered from the main-line side (#49): 1 Retiro and
+  2 Mendoza (each a block and where its departures are built), 3 arrival,
+  4 local, 5 storage, 6 empties, 7 repair (bad order). The fan and
+  turntable spur hold locos only; the lead and head-shunt are for
+  switching, never a block.
+- **Stage 2 jobs** (#49), from the [road trains](traffic.md):
+  - **Break up an arrival:** its cars to their block tracks, as stage 1;
+    opens on arrival, due at the next shift change.
+  - **Build a departure:** every car for the train (up to the cap) on its
+    track as one coupled cut, left by the loco, with nothing else in it,
+    no bad-order car, the Retiro block in block order. Opens with the
+    arrival before it; due at departure time. A build taken and not
+    reported done by then holds the train, which leaves when it is, late.
+  - **Sort the yard** stays for cars that need moving outside a train's
+    jobs: repaired, unloaded or loaded cars with new waybills.
+- **The consist page** of a build: a line per car (tare, load, gross,
+  length) and the train's totals (cars, axles, length, tare, gross) in
+  whole tonnes, as the RITO weighs a train (art. 211,
+  [fa-yard-operations.md](../reference/fa-yard-operations.md)). No
+  tonnage limit is checked yet.
 
 ## Open
 
@@ -48,4 +65,4 @@ can span the yard and the industries near it.
 - Which destinations make up the Retiro block, and their order. Stage 1
   uses O'Higgins, Membrillar, Retiro from the ladder end (content,
   retunable).
-- Building and breaking up consists: #49. Industry work: #50.
+- Industry work: #50.
