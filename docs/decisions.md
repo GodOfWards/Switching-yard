@@ -3,6 +3,27 @@
 Design calls Tom has made, newest first, with where they were made. The
 values these produced live in CONFIG and WORLD DATA in `index.html`.
 
+## 2026-10-09: Jobs stage 2, road trains (#49)
+
+Made in the "Stage 2" thread. The rules are in
+[design/traffic.md](design/traffic.md) and [design/jobs.md](design/jobs.md).
+
+- **Road trains appear and leave at the yard tracks' cut-off west end**,
+  their road locos off the map. Main-line traffic and authority to move
+  (#56, #57), being designed alongside, may later bring them in over the
+  lead.
+- **Track 3 becomes the arrival track**; the local block keeps track 4
+  only. Tracks 1 (Retiro) and 2 (Mendoza) are blocks and departure tracks.
+- **One arrival and one departure a shift**, directions alternating;
+  arrivals 8–12 cars, departures at most 16 (fits the head-shunt).
+- **A build job** puts its train on its track as one coupled cut, nothing
+  else in it, no bad-order car, the Retiro block in order. Taken and late,
+  the train waits for the player; an arrival waits outside while track 3
+  is occupied.
+- **Cars off the map** come back on a later arrival with their load
+  flipped; Junín's unloading and loading happen at shift change.
+  Placeholders until #50.
+
 ## 2026-10-09: Traffic sources for the FA era (#45)
 
 Made in the "FA classification research" thread. See

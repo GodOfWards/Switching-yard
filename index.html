@@ -127,6 +127,15 @@
   #sheet .buttons button { flex: 1; }
   #sheet .result { margin-top: 12px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); }
   #sheet .result b { display: block; font-size: 16px; color: var(--accent); }
+  /* The consist page: the train's totals in a row, then a line per car. */
+  #sheet .totals { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin: 4px 0 8px; text-align: center;
+    font-size: 12px; color: var(--muted); }
+  #sheet .totals b { display: block; color: var(--fg); font-size: 16px; font-weight: 600; }
+  #sheet table.consist { width: 100%; border-collapse: collapse; font-size: 14px; }
+  #sheet .consist th { color: var(--muted); font-size: 12px; font-weight: 600; text-align: right; padding: 6px 0 4px 8px; }
+  #sheet .consist th:first-child, #sheet .consist td:first-child { text-align: left; padding-left: 0; }
+  #sheet .consist td { text-align: right; padding: 6px 0 6px 8px; border-top: 1px solid var(--line); vertical-align: top; }
+  #sheet .consist td b { font-weight: 600; }
   #readout { font-variant-numeric: tabular-nums; display: flex; justify-content: space-between; }
   #readout small { color: var(--muted); font-size: 12px; align-self: center; }
   /* The reverser and three notched levers (throttle, loco brake, train
@@ -248,12 +257,14 @@
   //                them, switches, and scenery that is drawn but not track;
   //                the kinds of rolling stock, the cars with their
   //                markings and loads, and where it all starts; the yard
-  //                tracks' blocks, the destinations waybills name, and the
-  //                cars' traffic at the start.
+  //                tracks' blocks, the destinations waybills name, the
+  //                cars' traffic at the start, and the road trains'
+  //                timetable.
   //                Content passes (a new siding, a new yard) touch only this.
   //   STATE        what changes while playing: the time of day, switch
   //                positions, vehicles, the trains they are coupled into,
-  //                the loco's controls, the cars' traffic and the jobs.
+  //                the loco's controls, the cars' traffic (away off the
+  //                map included), the jobs, and the arrivals held outside.
   //                Built from WORLD DATA by makeState(); never edits WORLD DATA.
   //   UTILITIES    small geometry, track-walking and lookup helpers.
   //   SIMULATION   advances STATE by one fixed step, step(dt): the clock, and
@@ -263,7 +274,8 @@
   //                loop calls it at a fixed rate, so behaviour never depends
   //                on the display's frame rate.
   //   OPERATIONS   the rules of the railway's work, stepped from SIMULATION:
-  //                cars' traffic and dispositions, jobs opening at shift
+  //                cars' traffic and dispositions, road trains arriving
+  //                and leaving, jobs opening with them and at shift
   //                changes, their lines checked against the yard, work done
   //                off-screen, rough handling, and results.
   //   ACTIONS      what the player can do (reverser, levers, Emergency,
@@ -399,10 +411,14 @@
   const START_CLOCK = FIRST_SHIFT_HOUR * HOUR;  // 06:00, day 1
   const SKIP_MARK_SECONDS = 10 * 60;    // marks at xx:x0
   const SKIP_MARKS_SHOWN = 4;           // marks the Skip menu lists, and adds a press of "…"; retunable
-  // Operations, stage 1 (#48): traffic, dispositions, jobs and results.
-  // See docs/design/. One job opens at each shift change, due at the next.
-  const CARS_PER_JOB = 6;               // retunable
-  const JOBS_PER_SHIFT = 1;             // retunable
+  // Operations (#48, #49): traffic, dispositions, jobs and results. See
+  // docs/design/. Road trains run to TIMETABLE; an arrival brings between
+  // ARRIVAL_CARS_MIN and ARRIVAL_CARS_MAX cars, and a departure takes up to
+  // DEPARTURE_MAX_CARS, so a whole train fits the 281 m head-shunt behind
+  // the loco (16 cars of 15.5 m average and a 14 m loco: 262 m).
+  const ARRIVAL_CARS_MIN = 8;           // retunable
+  const ARRIVAL_CARS_MAX = 12;          // retunable
+  const DEPARTURE_MAX_CARS = 16;        // retunable
   // A job is inefficient when its moves pass this many per car handled
   // and per block. A move is each start of the player's loco from a stand.
   const PAR_PER_CAR_AND_BLOCK = 1.5;    // retunable
@@ -416,7 +432,7 @@
   const FOULING_CLEARANCE = 3;          // m
   const SET_BACK = 1;                   // m off the buffer that cars set by another crew stand
   const HISTORY_KEPT = 20;              // entries a car's history keeps
-  const JOBS_KEPT = 6;                  // finished jobs the board keeps
+  const JOBS_KEPT = 8;                  // finished jobs the board keeps
   const NOTICE_SECONDS = 2;             // how long a message stays up
   const SAVE_SECONDS = 5;               // s of play between saves; leaving the page saves too; retunable
   const EPS = 1e-6;                     // metres; positions this close are the same
@@ -742,8 +758,8 @@
   // FA's operating digit for plains, low speed (NEFA 956): the third digit
   // of every car's code here.
   const FA_OPERATING_CODE = "3";
-  // The cars, by id: the FA number, and whether each is loaded (to its load
-  // limit). Most carry FA's unified panel (NEFA 555): the monogram and the
+  // The cars, by id: the FA number, and whether each starts loaded (to its
+  // load limit); a car's load is STATE from then on. Most carry FA's unified panel (NEFA 555): the monogram and the
   // type code. A car with `line` has not been repainted since: it keeps
   // that broad-gauge line's initials and the older paint, LINE_PAINT. FA
   // numbered broad-gauge cars 40000–99999; which numbers go to which kind,
@@ -766,39 +782,67 @@
     car14: { type: "bordeAlto",  number: "72035", loaded: false, line: "FCDFS" },
     car15: { type: "cubierto",   number: "45377", loaded: true },
     car16: { type: "plataforma", number: "83122", loaded: false },
+    car17: { type: "tolva",      number: "64733", loaded: true },
+    car18: { type: "tolva",      number: "64859", loaded: false },
+    car19: { type: "tolva",      number: "64926", loaded: true },
+    car20: { type: "tolva",      number: "65041", loaded: true },
+    car21: { type: "tolva",      number: "65188", loaded: false },
+    car22: { type: "cubierto",   number: "45512", loaded: true },
+    car23: { type: "cubierto",   number: "46037", loaded: false },
+    car24: { type: "cubierto",   number: "46745", loaded: true, line: "FCDFS" },
+    car25: { type: "cubierto",   number: "47388", loaded: true },
+    car26: { type: "cubierto",   number: "48021", loaded: false },
+    car27: { type: "cubierto",   number: "48693", loaded: true },
+    car28: { type: "bordeAlto",  number: "71577", loaded: true },
+    car29: { type: "bordeAlto",  number: "72214", loaded: false },
+    car30: { type: "bordeAlto",  number: "72386", loaded: true, line: "FCGR" },
+    car31: { type: "plataforma", number: "83247", loaded: true },
+    car32: { type: "plataforma", number: "83305", loaded: false },
+    car33: { type: "tanque",     number: "92538", loaded: true },
+    car34: { type: "tanque",     number: "92671", loaded: false },
+    car35: { type: "tanque",     number: "92804", loaded: true },
+    car36: { type: "tolva",      number: "65302", loaded: true },
+    car37: { type: "cubierto",   number: "45864", loaded: false },
+    car38: { type: "bordeAlto",  number: "72509", loaded: true },
+    car39: { type: "tolva",      number: "65417", loaded: false, line: "FCGR" },
+    car40: { type: "cubierto",   number: "47816", loaded: true },
   };
   // Each starting train is laid out back from its head end, which stands `s`
   // metres along `segment` and faces `dir` (+1 toward the segment's `b`).
   // Vehicles are named by id: a car's kind comes from CARS, a loco gives its
   // `type`. A loco's cab faces the head unless it has `flip: -1`.
-  // Each yard track's cut is listed from the buffer end.
+  // Each yard track's cut is listed from the buffer end. The arrival track,
+  // 3, starts empty for the first arrival. Cars not laid out here start
+  // away, off the map, and come in on the arrivals.
   const START_TRAINS = [
     { segment: "lead", s: 230, dir: 1, vehicles: [{ id: "loco1", type: "g12" }] },
     { segment: "yard1_2", s: 430, dir: 1, vehicles: [{ id: "car1" }, { id: "car2" }] },
-    { segment: "yard2_2", s: 370, dir: 1, vehicles: [{ id: "car9" }, { id: "car12" }] },
-    { segment: "yard3_2", s: 320, dir: 1, vehicles: [{ id: "car6" }, { id: "car13" }, { id: "car11" }] },
-    { segment: "yard4_2", s: 290, dir: 1, vehicles: [{ id: "car3" }, { id: "car7" }, { id: "car8" }, { id: "car15" }] },
-    { segment: "yard5_2", s: 260, dir: 1, vehicles: [{ id: "car14" }, { id: "car16" }] },
+    { segment: "yard2_2", s: 370, dir: 1, vehicles: [{ id: "car9" }, { id: "car12" }, { id: "car6" }] },
+    { segment: "yard4_2", s: 290, dir: 1, vehicles: [{ id: "car3" }, { id: "car7" }, { id: "car8" }, { id: "car15" }, { id: "car13" }] },
+    { segment: "yard5_2", s: 260, dir: 1, vehicles: [{ id: "car14" }, { id: "car16" }, { id: "car11" }] },
     { segment: "yard6_2", s: 220, dir: 1, vehicles: [{ id: "car4" }, { id: "car5" }, { id: "car10" }] },
   ];
   const PLAYER_LOCO = "loco1";
 
   // Operations (docs/design/). The yard tracks, numbered from the main-line
   // side, each with its switch, its segments from the switch to the buffer,
-  // and the block it holds. The rest of the track holds no block: the fan
-  // and the turntable spur are for locos, the lead (the head-shunt) and the
-  // ladder for switching, and the two short tracks aren't used. PLACES
-  // names those for the player, by track name (a track's segments are
-  // `name` or `name_1`, `name_2`...); anything else is the ladder.
+  // and the block it holds; track 3 holds none, as the arrival track (#49).
+  // The Retiro and Mendoza blocks' tracks are where their departures are
+  // built. The rest of the track holds no block: the fan and the turntable
+  // spur are for locos, the lead (the head-shunt) and the ladder for
+  // switching, and the two short tracks aren't used. PLACES names those for
+  // the player, by track name (a track's segments are `name` or `name_1`,
+  // `name_2`...); anything else is the ladder.
   const YARD_TRACKS = {
     yard1: { name: "Track 1", number: 1, switch: "J2",  segments: ["yard1_1", "yard1_2"], block: "retiro" },
     yard2: { name: "Track 2", number: 2, switch: "J3",  segments: ["yard2_1", "yard2_2"], block: "mendoza" },
-    yard3: { name: "Track 3", number: 3, switch: "J4",  segments: ["yard3_1", "yard3_2"], block: "local" },
+    yard3: { name: "Track 3", number: 3, switch: "J4",  segments: ["yard3_1", "yard3_2"], block: null },
     yard4: { name: "Track 4", number: 4, switch: "J6",  segments: ["yard4_1", "yard4_2"], block: "local" },
     yard5: { name: "Track 5", number: 5, switch: "J9",  segments: ["yard5_1", "yard5_2"], block: "storage" },
     yard6: { name: "Track 6", number: 6, switch: "J8",  segments: ["yard6_1", "yard6_2"], block: "empties" },
     yard7: { name: "Track 7", number: 7, switch: "J11", segments: ["yard7_1", "yard7_2"], block: "repair" },
   };
+  const ARRIVAL_TRACK = "yard3";
   const PLACES = [
     { name: "the head-shunt", tracks: ["lead"] },
     { name: "the fan", tracks: ["fan1", "fan2", "fan3", "fan4", "fan5", "fan6", "fan7", "fan8", "turntableSpur",
@@ -829,16 +873,30 @@
     stored:     { name: "Storage",            block: "storage", loaded: false },
   };
   // Each car's traffic at the start: its waybill's destination, and why
-  // it's bad order, if it is.
+  // it's bad order, if it is. Cars away at the start get theirs as they
+  // come in.
   const START_TRAFFIC = {
     car1:  { waybill: "retiro" },     car2:  { waybill: "membrillar" },
-    car9:  { waybill: "mendoza" },    car12: { waybill: "ohiggins" },
-    car6:  { waybill: "mendoza" },    car13: { waybill: "junin" },     car11: { waybill: "stored" },
+    car9:  { waybill: "mendoza" },    car12: { waybill: "ohiggins" },    car6:  { waybill: "mendoza" },
     car3:  { waybill: "forLoading" }, car7:  { badOrder: "Brake rigging" },
-    car8:  { waybill: "junin" },      car15: { waybill: "retiro" },
-    car14: { waybill: "stored" },     car16: { waybill: "stored" },
+    car8:  { waybill: "junin" },      car15: { waybill: "retiro" },      car13: { waybill: "junin" },
+    car14: { waybill: "stored" },     car16: { waybill: "stored" },      car11: { waybill: "stored" },
     car4:  { waybill: "forLoading" }, car5:  { waybill: "forLoading" }, car10: { waybill: "forLoading" },
   };
+  // Road trains (#49), each day: an arrival comes onto ARRIVAL_TRACK at the
+  // buffer end, its road loco already gone, bringing cars back from away;
+  // a departure takes its block's cars from that block's track and goes.
+  // The buffer stands for the rest of the yard toward the station. `at` is
+  // the time of day; numbers are the game's. An arrival brings no car for
+  // `notBlock`, the block of where it came from, nor for storage. Retunable.
+  const TIMETABLE = [
+    { id: "a1101", number: "1101", arrives: true, from: "Retiro",  notBlock: "retiro",  at: 7 * HOUR },
+    { id: "d1202", number: "1202", arrives: false, to: "Mendoza", block: "mendoza",    at: 12.5 * HOUR },
+    { id: "a1203", number: "1203", arrives: true, from: "Mendoza", notBlock: "mendoza", at: 15 * HOUR },
+    { id: "d1104", number: "1104", arrives: false, to: "Retiro",  block: "retiro",     at: 20.5 * HOUR },
+    { id: "a1105", number: "1105", arrives: true, from: "Retiro",  notBlock: "retiro",  at: 23 * HOUR },
+    { id: "d1206", number: "1206", arrives: false, to: "Mendoza", block: "mendoza",    at: 4.5 * HOUR },
+  ];
   const YARD_NAME = "Junín, east end";
 
   // ==================================================
@@ -850,33 +908,39 @@
     // how far its charge has come (0 to 1).
     // `gaps` holds each coupling's opening past touching, by its pair key: 0
     // fully bunched, COUPLER_FREE_PLAY fully stretched before the draft gear.
-    // `cars` holds each car's traffic, by id: its waybill (a DESTINATIONS
-    // id, or null), why it is bad order (or null) and its history. `jobs`
-    // holds the jobs open and the last JOBS_KEPT finished. `moves` counts
-    // the loco's starts from a stand; `nextShiftAt` is the next shift
-    // change to act on; `seed` drives the game's choices of traffic.
+    // `cars` holds each car's traffic, by id: whether it is loaded, its
+    // waybill (a DESTINATIONS id, or null), why it is bad order (or null),
+    // whether it is away off the map (null, or since when) and its history.
+    // A car away has no vehicle. `jobs` holds the jobs open and the last
+    // JOBS_KEPT finished. `moves` counts the loco's starts from a stand;
+    // `nextShiftAt` is the next shift change to act on, and `timetableAt`
+    // the time from which road trains are still to run; `held` lists the
+    // arrivals held outside, waiting for the arrival track. `seed` drives
+    // the game's choices of traffic.
     const st = { clock: START_CLOCK, switches: {}, vehicles: {}, trains: {}, air: {}, gaps: {}, nextTrain: 1,
                  cars: {}, jobs: [], nextJob: 1, moves: 0, locoMoving: false, nextShiftAt: START_CLOCK,
-                 seed: Math.floor(Math.random() * 2 ** 31), notice: null };
+                 timetableAt: START_CLOCK, held: [], seed: Math.floor(Math.random() * 2 ** 31), notice: null };
     for (const id in SWITCHES) st.switches[id] = { set: SWITCHES[id].normal };
     state = st;                           // walk() reads the switches as it lays trains out
     for (const t of START_TRAINS) {
-      for (const v of t.vehicles) {
-        const type = startType(v);
-        st.vehicles[v.id] = { id: v.id, type, flip: v.flip || 1, speed: 0, handBrake: false };
-        if (VEHICLE_TYPES[type].loco) st.vehicles[v.id].controls = { reverser: 0, throttle: 0, locoBrake: 0, trainBrake: 0,
-          locoApplied: 0, trainApplied: 0, emergency: false };
-      }
+      for (const v of t.vehicles) addVehicle(v.id, startType(v), v.flip);
       layTrain(t.segment, t.s, t.dir, t.vehicles.map(v => v.id));
     }
     for (const id in CARS) {
       const t = START_TRAFFIC[id] || {};
-      st.cars[id] = { waybill: t.waybill || null, badOrder: t.badOrder || null, history: [] };
+      st.cars[id] = { loaded: CARS[id].loaded, waybill: t.waybill || null, badOrder: t.badOrder || null,
+                      away: st.vehicles[id] ? null : START_CLOCK, history: [] };
       if (t.waybill) logCar(id, `Waybill: ${DESTINATIONS[t.waybill].name}`);
       if (t.badOrder) logCar(id, `Bad order: ${t.badOrder}`);
     }
-    runShifts();                          // the first shift's jobs open
+    runEvents();                          // the first shift's jobs open
     return st;
+  }
+  // Puts vehicle `id` of kind `type` into STATE, standing and in no train.
+  function addVehicle(id, type, flip = 1) {
+    state.vehicles[id] = { id, type, flip, speed: 0, handBrake: false };
+    if (VEHICLE_TYPES[type].loco) state.vehicles[id].controls = { reverser: 0, throttle: 0, locoBrake: 0, trainBrake: 0,
+      locoApplied: 0, trainApplied: 0, emergency: false };
   }
   // Lays vehicles `ids` out as one train, coupled and bunched, back from
   // its head end, which stands `s` metres along `segment` facing `dir` (+1
@@ -975,14 +1039,13 @@
   const vehicleType = v => VEHICLE_TYPES[v.type];
   // A starting vehicle's kind: a car's from CARS, a loco's its own.
   function startType(v) { return CARS[v.id] ? CARS[v.id].type : v.type; }
-  // Each vehicle's mass in kg, by id, built once from WORLD DATA: a loco's
-  // own; a car's tare, plus its load limit when loaded.
-  const MASSES = {};
-  for (const t of START_TRAINS) for (const v of t.vehicles) {
-    const car = CARS[v.id], type = VEHICLE_TYPES[startType(v)];
-    MASSES[v.id] = car ? (type.tare + (car.loaded ? type.carga : 0)) * 1000 : type.mass;
+  // A vehicle's mass in kg: a loco's own; a car's tare, plus its load limit
+  // while loaded.
+  const loadedNow = id => state.cars[id].loaded;
+  function vehicleMass(v) {
+    const type = vehicleType(v);
+    return CARS[v.id] ? (type.tare + (loadedNow(v.id) ? type.carga : 0)) * 1000 : type.mass;
   }
-  const vehicleMass = v => MASSES[v.id];
   // A vehicle's two ends: `head` toward its train's head, `tail` away. Each
   // carries `travel`, the segment sense pointing outward from the vehicle.
   function vehicleEnds(v, trail = false, nodes = null) {
@@ -1055,6 +1118,8 @@
   const pad2 = n => String(n).padStart(2, "0");
   const clockText = at => { const m = Math.floor(at / 60) % (24 * 60); return `${pad2(Math.floor(m / 60))}:${pad2(m % 60)}`; };
   const dayOf = at => Math.floor(at / DAY) + 1;
+  // A length of time, `s` seconds, as minutes, or hours and minutes.
+  const lateText = s => s >= HOUR ? `${Math.floor(s / HOUR)} h ${Math.floor(s % HOUR / 60)} min` : `${Math.ceil(s / 60)} min`;
 
   // ==================================================
   // SIMULATION
@@ -1326,7 +1391,7 @@
     for (const id in state.trains) vehicleForces(state.trains[id], forces);
     for (let i = 0; i < SLACK_SUBSTEPS; i++) substep(forces, dt / SLACK_SUBSTEPS);
     countMoves();
-    runShifts();
+    runEvents();
     if (state.notice && (state.notice.time -= dt) <= 0) state.notice = null;
   }
 
@@ -1337,13 +1402,19 @@
     return { start, end: start + len };
   }
   // The events ahead of the clock, soonest first, up to and including the
-  // end of this shift: jobs falling due, and the shift change, when the
-  // next jobs open.
+  // end of this shift: jobs falling due, road trains arriving and leaving
+  // (a departure with its build job), and the shift change, when the next
+  // jobs open.
   function eventsAhead() {
     const end = shiftAt(state.clock).end, out = [];
-    for (const j of state.jobs) if (!j.result && j.due > state.clock && j.due <= end) out.push({ at: j.due, kind: "due", job: j.id });
+    for (const j of state.jobs) if (!j.result && j.kind !== "build" && j.due > state.clock && j.due <= end) out.push({ at: j.due, kind: "due", job: j.id });
+    for (const r of runsBetween(state.timetableAt, end)) {
+      if (r.at <= state.clock) continue;
+      const j = state.jobs.find(j => j.run === r.id);
+      out.push({ at: r.at, kind: "train", tt: r.tt, job: j && !j.result ? j.id : null });
+    }
     out.push({ at: end, kind: "shift" });
-    return out;
+    return out.sort((a, b) => a.at - b.at);
   }
   // The first SKIP_MARK_SECONDS mark after the clock.
   const nextMark = () => (Math.floor(state.clock / SKIP_MARK_SECONDS) + 1) * SKIP_MARK_SECONDS;
@@ -1361,14 +1432,17 @@
   // ==================================================
   // OPERATIONS
   // ==================================================
-  // Traffic, dispositions, jobs and results, in stage 1's simplest form
-  // (docs/design/, #48). Each car has a waybill, is sound or bad order, and
-  // keeps a history. Its disposition, the next step the game decides for
-  // it, sends it to a block's yard track, or leaves it where it is. A job
-  // is the cars whose dispositions aren't met when it opens; its lines are
+  // Traffic, dispositions, jobs and results, in stages 1 and 2's simple
+  // form (docs/design/, #48, #49). Each car is loaded or empty, has a
+  // waybill, is sound or bad order, and keeps a history; it is on the map
+  // or away. Its disposition, the next step the game decides for it, sends
+  // it to a block's yard track, or leaves it where it is. Road trains run
+  // to TIMETABLE: an arrival brings cars back from away onto the arrival
+  // track, and opens a job to break it up and one to build the next
+  // departure; a departure takes its block's cars away. A job's lines are
   // checked against the yard as it stands, so a car damaged mid-job
-  // changes its line. Jobs open at a shift change and fall due at the next;
-  // one not taken is done off-screen then, by another crew.
+  // changes its line. A job not taken is done off-screen when due, by
+  // another crew.
 
   // The game's own choices (which cars get new waybills, and where to)
   // come from `state.seed`, so a saved yard goes on the same way.
@@ -1387,11 +1461,12 @@
   const jobById = id => state.jobs.find(j => j.id === id);
   const openJobs = () => state.jobs.filter(j => !j.result);
 
-  // The block a car goes to next, or null when it stays where it is.
-  // Placeholder rule until #45: a bad-order car goes to repair; otherwise
-  // its waybill's destination decides.
+  // The block a car goes to next, or null when it stays where it is (or is
+  // away). Placeholder rule until #45: a bad-order car goes to repair;
+  // otherwise its waybill's destination decides.
   function dispositionOf(id) {
     const c = state.cars[id];
+    if (c.away !== null) return null;
     if (c.badOrder) return "repair";
     return c.waybill ? DESTINATIONS[c.waybill].block : null;
   }
@@ -1430,13 +1505,27 @@
   }
   // A job checked against the yard: a line per car (its block, and whether
   // it's met), how many are met, and whether each block in block order the
-  // job touches stands in it (null when it touches none).
+  // job touches stands in it (null when it touches none). A job gone away
+  // on its train is met. For a build job, `cut` too: whether its train's
+  // cars that are on the map stand coupled as one cut (`one`), with
+  // nothing else coupled in (`clean`).
   function jobStatus(job) {
-    const lines = job.cars.map(id => ({ id, block: dispositionOf(id), met: dispositionMet(id) }));
+    const lines = job.cars.map(id => ({ id, block: dispositionOf(id), met: dispositionMet(id), away: state.cars[id].away !== null }));
     const ordered = [...new Set(lines.map(l => l.block))].filter(b => b && BLOCKS[b].ordering === "block");
-    return { lines, met: lines.filter(l => l.met).length,
-             inOrder: ordered.length ? ordered.every(blockInOrder) : null };
+    const st = { lines, met: lines.filter(l => l.met).length,
+                 inOrder: ordered.length ? ordered.every(blockInOrder) : null, cut: null };
+    if (job.kind === "build") {
+      const ids = lines.filter(l => l.block === job.block).map(l => l.id);
+      const trains = new Set(ids.map(id => state.vehicles[id].train));
+      const t = trains.size === 1 && state.trains[[...trains][0]];
+      st.cut = !ids.length ? { one: true, clean: true }
+        : { one: !!t && !t.vehicles.some(id => state.vehicles[id].controls), clean: !!t && t.vehicles.every(id => ids.includes(id)) };
+    }
+    return st;
   }
+  // Whether a job's formation is usable: its blocks in order and, for a
+  // build, its train one cut with nothing else in it.
+  const formationValid = st => st.inOrder !== false && (!st.cut || (st.cut.one && st.cut.clean));
 
   // Each start of the player's loco from a stand is a move.
   function countMoves() {
@@ -1455,70 +1544,172 @@
     return true;
   }
 
-  // Acts on every shift change the clock has reached.
-  function runShifts() {
-    while (state.clock >= state.nextShiftAt) {
-      shiftChange(state.nextShiftAt);
-      state.nextShiftAt += SHIFT_HOURS * HOUR;
+  // Acts, in time order, on every shift change and road train the clock
+  // has reached, then lets in any arrival held outside whose track is
+  // clear.
+  function runEvents() {
+    for (;;) {
+      const run = runsBetween(state.timetableAt, state.clock)[0];
+      if (state.nextShiftAt <= state.clock && (!run || state.nextShiftAt <= run.at)) {
+        shiftChange(state.nextShiftAt);
+        state.nextShiftAt += SHIFT_HOURS * HOUR;
+        continue;
+      }
+      if (!run) break;
+      state.timetableAt = run.at + 1;
+      if (timetableEntry(run.tt).arrives) state.held.push(run);
+      else departureDue(run);
+      letInArrivals(run.at);
     }
+    letInArrivals(state.clock);
   }
-  // At a shift change: cars left on the repair track are repaired, jobs
-  // not taken that fall due are done off-screen, and the next jobs open.
+  // The road trains that run from `from` to `to`, soonest first: each a
+  // timetable entry's id, the time it runs, and an id for that day's run.
+  function runsBetween(from, to) {
+    const out = [];
+    for (let day = Math.floor(from / DAY); day * DAY <= to; day++)
+      for (const tt of TIMETABLE) {
+        const at = day * DAY + tt.at;
+        if (at >= from && at <= to) out.push({ id: `${tt.id}.${day}`, tt: tt.id, at });
+      }
+    return out.sort((a, b) => a.at - b.at);
+  }
+  const timetableEntry = id => TIMETABLE.find(t => t.id === id);
+  const trainName = tt => `${tt.number} ${tt.arrives ? "from " + tt.from : "to " + tt.to}`;
+
+  // At a shift change: cars left on the repair track are repaired, loads
+  // left on the local track unloaded and empties left for loading loaded
+  // (placeholders until industries, #50), each with a new waybill; jobs
+  // not taken that fall due are done off-screen; and a job opens to sort
+  // the cars still not where they belong. A car in an open job is left
+  // alone.
   function shiftChange(at) {
+    const busy = new Set(openJobs().flatMap(j => j.cars));
     for (const id in state.cars) {
-      const v = state.vehicles[id];
-      if (state.cars[id].badOrder && dispositionMet(id) && v.speed === 0) {
-        Object.assign(state.cars[id], { badOrder: null, waybill: null });
+      const c = state.cars[id], v = state.vehicles[id], block = dispositionOf(id);
+      if (c.away || busy.has(id) || v.speed !== 0 || !block || !dispositionMet(id)) continue;
+      if (c.badOrder) {
+        c.badOrder = null;
         logCar(id, `Repaired on ${YARD_TRACKS[trackAt(v)].name}`, at);
+        rebill(id, at, ["repair"]);
+      } else if (block === "local" && c.loaded) {
+        c.loaded = false;
+        logCar(id, "Unloaded at Junín", at);
+        rebill(id, at, ["local"]);
+      } else if (block === "empties" && !c.loaded) {
+        c.loaded = true;
+        logCar(id, "Loaded at Junín", at);
+        rebill(id, at, ["local", "empties"]);
       }
     }
-    for (const j of openJobs()) if (!j.taken && j.due <= at) doOffScreen(j, at);
-    openShiftJobs(at);
-    const done = state.jobs.filter(j => j.result);
-    if (done.length > JOBS_KEPT) state.jobs = state.jobs.filter(j => !j.result || done.indexOf(j) >= done.length - JOBS_KEPT);
+    for (const j of openJobs()) if (!j.taken && j.kind !== "build" && j.due <= at) doOffScreen(j, at);
+    openSortJob(at);
+    const done = state.jobs.filter(j => j.result && (j.kind !== "build" || j.departed));
+    if (done.length > JOBS_KEPT) state.jobs = state.jobs.filter(j => !done.includes(j) || done.indexOf(j) >= done.length - JOBS_KEPT);
+  }
+  // Opens a job, due at the next shift change, for the cars on the map
+  // whose dispositions aren't met and that no open job holds.
+  function openSortJob(at) {
+    const busy = new Set(openJobs().flatMap(j => j.cars));
+    const cars = Object.keys(CARS).filter(id => !state.cars[id].away && !busy.has(id) && !dispositionMet(id));
+    if (!cars.length) return;
+    const due = at + SHIFT_HOURS * HOUR;
+    addJob({ kind: "sort", title: `Sort the yard for the ${clockText(due)} shift`, short: "Sort the yard", opens: at, due, cars });
+  }
+  // Adds a job, its cars listed by block, not yet taken.
+  function addJob(job) {
+    const blockOrder = Object.keys(BLOCKS);
+    job.cars.sort((a, b) => blockOrder.indexOf(dispositionOf(a)) - blockOrder.indexOf(dispositionOf(b)));
+    const j = { id: "job" + state.nextJob++, blocks: new Set(job.cars.map(dispositionOf)).size,
+                taken: false, movesAtTake: 0, damaged: [], result: null, ...job };
+    state.jobs.push(j);
+    return j;
+  }
+  // Issues car `id` a new waybill for its load, to a destination in none
+  // of the blocks `notBlocks` and not to storage.
+  function rebill(id, at, notBlocks) {
+    const choices = Object.keys(DESTINATIONS).filter(d => !notBlocks.includes(DESTINATIONS[d].block)
+      && DESTINATIONS[d].block !== "storage" && (DESTINATIONS[d].loaded === undefined || DESTINATIONS[d].loaded === state.cars[id].loaded));
+    const d = choices[Math.floor(random() * choices.length)];
+    state.cars[id].waybill = d;
+    logCar(id, `Waybill: ${DESTINATIONS[d].name}`, at);
   }
 
-  // Opens a shift's jobs at `at`: the cars whose dispositions aren't met
-  // and aren't already in an open job, topped up to CARS_PER_JOB a job with
-  // new waybills, dealt out a block at a time.
-  function openShiftJobs(at) {
-    const busy = new Set(openJobs().flatMap(j => j.cars));
-    const needing = Object.keys(CARS).filter(id => !busy.has(id) && !dispositionMet(id));
-    const want = CARS_PER_JOB * JOBS_PER_SHIFT;
-    if (needing.length < want) needing.push(...rebill(want - needing.length, busy, at));
-    const blockOrder = Object.keys(BLOCKS);
-    needing.sort((a, b) => blockOrder.indexOf(dispositionOf(a)) - blockOrder.indexOf(dispositionOf(b)));
-    const per = Math.ceil(needing.length / JOBS_PER_SHIFT), due = at + SHIFT_HOURS * HOUR;
-    for (let i = 0; i < JOBS_PER_SHIFT; i++) {
-      const cars = needing.slice(i * per, (i + 1) * per);
-      if (!cars.length) continue;
-      state.jobs.push({ id: "job" + state.nextJob++, title: `Sort the yard for the ${clockText(due)} shift`,
-        opens: at, due, cars, blocks: new Set(cars.map(dispositionOf)).size,
-        taken: false, movesAtTake: 0, damaged: [], result: null });
-    }
+  // Lets in the arrivals held outside, first come first, while the arrival
+  // track stands clear.
+  function letInArrivals(at) {
+    while (state.held.length && trackClear(ARRIVAL_TRACK)) arrive(state.held.shift(), at);
   }
-  // Issues new waybills to up to `count` cars standing where they belong,
-  // sound and not in the loco's train or a job, those with no waybill
-  // first. Each goes to a destination for its load, in another block than
-  // the one it stands in. Returns their ids.
-  function rebill(count, busy, at) {
-    const pool = Object.keys(CARS).filter(id => !busy.has(id) && !state.cars[id].badOrder && dispositionMet(id)
-      && state.vehicles[id].speed === 0 && !inPlayerTrain(state.vehicles[id]));
-    for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
-    pool.sort((a, b) => !!state.cars[a].waybill - !!state.cars[b].waybill);
-    const out = [];
-    for (const id of pool) {
-      if (out.length >= count) break;
-      const here = trackAt(state.vehicles[id]), block = here && YARD_TRACKS[here].block;
-      const choices = Object.keys(DESTINATIONS).filter(d =>
-        DESTINATIONS[d].block !== block && (DESTINATIONS[d].loaded === undefined || DESTINATIONS[d].loaded === CARS[id].loaded));
-      if (!choices.length) continue;
-      const d = choices[Math.floor(random() * choices.length)];
-      state.cars[id].waybill = d;
-      logCar(id, `Waybill: ${DESTINATIONS[d].name}`, at);
-      out.push(id);
+  // Whether nothing stands on yard track `trackId`, not even an end.
+  function trackClear(trackId) {
+    const g = TRACK_GEOM[trackId];
+    for (const id in state.vehicles) {
+      const v = state.vehicles[id], e = vehicleEnds(v);
+      if ([v, e.head, e.tail].some(p => g.segs[p.seg])) return false;
     }
-    return out;
+    return true;
+  }
+  // A road train arrives at `at`, onto the arrival track: between
+  // ARRIVAL_CARS_MIN and ARRIVAL_CARS_MAX cars back from away, each loaded
+  // if it left empty and empty if it left loaded, with a new waybill. A
+  // job opens to break it up, due at the shift change, and another to
+  // build the departure that follows it.
+  function arrive(run, at) {
+    const tt = timetableEntry(run.tt), late = at - run.at;
+    const pool = Object.keys(CARS).filter(id => state.cars[id].away !== null);
+    for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+    const want = ARRIVAL_CARS_MIN + Math.floor(random() * (ARRIVAL_CARS_MAX - ARRIVAL_CARS_MIN + 1));
+    const ids = pool.slice(0, want);
+    const note = late >= 60 ? `, held outside ${lateText(late)}` : "";
+    for (const id of ids) {
+      const c = state.cars[id];
+      Object.assign(c, { away: null, loaded: !c.loaded });
+      addVehicle(id, CARS[id].type);
+      logCar(id, `Arrived on ${trainName(tt)}${note}`, at);
+      rebill(id, at, [tt.notBlock]);
+    }
+    if (ids.length) {
+      layOnTrack(ARRIVAL_TRACK, ids);
+      addJob({ kind: "breakup", title: `Break up ${trainName(tt)}`, short: `Break up ${tt.number}`, opens: at,
+               due: shiftAt(at).end, cars: ids, run: run.id, arrivedLate: late });
+    }
+    const next = runsBetween(run.at + 1, run.at + DAY).find(r => !timetableEntry(r.tt).arrives);
+    if (next && next.at >= state.timetableAt && !state.jobs.some(j => j.run === next.id)) openBuild(next, at);
+  }
+  // Opens the job to build departure `run`: every car on the map whose
+  // disposition is its block, up to DEPARTURE_MAX_CARS, those already on
+  // its track first.
+  function openBuild(run, at) {
+    const tt = timetableEntry(run.tt), track = blockTracks(tt.block)[0];
+    const onTrack = id => trackAt(state.vehicles[id]) === track ? 0 : 1;
+    const cars = Object.keys(CARS).filter(id => !state.cars[id].away && dispositionOf(id) === tt.block)
+      .sort((a, b) => onTrack(a) - onTrack(b)).slice(0, DEPARTURE_MAX_CARS);
+    return addJob({ kind: "build", title: `Build ${trainName(tt)}`, short: `Build ${tt.number}`, opens: at, due: run.at,
+                    cars, run: run.id, block: tt.block, departed: null });
+  }
+  // A departure's time has come. Built, or not taken (and so built now by
+  // another crew), it leaves; taken and not reported done, it waits for
+  // the player. With no job (its arrival still held), one opens and
+  // another crew does it.
+  function departureDue(run) {
+    const j = state.jobs.find(j => j.run === run.id) || openBuild(run, run.at);
+    if (j.taken && !j.result) return;
+    if (!j.result) doOffScreen(j, run.at);
+    depart(j, run.at);
+  }
+  // Build job `job`'s train leaves at `at`, taking its cars that stand
+  // where they belong: on its track, left by the loco, sound. They go away,
+  // off the map; the rest wait for the next train.
+  function depart(job, at) {
+    const tt = timetableEntry(job.run.split(".")[0]), late = Math.max(0, at - job.due);
+    const going = job.cars.filter(id => !state.cars[id].away && dispositionOf(id) === job.block && dispositionMet(id));
+    for (const id of going) {
+      detach(id);
+      delete state.vehicles[id];
+      Object.assign(state.cars[id], { away: at, waybill: null });
+      logCar(id, `Left on ${trainName(tt)}${late >= 60 ? `, ${lateText(late)} late` : ""}`, at);
+    }
+    job.departed = { at, cars: going.length, late };
   }
 
   // Another crew does a job off-screen at `at`: each car not yet where it
@@ -1577,9 +1768,14 @@
     const length = cut.reduce((sum, vid) => sum + vehicleType(state.vehicles[vid]).length, 0);
     if (length + SET_BACK > g.length - g.fouling) return false;
     for (const vid of cut) detach(vid);
-    const segs = YARD_TRACKS[trackId].segments, last = segs[segs.length - 1], dir = SEGMENTS[last].b === g.end ? 1 : -1;
-    layTrain(last, dir > 0 ? segmentLength(last) - SET_BACK : SET_BACK, dir, cut);
+    layOnTrack(trackId, cut);
     return true;
+  }
+  // Lays vehicles `ids`, in no train, out on yard track `trackId` as one
+  // cut, listed from the buffer, SET_BACK off it.
+  function layOnTrack(trackId, ids) {
+    const segs = YARD_TRACKS[trackId].segments, last = segs[segs.length - 1], dir = SEGMENTS[last].b === TRACK_GEOM[trackId].end ? 1 : -1;
+    layTrain(last, dir > 0 ? segmentLength(last) - SET_BACK : SET_BACK, dir, ids);
   }
 
   // Assesses a job the player reports done at `at` (docs/design/results.md):
@@ -1589,10 +1785,10 @@
     const st = jobStatus(job), moves = state.moves - job.movesAtTake;
     const par = PAR_PER_CAR_AND_BLOCK * (job.cars.length + job.blocks);
     let outcome;
-    if (st.met === st.lines.length) outcome = st.inOrder === false ? "Invalid formation" : moves > par ? "Valid but inefficient" : "Operationally valid";
+    if (st.met === st.lines.length) outcome = !formationValid(st) ? "Invalid formation" : moves > par ? "Valid but inefficient" : "Operationally valid";
     else outcome = st.met ? "Partially complete" : "Incomplete";
-    for (const l of st.lines) if (l.met && l.block) logCar(l.id, `Left on ${YARD_TRACKS[trackAt(state.vehicles[l.id])].name}, ${BLOCKS[l.block].name}`, at);
-    job.result = { by: "player", at, outcome, met: st.met, total: st.lines.length, inOrder: st.inOrder,
+    for (const l of st.lines) if (l.met && l.block && !l.away) logCar(l.id, `Left on ${YARD_TRACKS[trackAt(state.vehicles[l.id])].name}, ${BLOCKS[l.block].name}`, at);
+    job.result = { by: "player", at, outcome, met: st.met, total: st.lines.length, inOrder: st.inOrder, cut: st.cut,
                    moves, par, late: Math.max(0, at - job.due) };
   }
 
@@ -1691,7 +1887,7 @@
       if (state.vehicles[id].speed !== 0) { setNotice("Wait for the cars to stop"); return false; }
     }
     state.clock = at;
-    runShifts();
+    runEvents();
     return true;
   }
 
@@ -1708,13 +1904,18 @@
     const j = jobById(jobId);
     if (!j || j.result || !j.taken) return false;
     j.taken = false;
-    if (j.due <= state.clock) doOffScreen(j, state.clock);
+    if (j.due <= state.clock) {
+      doOffScreen(j, state.clock);
+      if (j.kind === "build") depart(j, state.clock);
+    }
     return true;
   }
+  // A build reported done after its train's time lets the train go now.
   function reportDone(jobId) {
     const j = jobById(jobId);
     if (!j || j.result || !j.taken) return false;
     assess(j, state.clock);
+    if (j.kind === "build" && !j.departed && j.due <= state.clock) depart(j, state.clock);
     return true;
   }
 
@@ -1723,12 +1924,13 @@
   // ==================================================
   // The yard is saved as it stands, mid-move included: every vehicle with
   // its speed, the trains, couplings' slack and air, switches, hand brakes,
-  // the loco's controls, the clock, the cars' traffic and the jobs. That is
-  // all of STATE but the notice. A yard saved before jobs isn't carried
-  // over: its cars stand where jobs didn't expect them. A save
+  // the loco's controls, the clock, the cars' traffic, the jobs and the
+  // road trains. That is all of STATE but the notice. A yard saved before
+  // road trains isn't carried over: its cars stand where they didn't
+  // expect them, and none are away. A save
   // that doesn't fit the yard (WORLD DATA changed since) is set aside for a
   // fresh yard. SAVE_KEY changes with every change to the saved shape.
-  const SAVE_KEY = "switching-game.yard.3";
+  const SAVE_KEY = "switching-game.yard.4";
 
   function saveYard() {
     try {
@@ -1746,15 +1948,19 @@
     if (!isObj(st.trains) || !isObj(st.air) || !isObj(st.gaps) || !Number.isInteger(st.nextTrain)) return false;
     if (!sameKeys(st.switches, SWITCHES)) return false;
     if (!sameKeys(st.cars, CARS) || !Array.isArray(st.jobs) || !Number.isInteger(st.nextJob) || !Number.isInteger(st.moves)
-        || !Number.isInteger(st.seed) || !Number.isFinite(st.nextShiftAt)) return false;
+        || !Number.isInteger(st.seed) || !Number.isFinite(st.nextShiftAt) || !Number.isFinite(st.timetableAt)) return false;
+    if (!Array.isArray(st.held) || !st.held.every(r => isObj(r) && timetableEntry(r.tt) && Number.isFinite(r.at))) return false;
     for (const id in st.cars) {
       const c = st.cars[id];
-      if (!Array.isArray(c.history) || (c.waybill !== null && !DESTINATIONS[c.waybill])) return false;
+      if (!Array.isArray(c.history) || (c.waybill !== null && !DESTINATIONS[c.waybill]) || typeof c.loaded !== "boolean") return false;
+      if (c.away !== null && !Number.isFinite(c.away)) return false;
     }
     for (const j of st.jobs) if (!isObj(j) || !Array.isArray(j.cars) || !j.cars.every(id => CARS[id]) || !Number.isFinite(j.due)) return false;
     for (const id in SWITCHES) if (!SWITCHES[id].legs.includes(st.switches[id].set)) return false;
+    // Every loco, and every car not away, has a vehicle.
     const startIds = {};
-    for (const t of START_TRAINS) for (const v of t.vehicles) startIds[v.id] = startType(v);
+    for (const t of START_TRAINS) for (const v of t.vehicles) if (!CARS[v.id]) startIds[v.id] = v.type;
+    for (const id in CARS) if (st.cars[id].away === null) startIds[id] = CARS[id].type;
     if (!sameKeys(st.vehicles, startIds)) return false;
     for (const id in st.vehicles) {
       const v = st.vehicles[id], type = VEHICLE_TYPES[v.type];
@@ -1998,7 +2204,7 @@
           const p = toward(head, tail, type.length * at - 0.5), q = toward(head, tail, type.length * at + 0.5);
           line(p.x, p.y, q.x, q.y, type.band, bodyWidth);
         }
-      if (car && !car.loaded) {                           // an empty car is drawn hollow
+      if (car && !loadedNow(id)) {                        // an empty car is drawn hollow
         const f = toward(front, back, 1), b = toward(back, front, 1);
         line(b.x, b.y, f.x, f.y, PALETTE.bg, bodyWidth * 0.4);
       }
@@ -2286,7 +2492,7 @@
     // order, and the last of its history.
     const c = state.cars[cardFor], block = dispositionOf(cardFor);
     const next = !block ? "stays where it is" : dispositionMet(cardFor) ? `${BLOCKS[block].name}, in place` : `to ${tracksText(block)}`;
-    carText.innerHTML = `<b>${car.line || "FA"} ${car.number}</b>${type.name} · ${car.loaded ? "loaded" : "empty"}` +
+    carText.innerHTML = `<b>${car.line || "FA"} ${car.number}</b>${type.name} · ${loadedNow(cardFor) ? "loaded" : "empty"}` +
       `<small>${car.line ? "" : `${type.code} ${FA_OPERATING_CODE} · `}T ${kg(type.tare, 5)} K · C ${kg(type.carga, 6)} K</small>` +
       `<small class="traffic">${c.waybill ? `Waybill: ${DESTINATIONS[c.waybill].name}` : "No waybill"} · ${next}</small>` +
       (c.badOrder ? `<small class="warn">Bad order: ${c.badOrder}</small>` : "") +
@@ -2317,9 +2523,11 @@
     // A job not taken that a skip passes the due time of goes to another
     // crew: the menu says so before the skip, beside the event and the marks.
     for (const e of eventsAhead()) {
-      const j = e.job && jobById(e.job);
-      const text = j ? `${j.title} falls due${j.taken ? "" : `<small class="warn">Not taken: another crew does it</small>`}`
-        : `Shift change<small>The next jobs open</small>`;
+      const j = e.job && jobById(e.job), crew = j && !j.taken ? `<small class="warn">Not taken: another crew does it</small>` : "";
+      const tt = e.tt && timetableEntry(e.tt);
+      const text = tt ? (tt.arrives ? `${trainName(tt)} arrives<small>Onto Track ${YARD_TRACKS[ARRIVAL_TRACK].number}</small>`
+          : `${trainName(tt)} leaves${j ? (j.taken ? "<small>It waits for your build</small>" : crew) : ""}`)
+        : j ? `${j.title} falls due${crew}` : `Shift change<small>The next jobs open</small>`;
       html += `<button class="event" data-at="${e.at}"><b>${clockText(e.at)}</b><span>${text}</span>${dayNote(e.at)}</button>`;
     }
     const handed = openJobs().filter(j => !j.taken);
@@ -2359,10 +2567,9 @@
   // only to look: taking, handing back and reporting done are actions.
   const jobChip = document.getElementById("jobChip"), jobsBtn = document.getElementById("jobsBtn");
   const sheetEl = document.getElementById("sheet");
-  let sheet = null, sheetHtml = "", chipHtml = "";   // sheet: null, {} for the board, or { job: id }
+  let sheet = null, sheetHtml = "", chipHtml = "";   // sheet: null, {} for the board, { job: id }, or { job: id, consist: true }
   const shortTime = at => `${clockText(at)}${dayOf(at) === dayOf(state.clock) ? "" : `, day ${dayOf(at)}`}`;
   const dayClock = at => `Day ${dayOf(at)} ${clockText(at)}`;
-  const lateText = s => s >= HOUR ? `${Math.floor(s / HOUR)} h ${Math.floor(s % HOUR / 60)} min` : `${Math.ceil(s / 60)} min`;
   function tracksText(block) {
     const n = blockTracks(block).map(t => YARD_TRACKS[t].number);
     return `Track ${n.join(" or ")}`;
@@ -2378,7 +2585,7 @@
     let chip = "";
     if (worked) {
       const st = jobStatus(worked);
-      chip = `Sort for the ${clockText(worked.due)} shift · <em>${st.met} of ${st.lines.length}</em> done${worked.due <= state.clock ? " · late" : ""}`;
+      chip = `${worked.short} · <em>${st.met} of ${st.lines.length}</em> done${worked.due <= state.clock ? " · late" : ""}`;
     }
     if (chip !== chipHtml) jobChip.innerHTML = chipHtml = chip;
     jobChip.classList.toggle("open", !!worked);
@@ -2387,74 +2594,128 @@
     jobsBtn.classList.toggle("on", !!open.length);
     if (sheet && sheet.job && !jobById(sheet.job)) sheet = {};
     if (sheet) {
-      const html = sheet.job ? jobSheetHtml(jobById(sheet.job)) : boardHtml();
+      const html = sheet.consist ? consistHtml(jobById(sheet.job)) : sheet.job ? jobSheetHtml(jobById(sheet.job)) : boardHtml();
       if (html !== sheetHtml) sheetEl.innerHTML = sheetHtml = html;
     }
     sheetEl.classList.toggle("open", !!sheet);
   }
-  const outcomeText = j => j.result.by === "crew" ? `Done by another crew at ${shortTime(j.result.at)}`
-    : `${j.result.outcome} · ${shortTime(j.result.at)}`;
+  // A finished job in a line; a build's train, gone or still to go.
+  const trainText = j => j.kind !== "build" ? "" : j.departed
+    ? ` · left ${shortTime(j.departed.at)}${j.departed.late >= 60 ? `, ${lateText(j.departed.late)} late` : ""}` : ` · leaves ${shortTime(j.due)}`;
+  const outcomeText = j => (j.result.by === "crew" ? `Done by another crew at ${shortTime(j.result.at)}`
+    : `${j.result.outcome} · ${shortTime(j.result.at)}`) + trainText(j);
+  const dueText = j => j.kind === "build" ? `leaves ${shortTime(j.due)}` : `due ${shortTime(j.due)}`;
   function boardHtml() {
     let h = `<div class="grab"></div><header><h2>Jobs · ${YARD_NAME}</h2><button data-act="close">Close ✕&#xFE0E;</button></header>`;
     for (const j of openJobs()) {
       const late = j.due <= state.clock ? ` · <span class="warn">late</span>` : "";
-      h += `<div class="job" data-job="${j.id}"><div><b>${j.title}</b><small>${j.cars.length} cars · due ${shortTime(j.due)}` +
+      h += `<div class="job" data-job="${j.id}"><div><b>${j.title}</b><small>${j.cars.length} cars · ${dueText(j)}` +
         `${j.taken ? " · taken" : ""}${late}</small></div>` + (j.taken
           ? `<button class="act primary" data-act="open" data-job="${j.id}">Open</button>`
           : `<button class="act" data-act="take" data-job="${j.id}">Take</button>`) + `</div>`;
     }
-    const opens = state.nextShiftAt, due = opens + SHIFT_HOURS * HOUR;
-    h += `<div class="job later"><div><b>Sort the yard for the ${clockText(due)} shift</b><small>opens ${shortTime(opens)}</small></div></div>`;
+    // Road trains ahead: the next arrival and the next departure.
+    const ahead = runsBetween(state.timetableAt, state.clock + DAY).map(r => ({ ...r, tt: timetableEntry(r.tt) }));
+    for (const r of [ahead.find(r => r.tt.arrives), ahead.find(r => !r.tt.arrives)]) {
+      if (!r || state.jobs.some(j => j.run === r.id)) continue;
+      h += `<div class="job later"><div><b>${r.tt.arrives ? "Break up" : "Build"} ${trainName(r.tt)}</b>` +
+        `<small>${r.tt.arrives ? `arrives ${shortTime(r.at)}` : `leaves ${shortTime(r.at)}; opens with the train before it`}</small></div></div>`;
+    }
+    for (const r of state.held) h += `<div class="job later"><div><b>${trainName(timetableEntry(r.tt))} held outside</b>` +
+      `<small class="warn">Due ${shortTime(r.at)}; Track ${YARD_TRACKS[ARRIVAL_TRACK].number} must be clear</small></div></div>`;
     const done = state.jobs.filter(j => j.result).reverse();
     if (done.length) h += `<h3><span>Finished</span><span></span></h3>`;
     for (const j of done) h += `<div class="job" data-job="${j.id}"><div><b>${j.title}</b><small>${outcomeText(j)}</small></div></div>`;
     return h;
   }
   function jobSheetHtml(j) {
-    const st = jobStatus(j), shift = shiftAt(j.opens);
+    const st = jobStatus(j), shift = shiftAt(j.opens), tt = j.run && timetableEntry(j.run.split(".")[0]);
     let h = `<div class="grab"></div><header><button data-act="board" aria-label="All jobs">‹</button><h2>${j.title}</h2>` +
       `<button data-act="close" aria-label="Close">✕&#xFE0E;</button></header>` +
       `<div class="meta"><span>Place</span><span>${YARD_NAME}</span><span>Loco</span><span>${vehicleType(playerLoco()).name}</span>` +
       `<span>Shift</span><span>${clockText(shift.start).slice(0, 2)}–${clockText(shift.end).slice(0, 2)}, day ${dayOf(j.opens)}</span>` +
-      `<span>Due</span><span>${shortTime(j.due)}</span></div>`;
-    const ordered = Object.keys(BLOCKS).filter(b => BLOCKS[b].ordering === "block" && st.lines.some(l => l.block === b));
-    if (ordered.length) h += `<p class="remarks"><span>Remarks:</span> ${ordered.map(b =>
-      `${BLOCKS[b].name} block in order from the ladder end: ${BLOCKS[b].groups.map(g => DESTINATIONS[g].name).join(", ")}`).join("; ")}.</p>`;
+      `<span>${j.kind === "build" ? "Leaves" : "Due"}</span><span>${shortTime(j.due)}</span></div>`;
+    const remarks = [];
+    if (j.kind === "breakup") remarks.push(`Train ${tt.number} from ${tt.from}, on Track ${YARD_TRACKS[ARRIVAL_TRACK].number}` +
+      (j.arrivedLate >= 60 ? `, held outside ${lateText(j.arrivedLate)}` : ""));
+    if (j.kind === "build") remarks.push(`Train ${tt.number} to ${tt.to}, built on ${tracksText(j.block)} as one coupled cut, ` +
+      `left by the loco, nothing else coupled in`);
+    for (const b of Object.keys(BLOCKS)) if (BLOCKS[b].ordering === "block" && st.lines.some(l => l.block === b))
+      remarks.push(`${BLOCKS[b].name} block in order from the ladder end: ${BLOCKS[b].groups.map(g => DESTINATIONS[g].name).join(", ")}`);
+    if (remarks.length) h += `<p class="remarks"><span>Remarks:</span> ${remarks.join("; ")}.</p>`;
     if (j.result) h += resultHtml(j);
     else if (j.taken) h += `<div class="buttons"><button class="act" data-act="handback" data-job="${j.id}">Hand back</button>` +
       `<button class="act primary" data-act="done" data-job="${j.id}">Report done</button></div>`;
     else h += `<div class="buttons"><button class="act primary" data-act="take" data-job="${j.id}">Take</button></div>`;
+    if (j.kind === "build") h += `<div class="buttons"><button class="act" data-act="consist" data-job="${j.id}">Consist</button></div>`;
     for (const b of Object.keys(BLOCKS)) {
       const lines = st.lines.filter(l => l.block === b);
       if (!lines.length) continue;
       h += `<h3><span>${BLOCKS[b].name} block · ${tracksText(b)}</span><span>${lines.filter(l => l.met).length} of ${lines.length}</span></h3>`;
       for (const l of lines) h += lineHtml(l);
-      if (BLOCKS[b].ordering === "block") {
-        const ok = blockInOrder(b);
-        h += `<div class="line order${ok ? " met" : ""}"><div class="tick">${ok ? "✓" : ""}</div><div><b>In block order</b>` +
-          `<small>${BLOCKS[b].groups.map(g => DESTINATIONS[g].name).join(", ")}, from the ladder end</small></div></div>`;
+      if (BLOCKS[b].ordering === "block") h += checkHtml(blockInOrder(b), "In block order",
+        `${BLOCKS[b].groups.map(g => DESTINATIONS[g].name).join(", ")}, from the ladder end`);
+      if (j.kind === "build" && b === j.block) {
+        h += checkHtml(st.cut.one, "One coupled cut", "Coupled together, the loco cut off");
+        h += checkHtml(st.cut.clean, "Nothing else in the cut", "No car that isn't for this train");
       }
+    }
+    const gone = st.lines.filter(l => l.away);
+    if (gone.length) {
+      h += `<h3><span>Gone</span><span>${gone.length}</span></h3>`;
+      for (const l of gone) h += lineHtml(l);
     }
     return h;
   }
+  // A line that ticks when `ok`: a check on the formation, not on a car.
+  const checkHtml = (ok, title, note) => `<div class="line order${ok ? " met" : ""}"><div class="tick">${ok ? "✓" : ""}</div>` +
+    `<div><b>${title}</b><small>${note}</small></div></div>`;
   function lineHtml(l) {
     const id = l.id, car = CARS[id], c = state.cars[id], v = state.vehicles[id];
-    const to = l.block === "repair" ? tracksText(l.block) : `${tracksText(l.block)} · ${DESTINATIONS[c.waybill].name}`;
-    return `<div class="line${l.met ? " met" : ""}" data-car="${id}"><div class="tick">${l.met ? "✓" : ""}</div>` +
-      `<div><b>${carName(id)}</b><small>${VEHICLE_TYPES[car.type].name} · ${car.loaded ? "loaded" : "empty"}</small>` +
+    const to = l.away ? "Away" : l.block === "repair" ? tracksText(l.block) : `${tracksText(l.block)} · ${DESTINATIONS[c.waybill].name}`;
+    const where = l.away ? `left ${shortTime(c.away)}` : inPlayerTrain(v) ? "in your train" : `on ${placeName(v)}`;
+    return `<div class="line${l.met ? " met" : ""}"${l.away ? "" : ` data-car="${id}"`}><div class="tick">${l.met ? "✓" : ""}</div>` +
+      `<div><b>${carName(id)}</b><small>${VEHICLE_TYPES[car.type].name} · ${c.loaded ? "loaded" : "empty"}</small>` +
       `${c.badOrder ? `<small class="warn">Bad order: ${c.badOrder}</small>` : ""}</div>` +
-      `<div class="where"><span>${to}</span><small>${inPlayerTrain(v) ? "in your train" : `on ${placeName(v)}`}</small></div></div>`;
+      `<div class="where"><span>${to}</span><small>${where}</small></div></div>`;
   }
   function resultHtml(j) {
-    const r = j.result;
-    if (r.by === "crew") return `<div class="result"><b>Done by another crew</b><small>At ${shortTime(r.at)}</small>` +
+    const r = j.result, train = j.kind === "build" ? `<small>${j.departed ? `Left ${shortTime(j.departed.at)} with ${j.departed.cars} car${j.departed.cars === 1 ? "" : "s"}` +
+      (j.departed.late >= 60 ? `, <span class="warn">${lateText(j.departed.late)} late</span>` : "") : `Leaves ${shortTime(j.due)}`}</small>` : "";
+    if (r.by === "crew") return `<div class="result"><b>Done by another crew</b><small>At ${shortTime(r.at)}</small>${train}` +
       `${r.left.length ? `<small class="warn">Left where they stood, the track blocked or full: ${r.left.map(carName).join(", ")}</small>` : ""}</div>`;
     const rows = [
       `${r.met} of ${r.total} cars where they belong${r.inOrder === null || r.met < r.total ? "" : r.inOrder ? ", in block order" : ", out of block order"}`,
+      r.cut && !(r.cut.one && r.cut.clean) ? `<span class="warn">${!r.cut.one ? "Not one coupled cut" : "Another car in the cut"}</span>` : "",
       `${r.moves} move${r.moves === 1 ? "" : "s"}, par ${+r.par.toFixed(1)}`,
-      r.late ? `<span class="warn">Late by ${lateText(r.late)}</span>, at ${shortTime(r.at)}` : `On time, at ${shortTime(r.at)}`];
-    return `<div class="result"><b>${r.outcome}</b>${rows.map(t => `<small>${t}</small>`).join("")}` +
+      r.late ? `<span class="warn">Late by ${lateText(r.late)}</span>, at ${shortTime(r.at)}` : `On time, at ${shortTime(r.at)}`].filter(Boolean);
+    return `<div class="result"><b>${r.outcome}</b>${rows.map(t => `<small>${t}</small>`).join("")}${train}` +
       `${j.damaged.length ? `<small class="warn">Rough handling: ${j.damaged.map(carName).join(", ")} damaged, bad order</small>` : ""}</div>`;
+  }
+  // The consist page of a build job: a line per car of its train, as it
+  // stands on its track from the ladder end (cars elsewhere after), and the
+  // train's totals. Weights are tare plus load, in whole tonnes (RITO art.
+  // 211).
+  function consistHtml(j) {
+    const tt = timetableEntry(j.run.split(".")[0]), track = blockTracks(j.block)[0];
+    const ids = j.cars.filter(id => state.cars[id].away === null ? dispositionOf(id) === j.block : j.departed && state.cars[id].away === j.departed.at);
+    const d = id => { const v = state.vehicles[id]; const o = v && trackAt(v) === track ? trackOffset(track, v.seg, v.s) : null; return o === null ? Infinity : o; };
+    ids.sort((a, b) => d(a) - d(b));
+    const rows = ids.map(id => {
+      const type = VEHICLE_TYPES[CARS[id].type], load = state.cars[id].loaded ? type.carga : 0;
+      return { id, type, load, gross: type.tare + load };
+    });
+    const sum = f => rows.reduce((t, r) => t + f(r), 0);
+    let h = `<div class="grab"></div><header><button data-act="open" data-job="${j.id}" aria-label="Back to the job">‹</button>` +
+      `<h2>Consist · ${tt.number} to ${tt.to}</h2><button data-act="close" aria-label="Close">✕&#xFE0E;</button></header>` +
+      `<div class="totals"><span><b>${rows.length}</b>cars</span><span><b>${sum(r => r.type.axles)}</b>axles</span>` +
+      `<span><b>${Math.round(sum(r => r.type.length))} m</b>long</span><span><b>${sum(r => r.type.tare)} t</b>tare</span>` +
+      `<span><b>${sum(r => r.gross)} t</b>gross</span></div>` +
+      `<p class="remarks"><span>From the ladder end;</span> cars not yet on ${tracksText(j.block)} last.</p>` +
+      `<table class="consist"><thead><tr><th>Car</th><th>Tare</th><th>Load</th><th>Gross</th><th>m</th></tr></thead><tbody>`;
+    for (const r of rows) h += `<tr><td><b>${carName(r.id)}</b><small>${r.type.name}</small></td><td>${r.type.tare}</td>` +
+      `<td>${r.load}</td><td>${r.gross}</td><td>${r.type.length}</td></tr>`;
+    return h + `</tbody></table>`;
   }
   sheetEl.addEventListener("click", e => {
     const b = e.target.closest("[data-act]"), line = e.target.closest("[data-car]"), row = e.target.closest(".job[data-job]");
@@ -2463,6 +2724,7 @@
       if (act === "close") sheet = null;
       else if (act === "board") sheet = {};
       else if (act === "open") sheet = { job: id };
+      else if (act === "consist") sheet = { job: id, consist: true };
       else if (act === "take") unlessPaused(() => { if (takeJob(id)) sheet = { job: id }; })();
       else if (act === "handback") unlessPaused(handBack)(id);
       else if (act === "done") unlessPaused(() => {
