@@ -25,4 +25,5 @@ an economy or reward system.
 
 ## Open
 
-- What counts as one move for the par.
+- What counts as one move for the par. Stage 1 counts each start of the
+  loco from a stand (an implementation choice, retunable, until decided).
