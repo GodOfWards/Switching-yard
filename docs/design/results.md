@@ -16,13 +16,13 @@ an economy or reward system.
   Partially complete; Incomplete; Invalid formation.
 - **Nothing fails.** Late is recorded, and the train leaves late; delays
   can carry on down the line (#47).
-- **Rough handling is a consequence, not a score:** a hard enough coupling
-  damages a car, which becomes bad order and needs the repair track.
+- **Rough handling is a consequence, not a score:** a coupling closing
+  faster than the hard-hit speed (`COUPLE_MAX_SPEED`, 5 km/h) damages the
+  car, which becomes bad order and needs the repair track. Retunable.
+- **Efficiency** is measured against a simple par, not the best possible
+  solution: a job is "inefficient" when its moves exceed 1.5 × (cars
+  handled + blocks). Retunable.
 
 ## Open
 
-- **Efficiency's yardstick.** Finding the best possible solution is a
-  puzzle solver in itself, so efficiency is measured against a simple rule
-  (for example moves and couplings per car handled), retunable. Exact rule
-  open.
-- How hard a coupling must be to damage a car, and what damage does.
+- What counts as one move for the par.

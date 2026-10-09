@@ -3,6 +3,19 @@
 Design calls Tom has made, newest first, with where they were made. The
 values these produced live in CONFIG and WORLD DATA in `index.html`.
 
+## 2026-10-09: Jobs stage 1 on the east end
+
+- **Yard tracks get destination blocks** (#48): 1 Retiro, 2 Mendoza, 3–4
+  local, 5 storage, 6 empties, 7 repair. The fan holds locos only; the
+  lead and head-shunt are for switching. Replaces the fan track roles.
+- **A stage 1 job** classifies named cars onto their block tracks, the
+  Retiro block in block order, due at shift change.
+- **Placeholder dispositions** until #45: waybill destination to its
+  block, bad order to repair, otherwise stay.
+- **A coupling above 5 km/h damages the car** (bad order); "inefficient"
+  is over 1.5 × a par of cars handled plus blocks. Both retunable.
+- **The game clock is its own issue** (#70), not urgent.
+
 ## 2026-10-08: The east end of Junín (#44)
 
 Made in the "new map" thread. See

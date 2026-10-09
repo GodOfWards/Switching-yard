@@ -30,8 +30,14 @@ can span the yard and the industries near it.
   type and load, where it is, where it goes, notes). A line ticks itself
   when its requirement is met. Weights go on a consist page for a train
   being built.
-- **Stage 1 uses a simplified form**: destination blocks on the depot
-  fan's tracks. It's an early-game representation, not the model.
+- **Stage 1 uses a simplified form**: destination blocks on the east
+  end's yard tracks (#48). It's an early-game representation, not the
+  model. Yard tracks, numbered from the main-line side: 1 Retiro,
+  2 Mendoza, 3–4 local, 5 storage, 6 empties, 7 repair (bad order). The
+  fan and turntable spur hold locos only; the lead and head-shunt are for
+  switching, never a block. A stage 1 job classifies named cars onto their
+  block tracks (ordering: none) with the Retiro block in block order, due
+  at shift change. Exact order comes with industries (#50).
 
 ## Open
 
