@@ -26,8 +26,8 @@ exists independently of the player's jobs.
 - **Road trains run to a timetable** (#49): one arrival and one departure
   a shift, directions alternating (07:00 from Retiro, 12:30 to Mendoza;
   15:00 from Mendoza, 20:30 to Retiro; 23:00 from Retiro, 04:30 to
-  Mendoza; retunable). An arrival brings 8–12 cars; a departure takes at
-  most 16, so a whole train fits the head-shunt behind the loco.
+  Mendoza; retunable). An arrival brings up to 12 cars, by the traffic
+  plan; a departure takes at most 16, so a whole train fits the head-shunt behind the loco.
 - **Road trains appear and leave at the yard tracks' cut-off west end**:
   an arrival stands on the arrival track at the buffer, its road loco
   gone; a departure vanishes from its track. Road locos stay off the map.
@@ -35,23 +35,31 @@ exists independently of the player's jobs.
   them in over the lead.
 - **An arrival is held outside** while the arrival track has anything on
   it, and comes in late when it clears; the delay is recorded.
-- **Cars off the map** (placeholder until #50): a car that leaves is away;
-  arrivals bring away cars back, loaded if they left empty and empty if
-  they left loaded, with new waybills, never for the block they came from
-  nor for storage. At Junín, a load left on the local track is unloaded,
-  and an empty left on the empties track loaded, at the next shift change,
-  then rebilled.
-
-- **The traffic plan (#50, to be built)** replaces that placeholder:
-  - flows between Junín and the stations off the map, each a car type
-    and a rate in cars a week, sized to what the timetable can carry
+- **The traffic plan (#50)** decides where cars go:
+  - flows between Junín and the stations off the map, each a car type, a
+    load and a rate in cars a week, sized to what the timetable can carry
     (each side balances in and out);
-  - a car away comes back when its trip is done (about 8 days for the
-    near stations, 12 for Retiro, 16 for Mendoza, round trip), on an
-    arrival from its station's side, up to the train's cap;
-  - an arrival with fewer than 8 cars due is topped up from a **pool** of
-    San Martín cars elsewhere on the line; a car no flow needs goes back
-    to the pool after unloading.
+  - each car serves one flow: loaded, it is billed to where its load goes;
+    empty, back to where its flow loads. A car with no flow is billed to
+    Junín to unload if loaded, and otherwise joins a flow short of cars
+    or goes to storage; stored cars join flows short of cars at shift
+    changes;
+  - a car that leaves goes on a trip to its waybill's station: its round
+    trip (about 8 days for the near stations, 12 for Retiro, 16 for
+    Mendoza), give or take a quarter. It is unloaded or loaded there by
+    the plan, and comes back on an arrival from that station's side,
+    soonest due first, up to the train's cap of 12;
+  - each flow keeps a share of cars: its loaded cars a day times its
+    cycle, the round trips plus a day and a half at Junín each time
+    through (about 370 cars in all);
+  - the **pool** is San Martín cars elsewhere on the line. An arrival with
+    fewer than 8 cars due takes cars from it for flows short of cars, up
+    to 8; a car leaving when its flow has more than 2 over its share stays
+    out in the pool once its trip is over, and the pool forgets a car
+    after 60 days.
+  - At Junín, a load left on the local track is unloaded, and an empty
+    left on the empties track loaded, at the next shift change, then
+    rebilled (placeholder until the industry, #84).
 - **Bulk moves in through trains** (#56), not the road trains: the road
   trains carry wagonload traffic ([fa-freight-traffic.md](../reference/fa-freight-traffic.md)).
 
