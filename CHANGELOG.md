@@ -2,6 +2,12 @@
 
 Newest first. One entry per version bump.
 
+## 0.11.1
+
+**Changed**
+- New colour palette: green-grey chrome, a sage accent, ochre for
+  reversed switches and warnings.
+
 ## 0.11.0
 
 **Added**
