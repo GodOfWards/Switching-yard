@@ -17,7 +17,8 @@ for the main line (#56, #57).
 FA's amendments to May 1993, so it covers the game's era (1977 or later).
 How crews actually organised the work comes from ex-staff accounts of two
 other yards (**Secondary**). **Nothing specific to Junín's yard was
-found**: its track roles, traffic and crews stay open.
+found** (searched again 2026-10-12): its track roles, traffic and crews
+are **Assumed** for the game, listed under [Junín](#junín).
 
 ## Sources
 
@@ -166,7 +167,26 @@ light repairs, including lifting a car to change wheelsets or a bogie; a
 | The Junín workshops (Talleres Ferroviarios de Junín), opened by the BAP in 1886, became the San Martín's shops after 1948 and at their peak employed over 6,000 | Wikipedia (es), *Talleres ferroviarios de Junín*, via search | Secondary |
 | The Central Argentino's own yard at Junín, closed in the 1930s, is now a boulevard and schools; it isn't the San Martín yard the game uses | *Bitácora Urbano Territorial* (Redalyc), *Archipiélago ferroviario en Junín*; Horizonte Ferroviario blog | Secondary |
 | OSM tags at Junín: 48 yard ways, 5 sidings, 2 spurs, no track numbers or names, no rail-served industry named in the area exported for `junin-yard.md` | OSM export of 2026-10-08 | Secondary |
-| **Track roles (arrival, classification, departure, repair), crews and FA-era traffic at Junín: not found** | searches 2026-10-09 | Unconfirmed: a station track plan, an *Apéndice* of the RITO for the San Martín zone, or a local history (Junín's municipal archive; *Junín: 1948–1993*, a thesis cited in search results) would confirm |
+| Junín was the seat of the San Martín's Mechanical Department, over the Junín shops, the wagon shops at Alianza (later also Avanzada and Palmira) and the loco depots at Retiro, Villa Mercedes and Mendoza | Sagastume (2021), *Imaginarios sociales de los trabajadores ferroviarios de Junín (1948–1973)*, PhD thesis, UNLP, note 63 (ex-staff interview) | Secondary |
+| **Wagon repair at the Junín shops stopped in 1970**; from then they repaired passenger coaches for the San Martín and Sarmiento. Before that they repaired, among others, milk cars and tank cars | Sagastume (2021), note 635 (a 1977 company monograph in Junín's Historical Archive) and an interview | Secondary |
+| Junín's Historical Archive (Archivo Histórico Municipal) holds over 100 plans of the shops (1895–1950); a private collection holds about 240 undated railway plans | *Bitácora Urbano Territorial*, *Archipiélago ferroviario en Junín* | Secondary |
+| Grain is loaded by rail in Junín district today: Laplacette, on a branch, reopened to grain in 2019 for an *acopio* (country elevator) | Agrofy News, 2019 | Secondary, modern |
+| **Track roles (arrival, classification, departure, repair), crews, rail-served industries and FA-era traffic at Junín: not found** | searches 2026-10-09 and 2026-10-12 | Unconfirmed: a station track plan (the plan collections above), an *Apéndice* of the RITO for the San Martín zone, or *Junín: 1948–1993* (Sagastume's 2013 master's thesis, Universidad CAECE, not online) would confirm |
+
+### Assumed for the game
+
+Tom, 2026-10-12: where Junín's own practice wasn't found, the game assumes
+it, from the RITO's general rules or what is typical of the Pampas. Each
+line is replaced if a source turns up.
+
+| Assumed | Rests on | Would be replaced by |
+|---|---|---|
+| Yard track roles: 1 Retiro, 2 Mendoza, 3 arrival, 4 local, 5 storage, 6 empties, 7 repair (#49) | RITO's sequence at a yard (reception, classification, formation) laid on the east end's tracks | A Junín track plan or station appendix |
+| The repair track does light repairs in the yard (a car is fixed where it stands), not shop work | Wagon shop repair left Junín in 1970 (above); RITO art. 412-417 on bad-order cars | A source on where Junín's bad-order cars went |
+| Retiro block order O'Higgins, Membrillar, Retiro from the ladder end | RITO art. 197, cars in order of destination; nearest stations first, the order Mar del Plata went back to (the 1970s plan had the farthest first) | The *Manual de Formación y Afectación de los Trenes* |
+| A grain elevator (*acopio*) on an east-throat track (#84) | Grain is the Pampas' main rail traffic; acopios on sidings were common; Laplacette today | A named rail-served industry at Junín |
+| Traffic flows and rates (#50) | Tom's sourcing call of 2026-10-09: FA-era kinds of traffic, modern product mix, labelled estimates | FA-era traffic figures for Junín |
+| The job sheet's and consist page's fields | The foja de ruta (art. 213) and train weight (art. 211) | The foja de ruta's columns; an FA switch list |
 
 ## Not found
 
@@ -174,4 +194,4 @@ light repairs, including lifting a car to change wheelsets or a bogie; a
   order) and the RITO's zone appendices.
 - The foja de ruta's columns, what a car card showed, and any FA name for
   the switch list.
-- Anything about Junín's yard in the FA era.
+- Anything about Junín's yard in the FA era (assumed above).

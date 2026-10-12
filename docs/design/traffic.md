@@ -42,7 +42,19 @@ exists independently of the player's jobs.
   and an empty left on the empties track loaded, at the next shift change,
   then rebilled.
 
+- **The traffic plan (#50, to be built)** replaces that placeholder:
+  - flows between Junín and the stations off the map, each a car type
+    and a rate in cars a week, sized to what the timetable can carry
+    (each side balances in and out);
+  - a car away comes back when its trip is done (about 8 days for the
+    near stations, 12 for Retiro, 16 for Mendoza, round trip), on an
+    arrival from its station's side, up to the train's cap;
+  - an arrival with fewer than 8 cars due is topped up from a **pool** of
+    San Martín cars elsewhere on the line; a car no flow needs goes back
+    to the pool after unloading.
+- **Bulk moves in through trains** (#56), not the road trains: the road
+  trains carry wagonload traffic ([fa-freight-traffic.md](../reference/fa-freight-traffic.md)).
+
 ## Open
 
-- Traffic rates: #50.
-- How a car's return from off the map is timed: #50.
+- Junín's own loading and unloading at an industry: #84.

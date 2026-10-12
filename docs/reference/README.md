@@ -20,6 +20,10 @@ game builds on them are in [../design/](../design/README.md).
     restates the primary.
   - **Unconfirmed:** a figure without a source that states it, or an
     estimate. Say what would confirm it.
+  - **Assumed:** no source was found, so the game chooses something
+    plausible and says so (Tom, 2026-10-12). Say what it rests on (the
+    general rule or analogy) and what would replace it. An assumption is
+    swapped out when a source turns up; that swap is Tom's call.
 - **Track comes from OpenRailwayMap** (openrailwaymap.org), the standard
   map reference (Tom, 2026-10-08). It draws OpenStreetMap's railway data,
   so geometry and tags are downloaded from the OSM API for the same area
@@ -41,4 +45,5 @@ game builds on them are in [../design/](../design/README.md).
 | [junin-yard.md](junin-yard.md) | Junín yard from OpenStreetMap, the depot fan section and how it became game track |
 | [rail-network-junin.md](rail-network-junin.md) | The lines out of Junín to their next junction, from OpenStreetMap, and how they were extracted (`tools/rail_network.py`) |
 | [fa-yard-operations.md](fa-yard-operations.md) | How an FA yard worked, from FA's rulebook (RITO): train formation order, switching rules, crews, the vehicle list and train weight, authority to use the main line |
+| [fa-freight-traffic.md](fa-freight-traffic.md) | What FA carried, how much and how far (1977, World Bank), wine by rail from Mendoza, freight car turnaround |
 | [switch-indicators.md](switch-indicators.md) | How Argentine railways show a switch's position (RGF art. 100), and the track figures used to draw rails |
