@@ -26,6 +26,13 @@ Made in the "next step after the fixes" thread. The rules are in
   line (RITO art. 415), so the pool is the line's, not FA's whole network.
   Cars no flow needs return to the pool after unloading; a car 60 days in
   the pool is dropped from the save.
+- **Top up only flows short of cars** (decided while building, PR #87).
+  Topping every arrival up to 8 jams the yard: the two Retiro arrivals
+  then bring at least 16 cars a day, the one Retiro departure's whole
+  cap, and in 90-day runs track 1 filled and arrivals were held for days.
+  So arrivals now vary from 1 to 12 cars (about 9 on average), and the
+  pool steps in only when the plan is short. Chosen over a second Retiro
+  departure or a lower minimum.
 
 ## 2026-10-12: Junín specifics are assumed; stage 3 split (#45, #50)
 
