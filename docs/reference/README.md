@@ -20,6 +20,10 @@ game builds on them are in [../design/](../design/README.md).
     restates the primary.
   - **Unconfirmed:** a figure without a source that states it, or an
     estimate. Say what would confirm it.
+  - **Assumed:** no source was found, so the game chooses something
+    plausible and says so (Tom, 2026-10-12). Say what it rests on (the
+    general rule or analogy) and what would replace it. An assumption is
+    swapped out when a source turns up; that swap is Tom's call.
 - **Track comes from OpenRailwayMap** (openrailwaymap.org), the standard
   map reference (Tom, 2026-10-08). It draws OpenStreetMap's railway data,
   so geometry and tags are downloaded from the OSM API for the same area

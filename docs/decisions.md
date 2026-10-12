@@ -3,6 +3,20 @@
 Design calls Tom has made, newest first, with where they were made. The
 values these produced live in CONFIG and WORLD DATA in `index.html`.
 
+## 2026-10-12: Junín specifics are assumed; stage 3 split (#45, #50)
+
+Made in the "next step after the fixes" thread.
+
+- **What wasn't found about Junín is assumed**, not waited for: track
+  roles, block order, industries, traffic and paperwork fields. Each
+  assumption is marked **Assumed** in [reference/](reference/README.md)
+  with what it rests on and what would replace it; the list is in
+  [fa-yard-operations.md](reference/fa-yard-operations.md#assumed-for-the-game).
+  #45 stays open as background research and blocks nothing.
+- **Stage 3 is split**: #50 is the traffic plan and waybill cycle, with no
+  map change; #84 is an industry at Junín (a grain elevator, assumed) with
+  set-out and pull jobs. Knock-on delays (#47) come after both.
+
 ## 2026-10-09: Main-line traffic and authority to move (#56, #57)
 
 Made in the "#56 and #57" thread. The rules are in
