@@ -2,6 +2,23 @@
 
 Newest first. One entry per version bump.
 
+## 0.12.0
+
+**Added**
+- A traffic plan: cars carry grain, wine, fuel, merchandise and small lots
+  between Junín, Retiro, Mendoza, Vedia, O'Higgins and Membrillar, at set
+  rates.
+- Cars go on trips. A car that leaves is away for its station's round trip
+  (8 to 16 days), is loaded or unloaded there, and comes back on a train
+  from that side with its next waybill.
+- About 370 cars in traffic. Cars from elsewhere on the San Martín join
+  when the plan is short of cars and stay out when it has too many.
+- The car card shows what a loaded car carries.
+
+**Changed**
+- Arrivals bring the cars due back, up to 12, so their size varies.
+- A yard saved by an earlier version starts fresh.
+
 ## 0.11.1
 
 **Changed**
