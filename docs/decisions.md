@@ -3,6 +3,30 @@
 Design calls Tom has made, newest first, with where they were made. The
 values these produced live in CONFIG and WORLD DATA in `index.html`.
 
+## 2026-10-12: Traffic plan and waybill cycle (#50, #86)
+
+Made in the "next step after the fixes" thread. The rules are in
+[design/traffic.md](design/traffic.md); the figures in #50.
+
+- **Rates are derived from the timetable, which stays as it is.** Every car
+  that leaves toward one side comes back from that side, so the single
+  Retiro departure (16 cars) and the single Mendoza arrival (12) cap the
+  traffic at about 190 cars a week each way. A second Retiro departure was
+  turned down. The flows (128 loaded cars a week) are estimates; the first
+  draft was sized by feel and was about 5× too low.
+- **The road trains carry wagonload traffic.** FA's bulk (wine in tank
+  cars, most grain in block trains) moved in through trains, the game's
+  through freights (#56). Research: [fa-freight-traffic.md](reference/fa-freight-traffic.md).
+- **Away time follows FA's car turnaround**: 18 days on broad gauge (1979
+  target). Round trip from Junín about 8 days for O'Higgins, Membrillar and
+  Vedia, 12 for Retiro, 16 for Mendoza; the split by distance is assumed.
+  The fleet grows to about 350 cars, most of them away.
+- **Short arrivals are topped up from a pool** of San Martín cars elsewhere
+  on the line, chosen over running short or smoothing. FA cars kept a home
+  line (RITO art. 415), so the pool is the line's, not FA's whole network.
+  Cars no flow needs return to the pool after unloading; a car 60 days in
+  the pool is dropped from the save.
+
 ## 2026-10-12: Junín specifics are assumed; stage 3 split (#45, #50)
 
 Made in the "next step after the fixes" thread.
