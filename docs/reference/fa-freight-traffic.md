@@ -43,6 +43,9 @@ Paragraph and table numbers are the report's ("¶2.32", "Table 2.8").
 | **Average freight car turnaround, broad gauge: 18 days** (1979 target), falling to 16 by 1982; standard gauge 11.8, narrow gauge 18.3 | Plan of Action targets, line (12) | Confirmed as a target; the actual was likely longer |
 | Average load per broad-gauge car: 32.5 t (1979 target) | line (11) | Confirmed |
 | Freight car availability, broad gauge: 79% (1979 target) | line (10) | Confirmed |
+| **Cars still belonged to a line under FA**: a car held for a shifted load is reported with its number "and the railway it belongs to" (*ferrocarril al que pertenece*) | RITO art. 415 d (1993 text), [fa-yard-operations.md](fa-yard-operations.md) | Confirmed |
+| Only the broad-gauge lines (Roca, Sarmiento, Mitre, San Martín) could exchange cars at all; freight moved between gauges was 60,000 t in 1977, about 3% of the total | World Bank 1979 ¶2.32 | Confirmed |
+| Whether broad-gauge cars ran freely between those lines, or how much: **not found**. Today each operator keeps its own fleet on its own line | argentina.gob.ar, Trenes Argentinos Cargas, *Material rodante* | Unconfirmed for FA |
 
 ## Yards
 
@@ -69,3 +72,4 @@ Not decided here; Tom's calls go in `../decisions.md`.
 - FA's actual (not target) turnaround for 1977-1985; the report's Table
   2.12 and 2.13 (operating statistics) are images in the scan.
 - Whether Mendoza wine also went in casks in box cars in the FA era.
+- How freely broad-gauge cars moved between FA's lines.
