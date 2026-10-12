@@ -2,6 +2,28 @@
 
 Newest first. One entry per version bump.
 
+## 0.11.1
+
+**Changed**
+- New colour palette: green-grey chrome, a sage accent, ochre for
+  reversed switches and warnings.
+
+## 0.11.0
+
+**Added**
+- The main line belongs to the station. The crossover is padlocked lying
+  for the main: ask for the main for 10, 20 or 30 minutes, and report clear
+  when you are off it. The station refuses if a train is due.
+- Through freights: four a day between Retiro and Mendoza run through on
+  the main, hauled by a G12. Each is offered 10 minutes ahead and held at
+  the home signal if you hold the main.
+- Results show trains held for the main, with their delay, and time kept
+  on the main past what you asked for.
+- A home signal at the east end, and padlock marks on the main's switches.
+
+**Changed**
+- A yard saved by an earlier version starts fresh.
+
 ## 0.10.0
 
 **Added**
