@@ -2,6 +2,19 @@
 
 Newest first. One entry per version bump.
 
+## 0.14.0
+
+**Fixed**
+- The game no longer stutters every few seconds after many days of play.
+  It now saves the cars only when something happened to them.
+
+**Added**
+- A benchmark page, `index.html?bench`, that times the game and checks the
+  yard for problems.
+
+**Changed**
+- A yard saved by an earlier version starts fresh.
+
 ## 0.13.0
 
 **Added**
