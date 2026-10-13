@@ -6,6 +6,7 @@
 | [design/](design/README.md) | The game's rules, one file per area, each linking the reference behind it |
 | [decisions.md](decisions.md) | Tom's design calls, newest first, and the questions still open |
 | [issues.md](issues.md) | How GitHub Issues are labelled, written, filed and closed |
+| [performance.md](performance.md) | How speed and code health are measured: the benchmark page and the Performance check |
 | [screenshots/](screenshots/) | Game screenshots, named `vX.Y.Z-<what>-<orientation>.png` |
 
 Values the game uses still live in CONFIG and WORLD DATA in `index.html`.
