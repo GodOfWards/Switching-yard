@@ -23,9 +23,13 @@ OFFSET = (580, -80)         # frame point that becomes the game's (0, 0): yard t
 # What is laid. The slice is everything joined to the ladder's first switch
 # between the two cuts, less the rest of the east throat and the through
 # track; the main line is laid between its own cuts. The lead follows OSM's
-# track that carries the crossover to the main.
+# track that carries the crossover to the main. Two of the east throat's
+# tracks (#84) are laid to their buffers, past the lead's cut.
 ROOT = "12107781967"                                  # the ladder's first switch, on the lead
-LEFT_OUT_WAYS = {"1000697115", "1000697116", "1000697117", "1181520561"}
+LEFT_OUT_WAYS = {"1000697116", "1000697117", "1181520561", "1000697113", "1000697114"}
+THROAT_WAYS = {"1000697115", "1307444683"}
+THROAT_SWITCHES = {"9236975576": "T1", "12107874628": "T2"}   # T1 on the lead, T2 on throat track 1
+THROAT_ENDS = {"9236975573": "throat1", "12107874625": "throat2"}
 CROSSOVER = {"3892462373": "X1", "3892462372": "X2"}  # its switches: X1 on the lead, X2 on the main
 TURNTABLE_END = "1300539013"
 STUBS = {"12107781968": "stub1", "12107781962": "stub2"}
@@ -75,7 +79,7 @@ def simplify(pts, tol):
 def read(path):
     root = ET.parse(path).getroot()
     P = {n.get("id"): project(float(n.get("lon")), float(n.get("lat"))) for n in root.iter("node")}
-    adj, main = collections.defaultdict(set), set()
+    adj, main, throat = collections.defaultdict(set), set(), set()
     for w in root.iter("way"):
         tags = {t.get("k"): t.get("v") for t in w.iter("tag")}
         nds = [nd.get("ref") for nd in w.iter("nd")]
@@ -83,10 +87,11 @@ def read(path):
         for a, b in zip(nds, nds[1:]):
             adj[a].add(b); adj[b].add(a)
             if tags.get("usage") == "main": main.add(frozenset((a, b)))
-    return P, adj, main
+            if w.get("id") in THROAT_WAYS: throat.add(frozenset((a, b)))
+    return P, adj, main, throat
 
 
-def slice_graph(P, adj, main):
+def slice_graph(P, adj, main, throat):
     """Track joined to ROOT between the cuts; a track crossing a cut ends there.
     Also returns the main line's two cut ends, west first."""
     G, seen, todo, main_ends = collections.defaultdict(set), {ROOT}, [ROOT], []
@@ -95,7 +100,7 @@ def slice_graph(P, adj, main):
         for m in sorted(adj[n]):
             x = P[m][0]
             on_main = frozenset((n, m)) in main
-            lo, hi = (MAIN_WEST, MAIN_EAST) if on_main else (X_WEST, X_EAST)
+            lo, hi = (MAIN_WEST, MAIN_EAST) if on_main else (X_WEST, MAIN_EAST) if frozenset((n, m)) in throat else (X_WEST, X_EAST)
             if not lo <= x <= hi:
                 X = lo if x < lo else hi
                 a, b = P[n], P[m]; f = (X - a[0]) / (b[0] - a[0])
@@ -242,14 +247,15 @@ def name_all(P, G, sw, edges, order, pieces, main_ends):
     names = dict(zip(main_ends, ("mainWest", "mainEast")))
     west = sorted((n for n in ends if n not in names and n.startswith("cut") and P[n][0] < X_WEST + 1), key=lambda n: -P[n][1])
     for i, n in enumerate(west): names[n] = "yard%d" % (i + 1)            # from the main-line side
-    lead_end = next(n for n in ends if n not in names and P[n][0] > X_EAST - 1)
+    lead_end = next(n for n in ends if n not in names and n not in THROAT_ENDS and P[n][0] > X_EAST - 1)
     names[lead_end] = "lead"
     names[TURNTABLE_END] = "turntableSpur"
-    names.update(STUBS)
+    names.update(STUBS); names.update(THROAT_ENDS)
     fan = sorted((n for n in ends if n not in names), key=lambda n: P[n][1])
     for i, n in enumerate(fan): names[n] = "fan%d" % (i + 1)               # from the turntable side
-    swn = {s: "J%d" % (i + 1) for i, s in enumerate(sorted((s for s in sw if s not in CROSSOVER), key=lambda s: (order[s], P[s])))}
-    swn.update(CROSSOVER)
+    named = {**CROSSOVER, **THROAT_SWITCHES}
+    swn = {s: "J%d" % (i + 1) for i, s in enumerate(sorted((s for s in sw if s not in named), key=lambda s: (order[s], P[s])))}
+    swn.update(named)
 
     def key(p): return (round(p[0] - OFFSET[0], 2), round(p[1] - OFFSET[1], 2))
     node_at = {key(P[s]): swn[s] for s in sw}
@@ -259,7 +265,7 @@ def name_all(P, G, sw, edges, order, pieces, main_ends):
     def edge_name(e):
         if e[0] in main_ends or e[-1] in main_ends: return "main"
         if e[0] in CROSSOVER and e[-1] in CROSSOVER: return "crossover"
-        if lead_end in (e[0], e[-1]) or {e[0], e[-1]} == {"3892462373", ROOT}: return "lead"
+        if lead_end in (e[0], e[-1]) or {e[0], e[-1]} <= {"3892462373", "9236975576", ROOT}: return "lead"
         return names.get(e[-1]) or names.get(e[0]) or swn[e[0]] + swn[e[-1]]
     by_name = collections.defaultdict(list)
     for p in pieces: by_name[edge_name(edges[p[0]])].append(p)
@@ -288,8 +294,8 @@ def name_all(P, G, sw, edges, order, pieces, main_ends):
 
 
 def main():
-    P, adj, main = read(sys.argv[1])
-    G, main_ends = slice_graph(P, adj, main)
+    P, adj, main, throat = read(sys.argv[1])
+    G, main_ends = slice_graph(P, adj, main, throat)
     key, edges = chains(G)
     sw = switches(G, P, key, edges)
     lead_end = next(k for k in key if len(G[k]) == 1 and k not in main_ends and P[k][0] > X_EAST - 1)

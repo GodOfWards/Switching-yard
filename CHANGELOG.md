@@ -2,6 +2,26 @@
 
 Newest first. One entry per version bump.
 
+## 0.13.0
+
+**Added**
+- A grain elevator on Track E and a goods shed on Track G, two tracks of
+  Junín's east throat now on the map. Both are invented: no rail-served
+  industry at Junín was found.
+- Set-out jobs take cars to the industries. At the elevator any of its
+  6 spots will do. At the goods shed each car goes to its consignee's
+  door, in exact order.
+- The elevator loads its cars by the next shift change, and the shed's
+  doors work their cars in 2 hours. Then a pull job brings them back to
+  the yard.
+- The Skip menu shows when an industry's work is done.
+
+**Changed**
+- Grain, merchandise, wine in casks and small lots at Junín go through
+  the industries. Only fuel and materials are still loaded and unloaded
+  at the shift change.
+- A yard saved by an earlier version starts fresh.
+
 ## 0.12.0
 
 **Added**

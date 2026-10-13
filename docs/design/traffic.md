@@ -57,12 +57,18 @@ exists independently of the player's jobs.
     to 8; a car leaving when its flow has more than 2 over its share stays
     out in the pool once its trip is over, and the pool forgets a car
     after 60 days.
-  - At Junín, a load left on the local track is unloaded, and an empty
-    left on the empties track loaded, at the next shift change, then
-    rebilled (placeholder until the industry, #84).
+  - At Junín, two industries do the loading and unloading (#84, both
+    invented): the **grain elevator** loads Junín's grain, and the
+    **goods shed** unloads merchandise and wine in casks and loads small
+    lots. A car for one waits in the yard (elevator empties on the
+    empties track, shed cars on the local track) until a set-out takes it
+    there, and is billed on once worked ([jobs.md](jobs.md)). The rest
+    (fuel, materials) stays a placeholder: a load left on the local track
+    is unloaded, and an empty left on the empties track loaded, at the
+    next shift change, then rebilled.
 - **Bulk moves in through trains** (#56), not the road trains: the road
   trains carry wagonload traffic ([fa-freight-traffic.md](../reference/fa-freight-traffic.md)).
 
 ## Open
 
-- Junín's own loading and unloading at an industry: #84.
+- Places for Junín's fuel and materials traffic, now on the placeholder.
