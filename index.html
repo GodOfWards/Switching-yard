@@ -2793,35 +2793,34 @@
     return out;
   }
 
-  function render() {
-    view = makeView(screenW, screenH);
-    const k = view.k;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.lineCap = "round";
-    const trackWidth = Math.max(3, k);
-    const detailed = k >= TRACK_DETAIL_K;
-    for (const id of RUNNING) polyline(trackPoints(id, 0, segmentLength(id)), PALETTE.ballast, Math.max(trackWidth * 3, k * TIE_LENGTH * 1.6));
-    // A stretch of track, `s0` to `s1` along segment `id`: zoomed out a
-    // single line; zoomed in two rails on ties.
-    function drawTrack(id, s0, s1, alpha) {
-      const pts = trackPoints(id, s0, s1);
-      ctx.globalAlpha = alpha;
-      if (!detailed) { polyline(pts, PALETTE.trackFar, trackWidth); ctx.globalAlpha = 1; return; }
-      const half = GAUGE / 2, len = Math.abs(s1 - s0), dir = Math.sign(s1 - s0) || 1;
-      ctx.lineCap = "butt";
-      ctx.strokeStyle = PALETTE.ties; ctx.lineWidth = Math.max(1.5, k * 0.25);  // ties, in one path
-      ctx.beginPath();
-      for (let d = TIE_SPACING / 2; d < len; d += TIE_SPACING) {
-        const p = pointOn(id, s0 + dir * d), h = TIE_LENGTH / 2;
-        const e1 = view.toScreen(p.x - p.uy * h, p.y + p.ux * h), e2 = view.toScreen(p.x + p.uy * h, p.y - p.ux * h);
-        ctx.moveTo(e1.x, e1.y); ctx.lineTo(e2.x, e2.y);
-      }
-      ctx.stroke();
-      for (const side of [-1, 1])                                        // rails
-        polyline(pts.map(p => ({ x: p.x - p.uy * half * side, y: p.y + p.ux * half * side })), PALETTE.rails, Math.max(1.2, k * 0.12));
-      ctx.lineCap = "round";
-      ctx.globalAlpha = 1;
+  // A stretch of track, `s0` to `s1` along segment `id`: zoomed out a
+  // single line; zoomed in two rails on ties.
+  function drawTrack(id, s0, s1, alpha) {
+    const k = view.k, trackWidth = Math.max(3, k);
+    const pts = trackPoints(id, s0, s1);
+    ctx.globalAlpha = alpha;
+    if (k < TRACK_DETAIL_K) { polyline(pts, PALETTE.trackFar, trackWidth); ctx.globalAlpha = 1; return; }
+    const half = GAUGE / 2, len = Math.abs(s1 - s0), dir = Math.sign(s1 - s0) || 1;
+    ctx.lineCap = "butt";
+    ctx.strokeStyle = PALETTE.ties; ctx.lineWidth = Math.max(1.5, k * 0.25);  // ties, in one path
+    ctx.beginPath();
+    for (let d = TIE_SPACING / 2; d < len; d += TIE_SPACING) {
+      const p = pointOn(id, s0 + dir * d), h = TIE_LENGTH / 2;
+      const e1 = view.toScreen(p.x - p.uy * h, p.y + p.ux * h), e2 = view.toScreen(p.x + p.uy * h, p.y - p.ux * h);
+      ctx.moveTo(e1.x, e1.y); ctx.lineTo(e2.x, e2.y);
     }
+    ctx.stroke();
+    for (const side of [-1, 1])                                        // rails
+      polyline(pts.map(p => ({ x: p.x - p.uy * half * side, y: p.y + p.ux * half * side })), PALETTE.rails, Math.max(1.2, k * 0.12));
+    ctx.lineCap = "round";
+    ctx.globalAlpha = 1;
+  }
+
+  // The track: the running tracks' ballast, every segment with the legs
+  // switches aren't set to faded, and buffer stops.
+  function renderTrack() {
+    const k = view.k, trackWidth = Math.max(3, k);
+    for (const id of RUNNING) polyline(trackPoints(id, 0, segmentLength(id)), PALETTE.ballast, Math.max(trackWidth * 3, k * TIE_LENGTH * 1.6));
     // The leg a switch is not set to fades in from the switch, so the route
     // through the points reads at a glance.
     const dimmed = {};
@@ -2847,10 +2846,13 @@
       const seg = SEGMENTS_AT[id][0], p = pointOn(seg, SEGMENTS[seg].a === id ? 0 : segmentLength(seg));
       line(p.x - p.uy * 2, p.y + p.ux * 2, p.x + p.uy * 2, p.y - p.ux * 2, PALETTE.buffer, Math.max(3, k * 0.8));
     }
+  }
 
-    // Switch targets, after FA practice (RGF art. 100): a green disc when the
-    // switch is set normal, a yellow triangle on black when it is reversed,
-    // pointing along the leg it is set to.
+  // Switch targets, after FA practice (RGF art. 100): a green disc when the
+  // switch is set normal, a yellow triangle on black when it is reversed,
+  // pointing along the leg it is set to.
+  function renderSwitches() {
+    const k = view.k;
     for (const id in SWITCHES) {
       const n = NODES[id], set = state.switches[id].set, normal = set === SWITCHES[id].normal;
       const len = segmentLength(set), atA = SEGMENTS[set].a === id;
@@ -2875,21 +2877,26 @@
         ctx.fillStyle = PALETTE.light; ctx.fillRect(lx - w / 2, ly - w * 0.25, w, w * 0.65);
       }
     }
-    // The east home signal, beside the main on the side away from the yard:
-    // clear while a through train from the east runs in past it, at danger
-    // otherwise.
-    {
-      const sig = homeSignal(), p = pointOn(sig.seg, sig.s), side = 3.5;
-      const clear = state.through.some(r => r.status === "running" && throughEntry(r.tt).enters === "east"
-        && r.vehicles.some(id => pointOn(state.vehicles[id].seg, state.vehicles[id].s).x > p.x));
-      const foot = { x: p.x - p.uy * 2, y: p.y + p.ux * 2 }, top = { x: p.x - p.uy * (2 + side), y: p.y + p.ux * (2 + side) };
-      line(foot.x, foot.y, top.x, top.y, PALETTE.light, Math.max(1.5, k * 0.25));
-      const c = view.toScreen(top.x, top.y);
-      ctx.fillStyle = clear ? PALETTE.signalClear : PALETTE.signalDanger; ctx.strokeStyle = PALETTE.switchEdge; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.arc(c.x, c.y, Math.max(5, k * 1.1), 0, Math.PI * 2); ctx.stroke(); ctx.fill();
-    }
+  }
 
-    // Vehicles, each drawn end to end with a small gap; couplings bridge it.
+  // The east home signal, beside the main on the side away from the yard:
+  // clear while a through train from the east runs in past it, at danger
+  // otherwise.
+  function renderHomeSignal() {
+    const k = view.k;
+    const sig = homeSignal(), p = pointOn(sig.seg, sig.s), side = 3.5;
+    const clear = state.through.some(r => r.status === "running" && throughEntry(r.tt).enters === "east"
+      && r.vehicles.some(id => pointOn(state.vehicles[id].seg, state.vehicles[id].s).x > p.x));
+    const foot = { x: p.x - p.uy * 2, y: p.y + p.ux * 2 }, top = { x: p.x - p.uy * (2 + side), y: p.y + p.ux * (2 + side) };
+    line(foot.x, foot.y, top.x, top.y, PALETTE.light, Math.max(1.5, k * 0.25));
+    const c = view.toScreen(top.x, top.y);
+    ctx.fillStyle = clear ? PALETTE.signalClear : PALETTE.signalDanger; ctx.strokeStyle = PALETTE.switchEdge; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(c.x, c.y, Math.max(5, k * 1.1), 0, Math.PI * 2); ctx.stroke(); ctx.fill();
+  }
+
+  // Vehicles, each drawn end to end with a small gap; couplings bridge it.
+  function renderVehicles() {
+    const k = view.k;
     const bodyWidth = Math.max(10, 3 * k), inset = 0.5;
     ctx.lineCap = "butt";
     for (const id in state.vehicles) {
@@ -2931,8 +2938,12 @@
         ctx.fill();
       }
     }
-    // Couplings: dark with no air; with air connected, a larger dot that
-    // fills in blue as the air charges.
+  }
+
+  // Couplings: dark with no air; with air connected, a larger dot that
+  // fills in blue as the air charges.
+  function renderCouplings() {
+    const k = view.k;
     for (const c of couplings()) {
       const p = view.toScreen(c.at.x, c.at.y), air = state.air[c.key], r = Math.max(2.5, k * 0.5);
       ctx.fillStyle = PALETTE.bg;
@@ -2942,8 +2953,12 @@
       ctx.beginPath(); ctx.arc(p.x, p.y, r * 1.1, 0, Math.PI * 2); ctx.fill();
       ctx.globalAlpha = 1;
     }
-    // Each yard track: a clearance mark across it at its fouling point, and
-    // its number on a disc a little past it.
+  }
+
+  // Each yard track: a clearance mark across it at its fouling point, and
+  // its number on a disc a little past it.
+  function renderYardTracks() {
+    const k = view.k;
     for (const id in YARD_TRACKS) {
       const g = TRACK_GEOM[id], p = trackPoint(id, g.fouling), h = GAUGE * 1.2;
       line(p.x - p.uy * h, p.y + p.ux * h, p.x + p.uy * h, p.y - p.ux * h, PALETTE.buffer, Math.max(1.5, k * 0.3));
@@ -2955,9 +2970,13 @@
       ctx.fillText(YARD_TRACKS[id].number, c.x, c.y + 0.5);
       ctx.textAlign = "start"; ctx.textBaseline = "alphabetic";
     }
-    // Each industry's spots: a tick across its track at either end of each,
-    // with its number where cars go to a numbered spot, and its name
-    // beside them.
+  }
+
+  // Each industry's spots: a tick across its track at either end of each,
+  // with its number where cars go to a numbered spot, and its name
+  // beside them.
+  function renderIndustries() {
+    const k = view.k;
     for (const ind in INDUSTRIES) {
       const t = INDUSTRIES[ind].track, all = spotSpan(ind, null), h = GAUGE * 0.9;
       // Labels go on the side away from the other industries' tracks.
@@ -2982,35 +3001,39 @@
       ctx.fillText(INDUSTRIES[ind].short, c.x, c.y);
       ctx.textAlign = "start"; ctx.textBaseline = "alphabetic";
     }
-    // The cars of a job being worked that aren't yet where they belong: an
-    // amber dot on each.
+  }
+
+  // The cars of a job being worked that aren't yet where they belong: an
+  // amber dot on each.
+  function renderJobMarks() {
+    const k = view.k;
     for (const j of openJobs()) if (j.taken) for (const l of jobStatus(j).lines) {
       if (l.met) continue;
       const v = state.vehicles[l.id], at = pointOn(v.seg, v.s), c = view.toScreen(at.x, at.y);
       ctx.fillStyle = PALETTE.accent; ctx.strokeStyle = PALETTE.bg; ctx.lineWidth = 2;
       ctx.beginPath(); ctx.arc(c.x, c.y, Math.max(4, k * 0.7), 0, Math.PI * 2); ctx.stroke(); ctx.fill();
     }
-    placeCouplingMenu();
-    placeCarCard();
-    placeMainMenu();
+  }
 
-    // North arrow in the top right corner, turned with the view.
-    {
-      const o = view.toScreen(0, 0), n = view.toScreen(NORTH.x, NORTH.y);
-      const len = Math.hypot(n.x - o.x, n.y - o.y) || 1, ux = (n.x - o.x) / len, uy = (n.y - o.y) / len;
-      const cx = screenW - 26, cy = 34, size = 10;
-      ctx.fillStyle = PALETTE.north;
-      ctx.beginPath();
-      ctx.moveTo(cx + ux * size, cy + uy * size);
-      ctx.lineTo(cx - ux * size * 0.6 - uy * size * 0.5, cy - uy * size * 0.6 + ux * size * 0.5);
-      ctx.lineTo(cx - ux * size * 0.3, cy - uy * size * 0.3);
-      ctx.lineTo(cx - ux * size * 0.6 + uy * size * 0.5, cy - uy * size * 0.6 - ux * size * 0.5);
-      ctx.fill();
-      ctx.font = "600 11px system-ui, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.fillText("N", cx + ux * size * 2, cy + uy * size * 2);
-      ctx.globalAlpha = 1; ctx.textAlign = "start"; ctx.textBaseline = "alphabetic";
-    }
+  // North arrow in the top right corner, turned with the view.
+  function renderNorthArrow() {
+    const o = view.toScreen(0, 0), n = view.toScreen(NORTH.x, NORTH.y);
+    const len = Math.hypot(n.x - o.x, n.y - o.y) || 1, ux = (n.x - o.x) / len, uy = (n.y - o.y) / len;
+    const cx = screenW - 26, cy = 34, size = 10;
+    ctx.fillStyle = PALETTE.north;
+    ctx.beginPath();
+    ctx.moveTo(cx + ux * size, cy + uy * size);
+    ctx.lineTo(cx - ux * size * 0.6 - uy * size * 0.5, cy - uy * size * 0.6 + ux * size * 0.5);
+    ctx.lineTo(cx - ux * size * 0.3, cy - uy * size * 0.3);
+    ctx.lineTo(cx - ux * size * 0.6 + uy * size * 0.5, cy - uy * size * 0.6 - ux * size * 0.5);
+    ctx.fill();
+    ctx.font = "600 11px system-ui, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("N", cx + ux * size * 2, cy + uy * size * 2);
+    ctx.globalAlpha = 1; ctx.textAlign = "start"; ctx.textBaseline = "alphabetic";
+  }
 
+  // Over the yard: the notice, and Paused.
+  function renderOverlays() {
     if (state.notice) {
       ctx.globalAlpha = Math.min(1, state.notice.time);
       ctx.font = "600 15px system-ui, sans-serif"; ctx.textAlign = "center";
@@ -3025,7 +3048,10 @@
       ctx.fillText("Paused", screenW / 2, screenH / 2);
       ctx.textAlign = "start";
     }
+  }
 
+  // The readout and the controls.
+  function renderControls() {
     const loco = playerLoco(), c = loco.controls, t = trainOf(loco);
     const cars = t.vehicles.length - 1, reach = brakeReach(t);
     const braked = t.vehicles.filter(id => !state.vehicles[id].controls && reach[id] >= 1).length;
@@ -3045,6 +3071,28 @@
       `<div class="meter"><i style="width:${c.locoApplied * 100}%"></i></div>`;
     levers.tb.innerHTML = `Train brake<b>${c.emergency ? "EMERG" : c.trainBrake + "/" + TRAIN_BRAKE_NOTCHES}</b>` +
       `<div class="meter"><i style="width:${c.trainApplied * 100}%"></i></div>`;
+  }
+
+  // A frame, layer by layer. Every layer reads view.k, the scale; the
+  // vehicles leave the line cap butt for the layers after them.
+  function render() {
+    view = makeView(screenW, screenH);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.lineCap = "round";
+    renderTrack();
+    renderSwitches();
+    renderHomeSignal();
+    renderVehicles();
+    renderCouplings();
+    renderYardTracks();
+    renderIndustries();
+    renderJobMarks();
+    placeCouplingMenu();
+    placeCarCard();
+    placeMainMenu();
+    renderNorthArrow();
+    renderOverlays();
+    renderControls();
   }
 
   // The clock at the top: the time, then the day and the shift. Written
