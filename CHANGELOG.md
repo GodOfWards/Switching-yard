@@ -2,6 +2,12 @@
 
 Newest first. One entry per version bump.
 
+## 0.14.1
+
+**Changed**
+- `render()` is split into one function per layer it draws (#91).
+  Nothing is drawn differently.
+
 ## 0.14.0
 
 **Fixed**
