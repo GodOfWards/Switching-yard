@@ -17,7 +17,7 @@ specifications (FAT) and drawings (NEFA), hosted by CNRT. **Lengths: one
 kind found.** No general-arrangement drawing of a game car is on CNRT's
 site, but a detail sheet of a broad-gauge grain hopper gives its bogie
 centres and end overhang, so its length over buffers is about **15.0 m**
-(derived). The other kinds stay estimates. Open gap: lengths, in #54.
+(derived). The other kinds stay estimates. Open gap: lengths, in #98.
 
 ## Load limits and tares
 

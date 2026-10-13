@@ -86,6 +86,8 @@ Not decided here; Tom's calls go in `../decisions.md`.
 
 ## Not found
 
+Open in #98.
+
 - The San Martín's own traffic by commodity, and Junín's.
 - What Vedia, O'Higgins and Membrillar shipped.
 - FA's actual turnaround after 1977, and any figure per line or car type.
