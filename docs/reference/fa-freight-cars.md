@@ -1,7 +1,8 @@
 # FA freight cars: reference
 
 Load limits, tares and markings of Ferrocarriles Argentinos broad-gauge
-(1676 mm) freight cars, for the game's cars. Researched 2026-10-08 (#18, #54).
+(1676 mm) freight cars, for the game's cars. Researched 2026-10-08 (#18, #54);
+lengths added 2026-10-13 (#54).
 
 **Decided (Tom):**
 - **Car marks: both kinds** (2026-10-08, #54). Most cars carry FA's
@@ -12,10 +13,11 @@ Load limits, tares and markings of Ferrocarriles Argentinos broad-gauge
 
 **Status:** load limits, some tares, the numbering, the marking layout and
 the paint colours are **Confirmed**, read on FA's own technical
-specifications (FAT) and drawings (NEFA), hosted by CNRT. **Lengths over
-couplers are still not found**: the general-arrangement drawings the FATs
-point to (NEFA 254, 32.000 and the like) aren't on CNRT's site, and only
-detail sheets are. Open gap: lengths, in #54.
+specifications (FAT) and drawings (NEFA), hosted by CNRT. **Lengths: one
+kind found.** No general-arrangement drawing of a game car is on CNRT's
+site, but a detail sheet of a broad-gauge grain hopper gives its bogie
+centres and end overhang, so its length over buffers is about **15.0 m**
+(derived). The other kinds stay estimates. Open gap: lengths, in #54.
 
 ## Load limits and tares
 
@@ -149,8 +151,26 @@ period ran on buffers and screw couplings, which bears on #33.
 
 ## Length clues
 
-No drawing found gives a length over couplers or buffers. What was found:
+FA's broad-gauge cars ran on side buffers and a screw coupling (above), so
+the length that matters is **over buffers**: over headstocks plus two
+buffers. No drawing found gives it directly. What was found:
 
+- **Buffers stand 520 mm off the headstock.** FA's standard friction buffer
+  (FAT V-709, read in CNRT's *Manual de seguridad en la circulación para
+  vagones*, 2024) is 520 ± 5 mm long unloaded; FAT V-1519 allows 520–584
+  mm. So **over buffers = over headstocks + about 1.04 m.** Confirmed.
+- **Tolva granero, series 83700–83901 and 84300–84499** (NEFA 24.381,
+  gauge 1435–1676): **10,720 mm between bogie centres**, and **1,625 mm
+  from bogie centre to headstock**. So **13.97 m over headstocks and about
+  15.0 m over buffers.** The drawing gives one end; the other is taken as
+  the same. Confirmed for the drawing's figures, derived for the length.
+  The sheets carry no date; the numbers are in FA's broad-gauge range
+  (40000–99999).
+- **An old bogie car, class C 19** (NEFA 1267, gauge 1676, converted to
+  carry rail): frame **10,973 mm (36 ft)** with bogie centres 7,011 mm
+  (23 ft). So about **12.0 m over buffers**. Round feet point to a car
+  built for the British-owned companies (inferred). Confirmed for the
+  frame, derived for the length.
 - **Tolva pedrero, broad gauge** (NEFA 32.060): side sill **10.43 m**.
   Confirmed. Over buffers is longer by the headstocks and buffers; about
   11.5–12 m, Unconfirmed.
@@ -160,8 +180,17 @@ No drawing found gives a length over couplers or buffers. What was found:
 - **Container flat**: three 20 ft (6.06 m) containers, so at least 18.2 m
   of deck. Derived.
 
+- **Much of the fleet was old and shorter.** At the end of 1977, 19,770
+  of FA's 34,169 broad-gauge freight cars (58%) were over 40 years old,
+  that is built before about 1938 (World Bank 1979, Table 2.5), and
+  two-axle broad-gauge cars still ran, always at the rear of a train
+  (RITO art. 203, [fa-yard-operations.md](fa-yard-operations.md)). How many
+  of them were two-axle, and how long they were: not found.
+
 Would confirm the rest: NEFA 254 (V-1529's general arrangement), NEFA
-32.000 (V-1530's), or a photo of a car's length stencil.
+32.000 (V-1530's), or a photo of a car's length stencil. Searched and not
+found 2026-10-13: modern tender sheets, builders' pages and modelling
+sites give no broad-gauge length.
 
 ## In the game
 
@@ -171,7 +200,7 @@ Unconfirmed and retunable.
 | Kind | Length over couplers | Tare | Load limit |
 |---|---|---|---|
 | Vagón cubierto | 15.5 m, estimated | 21 t, estimated | 50 t, Unconfirmed (above) |
-| Tolva cerealera | 15 m, estimated | 21 t, estimated | 58 t, FAT V-1539 |
+| Tolva cerealera | 15 m; matches NEFA 24.381 (15.0 m, derived) | 21 t, estimated | 58 t, FAT V-1539 |
 | Borde alto | 14 m, estimated | 20 t, FAT V-1529 | 60 t, FAT V-1529 |
 | Plataforma | 19.5 m, estimated from three 6.06 m containers | 19 t, FAT V-1520 | 61 t, FAT V-1520 |
 | Vagón tanque | 14 m, estimated | 21 t, estimated | 50 t: 60 m³ of gasoil at about 0.84 t/m³, derived |
@@ -195,6 +224,11 @@ Unconfirmed and retunable.
   mechanical class or the check digit, whose formula wasn't found.
 
 ## Sources
+
+- [Planos NEFA, CNRT](https://www.argentina.gob.ar/cnrt/planos-nefa): [NEFA 24.381](https://www.argentina.gob.ar/sites/default/files/subidos_tanda_6/NEFA_24381.pdf) (grain hopper, apoyo lateral gato) and [NEFA 1267](https://www.argentina.gob.ar/sites/default/files/subidos_tanda_5/NEFA_1267.pdf) (C 19 car converted for rail): read 2026-10-13.
+- [Manual de seguridad en la circulación para vagones](https://servicios.infoleg.gob.ar/infolegInternet/anexos/405000-409999/407992/res61.pdf), CNRT, edition 01, 15 November 2024: quotes FAT V-709 (standard friction buffer). Read 2026-10-13.
+- [FAT V-1519](https://www.argentina.gob.ar/sites/default/files/normas_fat/FAT_V_1519.pdf): buffer length range. Read 2026-10-13.
+- World Bank 1979, Table 2.5 (age of freight wagons): see [fa-freight-traffic.md](fa-freight-traffic.md).
 
 - [Especificaciones FAT, CNRT](https://www.argentina.gob.ar/cnrt/especificaciones-fat): the index of FA's technical specifications, with titles and capacities.
 - [FAT V-1520](https://www.argentina.gob.ar/sites/default/files/normas_fat/FAT_V_1520.pdf), [FAT V-1527](https://www.argentina.gob.ar/sites/default/files/normas_fat/FAT_V_1527.pdf), [FAT V-1529](https://www.argentina.gob.ar/sites/default/files/normas_fat/FAT_V_1529.pdf), [FAT V-1530](https://www.argentina.gob.ar/sites/default/files/normas_fat/FAT_V_1530.pdf), [FAT V-1545](https://www.argentina.gob.ar/sites/default/files/normas_fat/FAT_V_1545.pdf): read 2026-10-08.

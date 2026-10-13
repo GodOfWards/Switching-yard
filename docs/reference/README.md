@@ -41,9 +41,9 @@ game builds on them are in [../design/](../design/README.md).
 | [locomotives.md](locomotives.md) | Switcher candidates (Class 08, SW1500, GM G12, GAIA) and why the G12 |
 | [train-physics.md](train-physics.md) | Rolling and starting resistance (Davis), curve drag, brakes, air, hand brakes, slack, FA coupler types |
 | [argentine-rolling-stock-naming.md](argentine-rolling-stock-naming.md) | Line initials, FA loco numbers, Spanish car type names, current operators |
-| [fa-freight-cars.md](fa-freight-cars.md) | FA freight cars: load limits and tares from FA's specifications, type codes, the marking panel, tare stencil, paint colours, couplers |
+| [fa-freight-cars.md](fa-freight-cars.md) | FA freight cars: load limits and tares from FA's specifications, type codes, the marking panel, tare stencil, paint colours, couplers, a grain hopper's length |
 | [junin-yard.md](junin-yard.md) | Junín yard from OpenStreetMap, the depot fan section and how it became game track |
 | [rail-network-junin.md](rail-network-junin.md) | The lines out of Junín to their next junction, from OpenStreetMap, and how they were extracted (`tools/rail_network.py`) |
 | [fa-yard-operations.md](fa-yard-operations.md) | How an FA yard worked, from FA's rulebook (RITO): train formation order, switching rules, crews, the vehicle list and train weight, authority to use the main line |
-| [fa-freight-traffic.md](fa-freight-traffic.md) | What FA carried, how much and how far (1977, World Bank), wine by rail from Mendoza, freight car turnaround |
+| [fa-freight-traffic.md](fa-freight-traffic.md) | What FA carried, how much and how far (1977, World Bank), wine by rail from Mendoza, freight car turnaround (1977 actual and target) |
 | [switch-indicators.md](switch-indicators.md) | How Argentine railways show a switch's position (RGF art. 100), and the track figures used to draw rails |
