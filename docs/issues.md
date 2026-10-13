@@ -15,6 +15,7 @@ Every issue carries one kind, and a state label when one applies.
 | `bug` | Something the player sees go wrong |
 | `research` | A real-world fact the game needs ([reference/](reference/README.md)) |
 | `process` | How the project works: docs, templates, CI |
+| `code-health` | Structure, stale comments, performance: the code, not the game ([performance.md](performance.md)) |
 
 | State | Means |
 |---|---|
