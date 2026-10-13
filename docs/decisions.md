@@ -3,6 +3,27 @@
 Design calls Tom has made, newest first, with where they were made. The
 values these produced live in CONFIG and WORLD DATA in `index.html`.
 
+## 2026-10-12: A grain elevator and a goods shed at Junín (#84)
+
+Made in the "Stage 3 planning" thread. The rules are in
+[design/jobs.md](design/jobs.md) and [design/traffic.md](design/traffic.md).
+
+- **Both industries are invented.** No rail-served industry at Junín was
+  found (#45), so a grain elevator (acopio) and a goods shed (galpón de
+  cargas) stand in, to be replaced if research finds real ones. The
+  elevator takes Junín's grain (20 hoppers a week); the shed unloads
+  merchandise and wine in casks and loads small lots (about 38 box cars
+  a week). Chosen over the elevator alone. Fuel and materials stay on the
+  shift-change placeholder.
+- **They go on two east-throat tracks**, added back to the map from the
+  OSM export, rather than the two short tracks already on it. Their real
+  use is unknown, so the assignment is a liberty.
+- **Exact order is at the shed**: each car goes to its consignee's door.
+  At the elevator, hoppers are interchangeable, so any spot does.
+- **6 spots each.** The elevator loads a cut by the next shift change
+  after its set-out (chosen over a time per car); each shed door works its
+  car in 2 hours (assumed); a pull opens when the work is done.
+
 ## 2026-10-12: Traffic plan and waybill cycle (#50, #86)
 
 Made in the "next step after the fixes" thread. The rules are in

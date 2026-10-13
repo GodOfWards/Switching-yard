@@ -34,12 +34,14 @@ can span the yard and the industries near it.
   end's yard tracks (#48). It's an early-game representation, not the
   model. A stage 1 job classifies named cars onto their block tracks
   (ordering: none) with the Retiro block in block order, due at shift
-  change. Exact order comes with industries (#50).
+  change. Exact order came with the goods shed (#84).
 - **Yard tracks**, numbered from the main-line side (#49): 1 Retiro and
   2 Mendoza (each a block and where its departures are built), 3 arrival,
-  4 local, 5 storage, 6 empties, 7 repair (bad order). The fan and
-  turntable spur hold locos only; the lead and head-shunt are for
-  switching, never a block.
+  4 local (cars for the goods shed wait here), 5 storage, 6 empties (empties
+  for the elevator wait here), 7 repair (bad order). Off the lead in the
+  east throat, Track E is the grain elevator's and Track G the goods
+  shed's (#84). The fan and turntable spur hold locos only; the lead and
+  head-shunt are for switching, never a block.
 - **Stage 2 jobs** (#49), from the [road trains](traffic.md):
   - **Break up an arrival:** its cars to their block tracks, as stage 1;
     opens on arrival, due at the next shift change.
@@ -50,6 +52,20 @@ can span the yard and the industries near it.
     reported done by then holds the train, which leaves when it is, late.
   - **Sort the yard** stays for cars that need moving outside a train's
     jobs: repaired, unloaded or loaded cars with new waybills.
+- **Stage 3b jobs** (#84), at Junín's two industries, each with 6 spots
+  numbered from its track's buffer; a car is on a spot when its middle is:
+  - **Set out at an industry:** opens at a shift change when the industry
+    has no set-out or pull open, with up to 6 of the cars waiting for it
+    in the yard; due at the next shift change. At the elevator any spot
+    does (ordering none); at the goods shed each car goes to its
+    consignee's door (ordering **exact**), doors 1 up in no particular
+    order.
+  - **The work:** once the set-out is done, the elevator loads its cut by
+    the next shift change; each of the shed's doors unloads or loads its
+    car in 2 hours. Cars not on their spots by then go back to waiting.
+  - **Pull from an industry:** opens when the work is done, with the cars
+    worked; each to its block's track, as a sort; due at the end of the
+    shift (at least an hour on).
 - **The consist page** of a build: a line per car (tare, load, gross,
   length) and the train's totals (cars, axles, length, tare, gross) in
   whole tonnes, as the RITO weighs a train (art. 211,
@@ -65,4 +81,5 @@ can span the yard and the industries near it.
 - Which destinations make up the Retiro block, and their order. Stage 1
   uses O'Higgins, Membrillar, Retiro from the ladder end (content,
   retunable).
-- Industry work: #50.
+- More industries, and the fuel and materials traffic still on the
+  shift-change placeholder.

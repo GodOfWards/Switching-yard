@@ -275,18 +275,19 @@
   //                on beyond the map;
   //                the kinds of rolling stock, the cars with their
   //                markings and loads, and where it all starts; the yard
-  //                tracks' blocks, the destinations waybills name, the
-  //                cars' traffic at the start, the traffic plan's flows
-  //                and the numbers of cars that join, and the road trains'
-  //                and through trains' timetables.
+  //                tracks' blocks, the industries at Junín, the
+  //                destinations waybills name, the cars' traffic at the
+  //                start, the traffic plan's flows and the numbers of cars
+  //                that join, and the road trains' and through trains'
+  //                timetables.
   //                Content passes (a new siding, a new yard) touch only this.
   //   STATE        what changes while playing: the time of day, switch
   //                positions, vehicles, the trains they are coupled into,
   //                the loco's controls, the cars' traffic (away off the
   //                map included) and the pool of cars elsewhere on the
-  //                line, the jobs, the arrivals held outside,
-  //                the through trains offered or running, and who holds
-  //                the main.
+  //                line, the industries' work, the jobs, the arrivals held
+  //                outside, the through trains offered or running, and who
+  //                holds the main.
   //                Built from WORLD DATA by makeState(); never edits WORLD DATA.
   //   UTILITIES    small geometry, track-walking and lookup helpers.
   //   SIMULATION   advances STATE by one fixed step, step(dt): the clock, and
@@ -297,9 +298,10 @@
   //                on the display's frame rate.
   //   OPERATIONS   the rules of the railway's work, stepped from SIMULATION:
   //                cars' traffic by the plan, their trips off the map and
-  //                the pool, and their dispositions, road trains arriving
-  //                and leaving, jobs opening with them and at shift
-  //                changes, their lines checked against the yard, work done
+  //                the pool, and their dispositions, the industries'
+  //                set-outs, work and pulls, road trains arriving and
+  //                leaving, jobs opening with them and at shift changes,
+  //                their lines checked against the yard, work done
   //                off-screen, rough handling, and results; through trains
   //                offered, held or run past on the main.
   //   ACTIONS      what the player can do (reverser, levers, Emergency,
@@ -462,6 +464,15 @@
   // A trip takes its station's round trip, give or take this share, so
   // cars that left together don't all come back together.
   const TRIP_SPREAD = 0.25;             // retunable
+  // Industries at Junín (#84). Each has INDUSTRY_SPOTS spots, numbered
+  // from its track's buffer, SPOT_LENGTH apart: a car is on a spot when
+  // its middle is. A set-out takes up to that many cars. The elevator loads
+  // a cut set out by the next shift change; each of the goods shed's doors
+  // unloads or loads its car in SHED_WORK_TIME. Retunable; the times are
+  // assumed.
+  const INDUSTRY_SPOTS = 6;
+  const SPOT_LENGTH = 16;               // m; a car is at most 15.5 m
+  const SHED_WORK_TIME = 2 * HOUR;
   // Main-line traffic and authority to move (#56, #57; see
   // docs/design/living-railway.md). A through train is offered
   // OFFER_LEAD_SECONDS before it reaches the map's edge and runs through at
@@ -540,6 +551,7 @@
     J1:                 { x: 518.57, y: 0.43 },
     J12:                { x: 258.86, y: -54.63 },
     J10:                { x: 179.3, y: -29.75 },
+    T2:                 { x: 601.49, y: -4.23 },
     J17:                { x: 340.44, y: -110.35 },
     J2:                 { x: 493.57, y: 0.33 },
     J11:                { x: 143.12, y: -30.41 },
@@ -550,6 +562,7 @@
     J8:                 { x: 293.82, y: -23.02 },
     J6:                 { x: 383.07, y: -14.51 },
     J3:                 { x: 452.49, y: -4.98 },
+    T1:                 { x: 552.56, y: 0.56 },
     stub2End:           { x: 509.8, y: -36.81 },
     fan5End:            { x: 474.52, y: -160.09 },
     fan6End:            { x: 476.98, y: -153.66 },
@@ -561,6 +574,8 @@
     fan2End:            { x: 462.63, y: -186.79 },
     stub1End:           { x: 483.86, y: -56.22 },
     fan8End:            { x: 483.02, y: -137.59 },
+    throat2End:         { x: 1103.57, y: -13.63 },
+    throat1End:         { x: 1105.55, y: -9.74 },
     yard1End:           { x: 0, y: -3.15 },
     yard7End:           { x: 0, y: -31.77 },
     yard3End:           { x: 0, y: -11.18 },
@@ -623,13 +638,13 @@
     J1J5Bend5:          { x: 291.02, y: -25.53 },
     J5J8Bend1:          { x: 278.26, y: -24.54 },
     J1J2Bend1:          { x: 506.07, y: 0.38 },
-    leadBend0:          { x: 519.3, y: 0.43 },
-    leadBend1:          { x: 613.39, y: 0.43 },
-    leadBend2:          { x: 650.6, y: 2.98 },
-    leadBend3:          { x: 651.49, y: 3.1 },
-    leadBend4:          { x: 686.91, y: 5.85 },
-    leadBend5:          { x: 713.81, y: 6.34 },
-    leadBend7:          { x: 716.46, y: 6.37 },
+    leadBend0:          { x: 535.57, y: 0.52 },
+    leadBend3:          { x: 613.39, y: 0.46 },
+    leadBend4:          { x: 650.6, y: 2.98 },
+    leadBend5:          { x: 651.49, y: 3.1 },
+    leadBend6:          { x: 686.91, y: 5.85 },
+    leadBend7:          { x: 713.81, y: 6.34 },
+    leadBend9:          { x: 716.46, y: 6.37 },
     stub1Bend1:         { x: 271.85, y: -57.73 },
     stub1Bend2:         { x: 272.68, y: -57.83 },
     stub1Bend3:         { x: 300.13, y: -59.92 },
@@ -645,6 +660,13 @@
     fan8Bend4:          { x: 428.3, y: -115.81 },
     fan8Bend5:          { x: 448.09, y: -123.17 },
     J10J11Bend1:        { x: 161.21, y: -30.1 },
+    throat2Bend1:       { x: 703.03, y: -17.73 },
+    throat2Bend2:       { x: 663.17, y: -15.48 },
+    throat2Bend3:       { x: 643.75, y: -13.08 },
+    throat2Bend4:       { x: 614.23, y: -6.79 },
+    throat1Bend1:       { x: 662.47, y: -10.36 },
+    throat1Bend2:       { x: 694.0, y: -11.86 },
+    T2T1Bend1:          { x: 577.06, y: -1.24 },
     J2J3Bend1:          { x: 473.0, y: -1.78 },
     yard1Bend1:         { x: 493.26, y: 0.33 },
     yard7Bend1:         { x: 142.29, y: -30.42 },
@@ -740,15 +762,16 @@
     J5J8_2:          { a: "J5J8Bend1", b: "J8", r: -496.4 },
     J1J2_1:          { a: "J1", b: "J1J2Bend1", r: -16354.0 },
     J1J2_2:          { a: "J1J2Bend1", b: "J2", r: 5294.9 },
-    lead_1:          { a: "leadBend0", b: "J1", r: 190 },
-    lead_2:          { a: "leadBend1", b: "leadBend0" },
-    lead_3:          { a: "leadBend2", b: "leadBend1", r: -272.8 },
-    lead_4:          { a: "leadBend3", b: "leadBend2" },
-    lead_5:          { a: "leadBend4", b: "leadBend3", r: 300.0 },
-    lead_6:          { a: "leadBend5", b: "leadBend4" },
-    lead_7:          { a: "X1", b: "leadBend5", r: 190 },
-    lead_8:          { a: "leadBend7", b: "X1", r: 190 },
-    lead_9:          { a: "leadEnd", b: "leadBend7" },
+    lead_1:          { a: "leadBend0", b: "J1", r: -6126.7 },
+    lead_2:          { a: "T1", b: "leadBend0", r: 2025.7 },
+    lead_3:          { a: "T1", b: "leadBend3" },
+    lead_4:          { a: "leadBend3", b: "leadBend4", r: 269.6 },
+    lead_5:          { a: "leadBend4", b: "leadBend5" },
+    lead_6:          { a: "leadBend5", b: "leadBend6", r: -300.0 },
+    lead_7:          { a: "leadBend6", b: "leadBend7" },
+    lead_8:          { a: "leadBend7", b: "X1", r: -190 },
+    lead_9:          { a: "X1", b: "leadBend9", r: -190 },
+    lead_10:         { a: "leadBend9", b: "leadEnd" },
     stub1_1:         { a: "J12", b: "stub1Bend1", r: 59.6 },
     stub1_2:         { a: "stub1Bend1", b: "stub1Bend2" },
     stub1_3:         { a: "stub1Bend2", b: "stub1Bend3", r: 300.0 },
@@ -768,6 +791,16 @@
     fan8_6:          { a: "fan8Bend5", b: "fan8End" },
     J10J11_1:        { a: "J10", b: "J10J11Bend1", r: 8328.1 },
     J10J11_2:        { a: "J10J11Bend1", b: "J11", r: -2785.5 },
+    throat2_1:       { a: "throat2End", b: "throat2Bend1" },
+    throat2_2:       { a: "throat2Bend1", b: "throat2Bend2", r: -300.0 },
+    throat2_3:       { a: "throat2Bend2", b: "throat2Bend3" },
+    throat2_4:       { a: "throat2Bend3", b: "throat2Bend4", r: -174.2 },
+    throat2_5:       { a: "throat2Bend4", b: "T2", r: 66.2 },
+    throat1_1:       { a: "T2", b: "throat1Bend1" },
+    throat1_2:       { a: "throat1Bend1", b: "throat1Bend2", r: 300.0 },
+    throat1_3:       { a: "throat1Bend2", b: "throat1End" },
+    T2T1_1:          { a: "T2", b: "T2T1Bend1", r: -553.7 },
+    T2T1_2:          { a: "T2T1Bend1", b: "T1", r: 172.4 },
     J2J3_1:          { a: "J2", b: "J2J3Bend1", r: 106.8 },
     J2J3_2:          { a: "J2J3Bend1", b: "J3", r: -232.7 },
     yard1_1:         { a: "J2", b: "yard1Bend1", r: 190 },
@@ -806,7 +839,9 @@
   };
   const SWITCHES = {
     J1:  { trunk: "lead_1", legs: ["J1J2_1", "J1J5_1"], normal: "J1J2_1" },
-    X1:  { trunk: "lead_7", legs: ["lead_8", "crossover_1"], normal: "lead_8" },
+    X1:  { trunk: "lead_8", legs: ["lead_9", "crossover_1"], normal: "lead_9" },
+    T1:  { trunk: "lead_2", legs: ["T2T1_2", "lead_3"], normal: "lead_3" },
+    T2:  { trunk: "T2T1_1", legs: ["throat1_1", "throat2_5"], normal: "throat1_1" },
     J2:  { trunk: "J1J2_2", legs: ["J2J3_1", "yard1_1"], normal: "yard1_1" },
     X2:  { trunk: "main_5", legs: ["crossover_2", "main_4"], normal: "main_4" },
     J3:  { trunk: "J2J3_2", legs: ["yard2_1", "J3J4_1"], normal: "J3J4_1" },
@@ -916,7 +951,7 @@
   // 3, starts empty for the first arrival. Cars not laid out here start
   // away, off the map, and come in on the arrivals.
   const START_TRAINS = [
-    { segment: "lead_2", s: 43, dir: 1, vehicles: [{ id: "loco1", type: "g12" }] },
+    { segment: "lead_3", s: 30, dir: -1, vehicles: [{ id: "loco1", type: "g12" }] },
     { segment: "yard1_2", s: 430, dir: 1, vehicles: [{ id: "car1" }, { id: "car2" }] },
     { segment: "yard2_2", s: 370, dir: 1, vehicles: [{ id: "car9" }, { id: "car12" }, { id: "car6" }] },
     { segment: "yard4_2", s: 290, dir: 1, vehicles: [{ id: "car3" }, { id: "car7" }, { id: "car8" }, { id: "car15" }, { id: "car13" }] },
@@ -932,7 +967,10 @@
   // built. The rest of the track holds no block: the fan and the turntable
   // spur are for locos, the lead (the head-shunt) and the ladder for
   // switching, the main line and its crossover for trains, and the two
-  // short tracks aren't used. PLACES names those for the player, by track
+  // short tracks aren't used. Two east-throat tracks, off the lead, are
+  // the industries' (INDUSTRIES): their real use is unknown, so giving
+  // them to the elevator and the shed is the game's liberty (#84). Their
+  // `number` is the letter on their disc. PLACES names those for the player, by track
   // name (a track's segments are `name` or `name_1`, `name_2`...); anything
   // else is the ladder.
   const YARD_TRACKS = {
@@ -943,6 +981,9 @@
     yard5: { name: "Track 5", number: 5, switch: "J9",  segments: ["yard5_1", "yard5_2"], block: "storage" },
     yard6: { name: "Track 6", number: 6, switch: "J8",  segments: ["yard6_1", "yard6_2"], block: "empties" },
     yard7: { name: "Track 7", number: 7, switch: "J11", segments: ["yard7_1", "yard7_2"], block: "repair" },
+    throat1: { name: "Track E", number: "E", switch: "T2", segments: ["throat1_1", "throat1_2", "throat1_3"], block: "elevator" },
+    throat2: { name: "Track G", number: "G", switch: "T2",
+               segments: ["throat2_5", "throat2_4", "throat2_3", "throat2_2", "throat2_1"], block: "shed" },
   };
   const ARRIVAL_TRACK = "yard3";
   const PLACES = [
@@ -950,6 +991,7 @@
     { name: "the fan", tracks: ["fan1", "fan2", "fan3", "fan4", "fan5", "fan6", "fan7", "fan8", "turntableSpur",
       "J10J12", "J11J13", "J13J14", "J13J15", "J14J16", "J14J18", "J15J17", "J17J19"] },
     { name: "a short track", tracks: ["stub1", "stub2"] },
+    { name: "the east throat", tracks: ["T2T1"] },
     { name: "the main line", tracks: ["main", "crossover"] },
   ];
   // The running tracks (vías de corrida, RITO art. 26): the track trains
@@ -957,7 +999,8 @@
   const RUNNING_TRACKS = ["main", "crossover"];
   // Blocks, in the order the job sheet lists them. A block in `block`
   // order stands with its cars' destinations in the order of `groups`,
-  // from the ladder end; one with ordering `none` only needs its cars there.
+  // from the ladder end; one with ordering `none` only needs its cars there,
+  // and one in `exact` order each car on its own spot.
   const BLOCKS = {
     retiro:  { name: "Retiro",    ordering: "block", groups: ["ohiggins", "membrillar", "retiro"] },
     mendoza: { name: "Mendoza",   ordering: "none" },
@@ -965,6 +1008,18 @@
     empties: { name: "Empties",   ordering: "none" },
     storage: { name: "Storage",   ordering: "none" },
     repair:  { name: "Bad order", ordering: "none" },
+    elevator: { name: "Elevator", ordering: "none" },
+    shed:    { name: "Goods shed", ordering: "exact" },
+  };
+  // The industries at Junín (#84), each on its track, both invented: no
+  // rail-served industry at Junín was found (#45, docs/decisions.md). A
+  // flow with `atJunin` loads or unloads at that industry; the rest at
+  // Junín stay the shift-change placeholder. `spot` is what a spot is
+  // called there. The elevator's cars stand on any spot; at the shed, a
+  // car is set out at its consignee's door.
+  const INDUSTRIES = {
+    elevator: { name: "the elevator",   short: "Elevator",   track: "throat1", spot: "spot", workTime: null },
+    shed:     { name: "the goods shed", short: "Goods shed", track: "throat2", spot: "door", workTime: SHED_WORK_TIME },
   };
   // Where a waybill can send a car, and its block. A station off the map
   // has `away`, a car's round trip from Junín to it and back, its time
@@ -980,6 +1035,8 @@
     mendoza:    { name: "Mendoza",            block: "mendoza", away: 16 * DAY },
     junin:      { name: "Junín, to unload",   block: "local" },
     forLoading: { name: "Junín, for loading", block: "empties" },
+    elevator:   { name: "Junín, the elevator", block: "empties" },
+    shed:       { name: "Junín, the goods shed", block: "local" },
     stored:     { name: "Storage",            block: "storage" },
   };
   // The traffic plan (#50): each flow carries `load` in cars of kind
@@ -991,16 +1048,16 @@
   // in through trains; these are wagonload. Estimates, retunable; Tom's
   // calls of 2026-10-12, docs/decisions.md.
   const FLOWS = {
-    grainJunin:   { from: "junin",   to: "retiro",     type: "tolva",     load: "grain",                   perWeek: 20 },
+    grainJunin:   { from: "junin",   to: "retiro",     type: "tolva",     load: "grain",                   perWeek: 20, atJunin: "elevator" },
     grainVedia:   { from: "vedia",   to: "retiro",     type: "tolva",     load: "grain",                   perWeek: 20 },
     wineTanks:    { from: "mendoza", to: "retiro",     type: "tanque",    load: "wine",                    perWeek: 10 },
     fruitMendoza: { from: "mendoza", to: "retiro",     type: "cubierto",  load: "fruit and wine in casks", perWeek: 6 },
-    wineJunin:    { from: "mendoza", to: "junin",      type: "cubierto",  load: "wine in casks",           perWeek: 10 },
+    wineJunin:    { from: "mendoza", to: "junin",      type: "cubierto",  load: "wine in casks",           perWeek: 10, atJunin: "shed" },
     merchMendoza: { from: "retiro",  to: "mendoza",    type: "cubierto",  load: "merchandise",             perWeek: 22 },
-    merchJunin:   { from: "retiro",  to: "junin",      type: "cubierto",  load: "merchandise",             perWeek: 16 },
+    merchJunin:   { from: "retiro",  to: "junin",      type: "cubierto",  load: "merchandise",             perWeek: 16, atJunin: "shed" },
     fuelJunin:    { from: "retiro",  to: "junin",      type: "tanque",    load: "fuel",                    perWeek: 8 },
-    lotsVedia:    { from: "junin",   to: "vedia",      type: "cubierto",  load: "small lots",              perWeek: 8 },
-    lotsOHiggins: { from: "junin",   to: "ohiggins",   type: "cubierto",  load: "small lots",              perWeek: 4 },
+    lotsVedia:    { from: "junin",   to: "vedia",      type: "cubierto",  load: "small lots",              perWeek: 8, atJunin: "shed" },
+    lotsOHiggins: { from: "junin",   to: "ohiggins",   type: "cubierto",  load: "small lots",              perWeek: 4, atJunin: "shed" },
     materials:    { from: "junin",   to: "membrillar", type: "bordeAlto", load: "materials",               perWeek: 4 },
   };
   // Each car's traffic at the start: its flow, or a waybill when it has
@@ -1056,14 +1113,18 @@
     // fully bunched, COUPLER_FREE_PLAY fully stretched before the draft gear.
     // `cars` holds each car in the game's traffic, by id: its kind, number
     // and line initials (or null), whether it is loaded, its flow (a FLOWS
-    // id, or null), its waybill (a DESTINATIONS id, or null), why it is bad
-    // order (or null), whether it is away off the map (null, or since when)
-    // and its history. A car away has no vehicle; its `trip` says which
+    // id, or null), its waybill (a DESTINATIONS id, or null), its `spot` at
+    // an industry while it is set out there (null, or the industry and the
+    // spot's number, null where any spot does), why it is bad order (or
+    // null), whether it is away off the map (null, or since when) and its
+    // history. A car away has no vehicle; its `trip` says which
     // station it is at, when it is due back, and whether it stays out in
     // the pool instead. `pool` holds the cars out in the pool, by id, each
     // with when it went there; `nextCar` numbers the cars that join, and
-    // `poolCount` counts those that joined and left since `poolSince`. `jobs` holds the jobs open and the last
-    // JOBS_KEPT finished. `moves` counts the loco's starts from a stand;
+    // `poolCount` counts those that joined and left since `poolSince`.
+    // `industries` holds, by industry, its set-out job open or being
+    // worked, when that work is done (`readyAt`), and its pull job. `jobs`
+    // holds the jobs open and the last JOBS_KEPT finished. `moves` counts the loco's starts from a stand;
     // `nextShiftAt` is the next shift change to act on, and `timetableAt`
     // the time from which road trains are still to run; `held` lists the
     // arrivals held outside, waiting for the arrival track. `throughAt` is
@@ -1075,9 +1136,10 @@
     const st = { clock: START_CLOCK, switches: {}, vehicles: {}, trains: {}, air: {}, gaps: {}, nextTrain: 1,
                  cars: {}, jobs: [], nextJob: 1, moves: 0, locoMoving: false, nextShiftAt: START_CLOCK,
                  timetableAt: START_CLOCK, held: [], throughAt: START_CLOCK, through: [], main: { held: false, until: null },
-                 pool: {}, nextCar: 1, poolCount: { joined: 0, left: 0 }, poolSince: START_CLOCK,
+                 pool: {}, nextCar: 1, poolCount: { joined: 0, left: 0 }, poolSince: START_CLOCK, industries: {},
                  seed: Math.floor(Math.random() * 2 ** 31), notice: null };
     for (const id in SWITCHES) st.switches[id] = { set: SWITCHES[id].normal };
+    for (const id in INDUSTRIES) st.industries[id] = { setOut: null, readyAt: null, pull: null };
     state = st;                           // walk() reads the switches as it lays trains out
     for (const t of START_TRAINS) {
       for (const v of t.vehicles) addVehicle(v.id, startType(v), v.flip);
@@ -1086,7 +1148,7 @@
     for (const id in CARS) {
       const t = START_TRAFFIC[id] || {}, car = CARS[id];
       st.cars[id] = { type: car.type, number: car.number, line: car.line || null, loaded: car.loaded,
-                      flow: t.flow || null, waybill: t.waybill || null, badOrder: t.badOrder || null,
+                      flow: t.flow || null, waybill: t.waybill || null, spot: null, badOrder: t.badOrder || null,
                       away: st.vehicles[id] ? null : START_CLOCK, trip: null, history: [] };
       if (st.vehicles[id]) {
         if (t.flow) st.cars[id].waybill = flowWaybill(id);
@@ -1258,6 +1320,12 @@
       if (d <= from + len) return pointOn(seg, fromA ? d - from : len - (d - from));
     }
     return null;
+  }
+  // Spot `n` of industry `ind` (numbered from the buffer; null for all its
+  // spots together), as offsets from its track's switch: `near` and `far`.
+  function spotSpan(ind, n) {
+    const g = TRACK_GEOM[INDUSTRIES[ind].track], lo = n ? n - 1 : 0, hi = n || INDUSTRY_SPOTS;
+    return { near: g.length - SET_BACK - hi * SPOT_LENGTH, far: g.length - SET_BACK - lo * SPOT_LENGTH };
   }
   // The fouling points: the last metre near the switch where another track
   // comes within FOULING_CLEARANCE, measured against points every metre
@@ -1582,8 +1650,8 @@
   }
   // The events ahead of the clock, soonest first, up to and including the
   // end of this shift: jobs falling due, road trains arriving and leaving
-  // (a departure with its build job), through trains offered, and the
-  // shift change, when the next jobs open.
+  // (a departure with its build job), through trains offered, an
+  // industry's work done, and the shift change, when the next jobs open.
   function eventsAhead() {
     const end = shiftAt(state.clock).end, out = [];
     for (const j of state.jobs) if (!j.result && j.kind !== "build" && j.due > state.clock && j.due <= end) out.push({ at: j.due, kind: "due", job: j.id });
@@ -1594,6 +1662,10 @@
     }
     for (const r of runsBetween(Math.max(state.throughAt, state.clock + 1) + OFFER_LEAD_SECONDS, end + OFFER_LEAD_SECONDS, THROUGH_TIMETABLE))
       out.push({ at: r.at - OFFER_LEAD_SECONDS, kind: "offer", through: r.tt });
+    for (const ind in INDUSTRIES) {
+      const r = state.industries[ind].readyAt;
+      if (r !== null && r > state.clock && r < end) out.push({ at: r, kind: "industry", industry: ind });
+    }
     out.push({ at: end, kind: "shift" });
     return out.sort((a, b) => a.at - b.at);
   }
@@ -1644,12 +1716,14 @@
   const openJobs = () => state.jobs.filter(j => !j.result);
 
   // The block a car goes to next, or null when it stays where it is (or is
-  // away). Placeholder rule until #45: a bad-order car goes to repair;
-  // otherwise its waybill's destination decides.
+  // away). Placeholder rule until #45: a bad-order car goes to repair; one
+  // set out at an industry, to that industry's track; otherwise its
+  // waybill's destination decides.
   function dispositionOf(id) {
     const c = state.cars[id];
     if (c.away !== null) return null;
     if (c.badOrder) return "repair";
+    if (c.spot) return YARD_TRACKS[INDUSTRIES[c.spot.industry].track].block;
     return c.waybill ? DESTINATIONS[c.waybill].block : null;
   }
   const blockTracks = block => Object.keys(YARD_TRACKS).filter(t => YARD_TRACKS[t].block === block);
@@ -1666,10 +1740,19 @@
     });
   }
   // A car's disposition is met when it is left (not in the loco's train)
-  // clear on one of its block's tracks, or when it has none.
+  // clear on one of its block's tracks, or when it has none; one set out at
+  // an industry, when its middle is on its spot (any of them, where any
+  // does).
   function dispositionMet(id) {
-    const block = dispositionOf(id), v = state.vehicles[id];
-    return !block || (!inPlayerTrain(v) && blockTracks(block).some(t => clearOn(v, t)));
+    const block = dispositionOf(id), v = state.vehicles[id], sp = state.cars[id].spot;
+    if (!block) return true;
+    if (inPlayerTrain(v)) return false;
+    if (sp && block !== "repair") return onSpot(v, sp.industry, sp.n);
+    return blockTracks(block).some(t => clearOn(v, t));
+  }
+  function onSpot(v, ind, n) {
+    const d = trackOffset(INDUSTRIES[ind].track, v.seg, v.s), span = spotSpan(ind, n);
+    return d !== null && d >= span.near && d <= span.far;
   }
   // Whether a block in `block` order stands in it on each of its tracks:
   // from the ladder end, its cars' destinations come in its groups' order.
@@ -1726,12 +1809,16 @@
     return true;
   }
 
-  // Acts, in time order, on every shift change and road train the clock
-  // has reached, then lets in any arrival held outside whose track is
-  // clear.
+  // Acts, in time order, on every industry's work done, shift change and
+  // road train the clock has reached, then lets in any arrival held
+  // outside whose track is clear.
   function runEvents() {
     for (;;) {
-      const run = runsBetween(state.timetableAt, state.clock)[0];
+      const run = runsBetween(state.timetableAt, state.clock)[0], ind = industryDue();
+      if (ind && (state.nextShiftAt > state.clock || ind.at <= state.nextShiftAt) && (!run || ind.at <= run.at)) {
+        industryReady(ind.ind, ind.at);
+        continue;
+      }
       if (state.nextShiftAt <= state.clock && (!run || state.nextShiftAt <= run.at)) {
         shiftChange(state.nextShiftAt);
         state.nextShiftAt += SHIFT_HOURS * HOUR;
@@ -1764,11 +1851,12 @@
   // At a shift change: jobs not taken that fall due are done off-screen;
   // cars staying out in the pool whose trips are over go there, and the
   // pool forgets those out POOL_KEEP_DAYS; cars left on the repair track
-  // are repaired, loads left on the local track unloaded and empties left
-  // for loading loaded (placeholders until the industry, #84), each with a
-  // new waybill; stored cars go to flows short of cars; and a job opens to
-  // sort the cars still not where they belong. A car in an open job is
-  // left alone.
+  // are repaired, and loads for Junín left on the local track unloaded and
+  // empties for loading left on the empties track loaded (placeholders for
+  // the traffic no industry takes), each with a new waybill; stored cars
+  // go to flows short of cars; set-outs open at the industries free for
+  // them; and a job opens to sort the cars still not where they belong. A
+  // car in an open job is left alone.
   function shiftChange(at) {
     for (const j of openJobs()) if (!j.taken && j.kind !== "build" && j.due <= at) doOffScreen(j, at);
     for (const id of Object.keys(state.cars)) {
@@ -1784,11 +1872,11 @@
         c.badOrder = null;
         logCar(id, `Repaired on ${YARD_TRACKS[trackAt(v)].name}`, at);
         rebill(id, at);
-      } else if (block === "local" && c.loaded) {
+      } else if (c.waybill === "junin" && c.loaded) {
         c.loaded = false;
         logCar(id, "Unloaded at Junín", at);
         rebill(id, at);
-      } else if (block === "empties" && !c.loaded) {
+      } else if (c.waybill === "forLoading" && !c.loaded) {
         c.loaded = true;
         logCar(id, "Loaded at Junín", at);
         rebill(id, at);
@@ -1796,6 +1884,7 @@
         rebill(id, at);
       }
     }
+    openSetOuts(at);
     openSortJob(at);
     const done = state.jobs.filter(j => j.result && (j.kind !== "build" || j.departed));
     if (done.length > JOBS_KEPT) state.jobs = state.jobs.filter(j => !done.includes(j) || done.indexOf(j) >= done.length - JOBS_KEPT);
@@ -1808,6 +1897,71 @@
     if (!cars.length) return;
     const due = at + SHIFT_HOURS * HOUR;
     addJob({ kind: "sort", title: `Sort the yard for the ${clockText(due)} shift`, short: "Sort the yard", opens: at, due, cars });
+  }
+  // The industries (#84). A set-out opens at a shift change for an
+  // industry with no set-out or pull job open: up to INDUSTRY_SPOTS of the
+  // cars billed to it, standing where they belong in the yard, each given
+  // its spot (at the shed, a door each, 1 up, in no particular order). Once
+  // the set-out is done, its work takes the industry's time; then the cars
+  // on their spots are loaded or unloaded and billed on, and a pull job
+  // opens to bring them to the yard. Cars not on their spots by then go
+  // back to waiting.
+  const jobOpen = id => { const j = id && jobById(id); return !!j && !j.result; };
+  function openSetOuts(at) {
+    const busy = new Set(openJobs().flatMap(j => j.cars));
+    for (const ind in INDUSTRIES) {
+      const st = state.industries[ind];
+      if (st.setOut || jobOpen(st.pull)) continue;
+      const cars = Object.keys(state.cars).filter(id => {
+        const c = state.cars[id];
+        return c.away === null && c.waybill === ind && !c.badOrder && !busy.has(id) && state.vehicles[id].speed === 0 && dispositionMet(id);
+      }).slice(0, INDUSTRY_SPOTS);
+      if (!cars.length) continue;
+      const doors = cars.map((_, i) => i + 1);
+      for (let i = doors.length - 1; i > 0; i--) { const j = Math.floor(random() * (i + 1)); [doors[i], doors[j]] = [doors[j], doors[i]]; }
+      cars.forEach((id, i) => { state.cars[id].spot = { industry: ind, n: BLOCKS[YARD_TRACKS[INDUSTRIES[ind].track].block].ordering === "exact" ? doors[i] : null }; });
+      const name = INDUSTRIES[ind].name;
+      st.setOut = addJob({ kind: "setout", industry: ind, title: `Set out ${cars.length} car${cars.length === 1 ? "" : "s"} at ${name}`,
+                           short: `Set out at ${name}`, opens: at, due: at + SHIFT_HOURS * HOUR, cars }).id;
+    }
+  }
+  // A job just finished at `at`: a set-out starts its industry's work, and
+  // its work is done by the next shift change or after its `workTime`.
+  function jobFinished(job, at) {
+    if (job.kind !== "setout") return;
+    const wt = INDUSTRIES[job.industry].workTime;
+    state.industries[job.industry].readyAt = wt === null ? shiftAt(at).end : at + wt;
+  }
+  // The industry whose work is done soonest by the clock, or null.
+  function industryDue() {
+    let due = null;
+    for (const ind in INDUSTRIES) {
+      const r = state.industries[ind].readyAt;
+      if (r !== null && r <= state.clock && (!due || r < due.at)) due = { ind, at: r };
+    }
+    return due;
+  }
+  // Industry `ind`'s work is done at `at`.
+  function industryReady(ind, at) {
+    const st = state.industries[ind], spec = INDUSTRIES[ind], worked = [];
+    for (const id in state.cars) {
+      const c = state.cars[id];
+      if (!c.spot || c.spot.industry !== ind) continue;
+      const v = state.vehicles[id], n = c.spot.n;
+      if (!c.badOrder && v.speed === 0 && dispositionMet(id)) {
+        const f = FLOWS[c.flow], where = `at ${spec.name}${n ? `, ${spec.spot} ${n}` : ""}`;
+        if (f && c.loaded && f.to === "junin") { c.loaded = false; logCar(id, `Unloaded ${where}`, at); }
+        else if (f && !c.loaded && f.from === "junin") { c.loaded = true; logCar(id, `Loaded ${where}`, at); }
+        c.spot = null;
+        rebill(id, at);
+        worked.push(id);
+      } else c.spot = null;
+    }
+    Object.assign(st, { setOut: null, readyAt: null });
+    if (!worked.length) return;
+    const due = shiftAt(at + HOUR).end;
+    st.pull = addJob({ kind: "pull", industry: ind, title: `Pull ${worked.length} car${worked.length === 1 ? "" : "s"} from ${spec.name}`,
+                       short: `Pull from ${spec.name}`, opens: at, due, cars: worked }).id;
   }
   // Adds a job, its cars listed by block, not yet taken.
   function addJob(job) {
@@ -1831,10 +1985,11 @@
 
   // The traffic plan (#50). A station of a flow is a DESTINATIONS id off
   // the map, or "junin", which waybills name by what the car is there for.
-  const juninAs = (station, loaded) => station !== "junin" ? station : loaded ? "junin" : "forLoading";
+  // At Junín, a flow's industry, or else the placeholder's tracks.
+  const juninAs = (station, loaded, f) => station !== "junin" ? station : f.atJunin || (loaded ? "junin" : "forLoading");
   function flowWaybill(id) {
     const c = state.cars[id], f = FLOWS[c.flow];
-    return c.loaded ? juninAs(f.to, true) : juninAs(f.from, false);
+    return c.loaded ? juninAs(f.to, true, f) : juninAs(f.from, false, f);
   }
   const offMapEnds = f => [FLOWS[f].from, FLOWS[f].to].filter(s => s !== "junin");
   // The cars a flow keeps: its loaded cars a day times its cycle, the
@@ -1866,7 +2021,7 @@
     let number;
     do number = String(lo + Math.floor(random() * (hi - lo + 1))); while (used.has(number));
     state.cars[id] = { type, number, line: random() < POOL_LINE_SHARE ? POOL_LINE : null, loaded: false, flow: null,
-                       waybill: null, badOrder: null, away: state.clock, trip: null, history: [] };
+                       waybill: null, spot: null, badOrder: null, away: state.clock, trip: null, history: [] };
     return id;
   }
   // Puts car `id`, away at the start, on a trip of `flow` (or its own, or
@@ -1899,7 +2054,7 @@
   // to the pool, with when, and leaves the jobs that list it.
   function toPool(id, at) {
     const c = state.cars[id];
-    Object.assign(c, { flow: null, waybill: null, away: at, trip: null });
+    Object.assign(c, { flow: null, waybill: null, spot: null, away: at, trip: null });
     logCar(id, "Stays out on the San Martín, elsewhere on the line", at);
     state.pool[id] = c;
     delete state.cars[id];
@@ -2025,6 +2180,7 @@
       else left.push(id);
     }
     job.result = { by: "crew", at, left };
+    jobFinished(job, at);
   }
   // Takes vehicle `id` out of its train, splitting the train around it.
   function detach(id) {
@@ -2044,9 +2200,10 @@
   }
   // Sets car `id` on yard track `trackId`, off-screen: the cars already
   // there and it are laid out again as one cut from the buffer, it at the
-  // ladder end, or in its group's place for a block in block order. Not
-  // done, and false, when a vehicle on the track is moving, is the loco or
-  // reaches off it, or when the cut wouldn't stand clear.
+  // ladder end, or in its group's place for a block in block order, or by
+  // its spot from the buffer for one in exact order. Not done, and false,
+  // when a vehicle on the track is moving, is the loco or reaches off it,
+  // or when the cut wouldn't stand clear.
   function setOnTrack(trackId, id) {
     const g = TRACK_GEOM[trackId], trains = new Set();
     for (const vid in state.vehicles) {
@@ -2064,6 +2221,9 @@
     if (block.ordering === "block") {
       const rank = vid => { const g = block.groups.indexOf(state.cars[vid].waybill); return dispositionOf(vid) === YARD_TRACKS[trackId].block && g >= 0 ? g : -1; };
       cut.sort((a, b) => rank(b) - rank(a));
+    } else if (block.ordering === "exact") {
+      const rank = vid => { const sp = state.cars[vid] && state.cars[vid].spot; return sp && sp.n ? sp.n : Infinity; };
+      cut.sort((a, b) => rank(a) - rank(b));
     }
     const length = cut.reduce((sum, vid) => sum + vehicleType(state.vehicles[vid]).length, 0);
     if (length + SET_BACK > g.length - g.fouling) return false;
@@ -2090,6 +2250,7 @@
     for (const l of st.lines) if (l.met && l.block && !l.away) logCar(l.id, `Left on ${YARD_TRACKS[trackAt(state.vehicles[l.id])].name}, ${BLOCKS[l.block].name}`, at);
     job.result = { by: "player", at, outcome, met: st.met, total: st.lines.length, inOrder: st.inOrder, cut: st.cut,
                    moves, par, late: Math.max(0, at - job.due) };
+    jobFinished(job, at);
   }
 
   // The main line (#56, #57; docs/design/living-railway.md). Through
@@ -2375,7 +2536,7 @@
   // expect them, and none are away. A save
   // that doesn't fit the yard (WORLD DATA changed since) is set aside for a
   // fresh yard. SAVE_KEY changes with every change to the saved shape.
-  const SAVE_KEY = "switching-game.yard.7";
+  const SAVE_KEY = "switching-game.yard.8";
 
   function saveYard() {
     try {
@@ -2404,10 +2565,15 @@
     // A car is in the traffic or in the pool, never both; one in the pool
     // is away, with no flow or trip.
     if (Object.keys(st.pool).some(id => st.cars[id])) return false;
+    if (!sameKeys(st.industries, INDUSTRIES) || Object.values(st.industries).some(i => !isObj(i)
+        || (i.setOut !== null && typeof i.setOut !== "string") || (i.pull !== null && typeof i.pull !== "string")
+        || (i.readyAt !== null && !Number.isFinite(i.readyAt)))) return false;
     const carFits = c => isObj(c) && VEHICLE_TYPES[c.type] && !VEHICLE_TYPES[c.type].loco && typeof c.number === "string"
       && Array.isArray(c.history) && (c.waybill === null || !!DESTINATIONS[c.waybill]) && typeof c.loaded === "boolean"
       && (c.flow === null || (!!FLOWS[c.flow] && FLOWS[c.flow].type === c.type))
-      && (c.away === null ? c.trip === null : Number.isFinite(c.away));
+      && (c.away === null ? c.trip === null : Number.isFinite(c.away))
+      && (c.spot === null || (isObj(c.spot) && !!INDUSTRIES[c.spot.industry]
+          && (c.spot.n === null || (Number.isInteger(c.spot.n) && c.spot.n >= 1 && c.spot.n <= INDUSTRY_SPOTS))));
     for (const id in st.pool) { const c = st.pool[id]; if (!carFits(c) || c.flow !== null || c.trip !== null) return false; }
     for (const id in st.cars) {
       const c = st.cars[id], t = c.trip;
@@ -2744,6 +2910,33 @@
       ctx.fillText(YARD_TRACKS[id].number, c.x, c.y + 0.5);
       ctx.textAlign = "start"; ctx.textBaseline = "alphabetic";
     }
+    // Each industry's spots: a tick across its track at either end of each,
+    // with its number where cars go to a numbered spot, and its name
+    // beside them.
+    for (const ind in INDUSTRIES) {
+      const t = INDUSTRIES[ind].track, all = spotSpan(ind, null), h = GAUGE * 0.9;
+      // Labels go on the side away from the other industries' tracks.
+      const mid = trackPoint(t, (all.near + all.far) / 2), others = Object.keys(INDUSTRIES).filter(o => o !== ind)
+        .map(o => { const sa = spotSpan(o, null); return trackPoint(INDUSTRIES[o].track, (sa.near + sa.far) / 2); });
+      const away = sd => Math.min(Infinity, ...others.map(o => Math.hypot(mid.x - mid.uy * sd - o.x, mid.y + mid.ux * sd - o.y)));
+      const side = away(1) >= away(-1) ? 1 : -1;
+      for (let i = 0; i <= INDUSTRY_SPOTS; i++) {
+        const p = trackPoint(t, all.far - i * SPOT_LENGTH);
+        line(p.x - p.uy * h, p.y + p.ux * h, p.x + p.uy * h, p.y - p.ux * h, PALETTE.buffer, Math.max(1, k * 0.2));
+      }
+      ctx.fillStyle = PALETTE.label; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      if (BLOCKS[YARD_TRACKS[t].block].ordering === "exact" && k > 2.5) {
+        ctx.font = `600 ${Math.round(Math.min(12, k * 1.6))}px system-ui, sans-serif`;
+        for (let n = 1; n <= INDUSTRY_SPOTS; n++) {
+          const sp = spotSpan(ind, n), p = trackPoint(t, (sp.near + sp.far) / 2), c = view.toScreen(p.x - p.uy * 3 * side, p.y + p.ux * 3 * side);
+          ctx.fillText(n, c.x, c.y);
+        }
+      }
+      const c = view.toScreen(mid.x - mid.uy * 7 * side, mid.y + mid.ux * 7 * side);
+      ctx.font = `600 ${Math.round(Math.max(10, Math.min(13, k * 2)))}px system-ui, sans-serif`;
+      ctx.fillText(INDUSTRIES[ind].short, c.x, c.y);
+      ctx.textAlign = "start"; ctx.textBaseline = "alphabetic";
+    }
     // The cars of a job being worked that aren't yet where they belong: an
     // amber dot on each.
     for (const j of openJobs()) if (j.taken) for (const l of jobStatus(j).lines) {
@@ -3072,7 +3265,8 @@
       const tt = e.tt && timetableEntry(e.tt);
       const text = tt ? (tt.arrives ? `${trainName(tt)} arrives<small>Onto Track ${YARD_TRACKS[ARRIVAL_TRACK].number}</small>`
           : `${trainName(tt)} leaves${j ? (j.taken ? "<small>It waits for your build</small>" : crew) : ""}`)
-        : j ? `${j.title} falls due${crew}` : `Shift change<small>The next jobs open</small>`;
+        : j ? `${j.title} falls due${crew}` : e.industry ? `Work done at ${INDUSTRIES[e.industry].name}<small>A pull job opens</small>`
+        : `Shift change<small>The next jobs open</small>`;
       html += `<button class="event" data-at="${e.at}"><b>${clockText(e.at)}</b><span>${text}</span>${dayNote(e.at)}</button>`;
     }
     const handed = openJobs().filter(j => !j.taken);
@@ -3185,6 +3379,12 @@
       (j.arrivedLate >= 60 ? `, held outside ${lateText(j.arrivedLate)}` : ""));
     if (j.kind === "build") remarks.push(`Train ${tt.number} to ${tt.to}, built on ${tracksText(j.block)} as one coupled cut, ` +
       `left by the loco, nothing else coupled in`);
+    if (j.kind === "setout") remarks.push(INDUSTRIES[j.industry].workTime === null
+      ? `Empties to ${INDUSTRIES[j.industry].name} on ${tracksText(YARD_TRACKS[INDUSTRIES[j.industry].track].block)}, on any of its ` +
+        `${INDUSTRY_SPOTS} spots from the buffer; loaded by the next shift change after the set-out`
+      : `Cars to ${INDUSTRIES[j.industry].name} on ${tracksText(YARD_TRACKS[INDUSTRIES[j.industry].track].block)}, each at its ` +
+        `consignee's ${INDUSTRIES[j.industry].spot}, numbered from the buffer; worked ${INDUSTRIES[j.industry].workTime / HOUR} h after the set-out`);
+    if (j.kind === "pull") remarks.push(`Cars worked at ${INDUSTRIES[j.industry].name}, to their blocks`);
     for (const b of Object.keys(BLOCKS)) if (BLOCKS[b].ordering === "block" && st.lines.some(l => l.block === b))
       remarks.push(`${BLOCKS[b].name} block in order from the ladder end: ${BLOCKS[b].groups.map(g => DESTINATIONS[g].name).join(", ")}`);
     if (remarks.length) h += `<p class="remarks"><span>Remarks:</span> ${remarks.join("; ")}.</p>`;
@@ -3217,7 +3417,10 @@
     `<div><b>${title}</b><small>${note}</small></div></div>`;
   function lineHtml(l) {
     const id = l.id, c = state.cars[id], v = state.vehicles[id];
-    const to = l.away ? "Away" : l.block === "repair" ? tracksText(l.block) : `${tracksText(l.block)} · ${DESTINATIONS[c.waybill].name}`;
+    const sp = c.spot && l.block !== "repair" && INDUSTRIES[c.spot.industry];
+    const to = l.away ? "Away" : l.block === "repair" ? tracksText(l.block)
+      : sp ? `${tracksText(l.block)} · ${sp.spot === "spot" && !c.spot.n ? "any spot" : `${sp.spot} ${c.spot.n}`}`
+      : `${tracksText(l.block)} · ${DESTINATIONS[c.waybill].name}`;
     const where = l.away ? `left ${shortTime(c.away)}` : inPlayerTrain(v) ? "in your train" : `on ${placeName(v)}`;
     return `<div class="line${l.met ? " met" : ""}"${l.away ? "" : ` data-car="${id}"`}><div class="tick">${l.met ? "✓" : ""}</div>` +
       `<div><b>${carName(id)}</b><small>${VEHICLE_TYPES[c.type].name} · ${c.loaded ? "loaded" : "empty"}</small>` +

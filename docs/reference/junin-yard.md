@@ -74,7 +74,14 @@ track. What it does:
   north.
 - **What is kept**: everything joined to the ladder between two cuts,
   less the rest of the east throat and the through track nearest the
-  main line. The yard tracks are cut at a buffer on one line across the
+  main line. Since #84 (2026-10-12), two east-throat tracks are kept to
+  their buffers, about 1,100 m east of the yard tracks' cut, for the
+  game's two industries: the one leaving the lead 34 m east of the
+  ladder's first switch (switch T1; the game's Track E, OSM way
+  1000697115) and the first one laddering off it (switch T2; Track G, way
+  1307444683). The two beyond them (ways 1000697114, 1000697113) and the
+  FC Mitre-tagged track off the lead (way 1000697117) are left out. What
+  those tracks were used for wasn't found. The yard tracks are cut at a buffer on one line across the
   yard, 300 to 500 m west of their switches; the lead is cut at a buffer
   281 m east of the ladder, making a head-shunt. The lead follows OSM's
   track that carries the crossover, so for its last 200 m it bends in to
