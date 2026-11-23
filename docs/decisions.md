@@ -3,6 +3,22 @@
 Design calls Tom has made, newest first, with where they were made. The
 values these produced live in CONFIG and WORLD DATA in `index.html`.
 
+## 2026-11-23: The Map (#53)
+
+Made in the "Big-map view" thread, with the Big-map lab (linked in #53).
+The rules are in [design/view.md](design/view.md).
+
+- **The Map has its own zoom steps** (2026-10-13): the first is still a
+  rough layout of the track; further out it turns into lines.
+- **The first step keeps the turn of the yard view** that was open; the
+  second and beyond lock to north (2026-10-13). Turning by hand is for
+  later: #96.
+- **The first step is widened** across the yard, so its tracks come apart.
+- **A tap on the Map goes there**, leaving play looking at that spot.
+- **Play zoom is in pixels per metre**, whatever the map's size; the Map
+  replaces the old zoomed-all-the-way-out level.
+- **Step 2 is the yard as straight lines, step 3 the lines out of Junín.**
+
 ## 2026-10-12: A grain elevator and a goods shed at Junín (#84)
 
 Made in the "Stage 3 planning" thread. The rules are in

@@ -35,3 +35,4 @@ here is the current form of those calls.
 | [results.md](results.md) | How finished work is assessed, and rough handling as a consequence |
 | [time.md](time.md) | The clock, shifts and skipping |
 | [living-railway.md](living-railway.md) | Other trains, the main line, authority to move |
+| [view.md](view.md) | What the screen shows: play zoom, following the loco, and the Map |
