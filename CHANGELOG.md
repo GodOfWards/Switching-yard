@@ -2,6 +2,21 @@
 
 Newest first. One entry per version bump.
 
+## 0.14.2
+
+**Added**
+- A Map, opened by its button or by zooming out past play's widest level.
+  It has three steps out: the yard widened so its tracks come apart, the
+  yard as lines north-up, and the lines out of Junín. A tap on it goes to
+  that spot.
+- An arrow at the screen's edge points to the loco when the view is panned
+  away from it.
+
+**Changed**
+- Zoom levels are set in pixels per metre, so play looks the same however
+  big the map grows. The old zoomed-all-the-way-out level is replaced by
+  the Map.
+
 ## 0.14.1
 
 **Changed**
