@@ -3,6 +3,14 @@
 Design calls Tom has made, newest first, with where they were made. The
 values these produced live in CONFIG and WORLD DATA in `index.html`.
 
+## 2026-11-24: Standing cuts are secured (#109)
+
+Made in the project chat, after #33's build found that an unbraked cut
+rolls out of hook-up reach when the loco touches it.
+
+- **Cuts left by other crews have a hand brake set**, as real crews secure
+  what they leave. The player secures their own.
+
 ## 2026-11-24: The *Aconcagua* and passenger trains at night (#77, #104)
 
 Made in the project thread. Facts in

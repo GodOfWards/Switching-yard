@@ -1238,6 +1238,11 @@
     for (const t of START_TRAINS) {
       for (const v of t.vehicles) addVehicle(v.id, startType(v), v.flip);
       layTrain(t.segment, t.s, t.dir, t.vehicles.map(v => v.id));
+      // A cut on a yard track stands secured, its car nearest the buffer
+      // with the hand brake set (#109).
+      const track = TRACK_OF[t.segment], cars = t.vehicles.filter(v => !VEHICLE_TYPES[startType(v)].loco).map(v => st.vehicles[v.id]);
+      if (track && cars.length === t.vehicles.length)
+        cars.reduce((a, b) => trackOffset(track, b.seg, b.s) > trackOffset(track, a.seg, a.s) ? b : a).handBrake = true;
     }
     for (const id in CARS) {
       const t = START_TRAFFIC[id] || {}, car = CARS[id];
@@ -2395,10 +2400,13 @@
     return true;
   }
   // Lays vehicles `ids`, in no train, out on yard track `trackId` as one
-  // cut, listed from the buffer, SET_BACK off it.
+  // cut, listed from the buffer, SET_BACK off it, secured by the crew that
+  // left it: the car at the buffer end has its hand brake set (#109), the
+  // rest keep theirs as they were.
   function layOnTrack(trackId, ids) {
     const segs = YARD_TRACKS[trackId].segments, last = segs[segs.length - 1], dir = SEGMENTS[last].b === TRACK_GEOM[trackId].end ? 1 : -1;
     layTrain(last, dir > 0 ? segmentLength(last) - SET_BACK : SET_BACK, dir, ids);
+    if (ids.length) state.vehicles[ids[0]].handBrake = true;
   }
 
   // Assesses a job the player reports done at `at` (docs/design/results.md):
