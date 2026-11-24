@@ -2,6 +2,12 @@
 
 Newest first. One entry per version bump.
 
+## 0.18.1
+
+**Changed**
+- The game's source is split into `src/`, one file per section, and built
+  into `index.html` by `tools/build.py` (#113). Nothing in the game changes.
+
 ## 0.18.0
 
 **Added**
