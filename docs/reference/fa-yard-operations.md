@@ -153,6 +153,9 @@ light repairs, including lifting a car to change wheelsets or a bogie; a
 | A labelled car unloaded where there is an inspection station is inspected before unloading; the line keeps such cars from waiting in the traffic yard longer than needed | MR 4-001 art. 8 | Confirmed |
 | Dangerous goods: a red "Peligro" label on both sides, and the same word on the waybills and envelopes (*guías y sobres*) | art. 201 | Confirmed |
 | Waybills (*cartas de porte*) filled in by the freight clerk; freight work recorded in "Book 404" | La Paternal | Secondary |
+| **Train register** (*libro para el registro de los trenes*): every block station keeps one, with the date, train number, the times line clear was asked and given, arrival and departure, and an observations column where **the causes of delays at the station** are written. Read 2026-11-24 | art. 41, 41 f | Confirmed |
+| For every train, stations report its time to Control and **how many minutes early or late it is against the timetable; if it isn't late, that is reported too**, with the cause of any delay | art. 219 a 1, b–e | Confirmed |
+| When a train is foreseen not to leave on time, Control is told in advance, with the reason and when it will be ready | art. 220 a | Confirmed |
 | The yard crew's own switch list: **no FA name or form was found** (searched again 2026-11-23). The RITO only says switching is planned beforehand and told to the driver | — | Unconfirmed |
 
 ## Authority to move

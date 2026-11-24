@@ -2,6 +2,21 @@
 
 Newest first. One entry per version bump.
 
+## 0.18.0
+
+**Added**
+- Junín's train register, from the board's Register button (#62): every
+  train of today and yesterday, by shift, with its booked and actual
+  times, minutes late or on time, and the cause when the yard delayed it.
+  Each shift totals the delay the yard caused, freight and passenger apart.
+
+**Changed**
+- A finished job's headline shows its timeliness beside the outcome:
+  "Operationally valid · 25 min late".
+- A move, for the par, is each change of direction of the loco, not each
+  start from a stand.
+- A yard saved before this version is not carried over.
+
 ## 0.17.1
 
 **Changed**

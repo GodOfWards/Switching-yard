@@ -3,6 +3,21 @@
 Design calls Tom has made, newest first, with where they were made. The
 values these produced live in CONFIG and WORLD DATA in `index.html`.
 
+## 2026-11-24: Results: the train register, lateness, moves (#62)
+
+Made in the project thread. The rules are in
+[design/results.md](design/results.md).
+
+- **A train register** at Junín, a page reached from the board, with a
+  line for every train through the map: number, booked and actual times,
+  minutes late or "on time", and the yard's cause. Grouped by shift, each
+  shift with its total minutes of delay caused by the yard, passenger and
+  freight apart. Minutes only, no weights or points.
+- **Timeliness sits beside the outcome**, not in it: "Operationally valid
+  · 25 min late". Late never lowers the outcome.
+- **A move is a change of direction** of the player's loco, not a start
+  from a stand.
+
 ## 2026-11-24: Standing cuts are secured (#109)
 
 Made in the project chat, after #33's build found that an unbraked cut
