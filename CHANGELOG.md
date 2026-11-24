@@ -2,6 +2,20 @@
 
 Newest first. One entry per version bump.
 
+## 0.19.2
+
+**Added**
+- A dev overlay for troubleshooting (#42): a long press on the version
+  number turns it on or off, and it starts off at every load. Over the
+  yard it labels each coupling's gap, air and the shunter's work with
+  seconds left, each vehicle's id, train and speed, hand brakes, each
+  switch and the leg it is set for, and each track's and segment's id. A
+  panel under the clock shows the clock in seconds, day or night, the
+  seed, who holds the main, through trains and held arrivals, open jobs
+  with moves against par, the industries, the pool and any problems with
+  the yard; a tap on its header folds it. **Save state** downloads the
+  yard as a file that loads back exactly.
+
 ## 0.19.1
 
 **Changed**
