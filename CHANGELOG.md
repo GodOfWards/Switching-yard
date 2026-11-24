@@ -2,6 +2,18 @@
 
 Newest first. One entry per version bump.
 
+## 0.16.0
+
+**Added**
+- Molinos Tassara, Junín's flour mill, off the map west of the station
+  (#105). It ships bagged flour to Retiro in box cars and takes wheat from
+  O'Higgins in hoppers. Its cars wait on Track 4, go out at the next shift
+  change and come back about 2 days later.
+- A second daily road train to Retiro, 1102 at 09:00.
+
+**Changed**
+- An arrival opens a build job for every departure until the next arrival.
+
 ## 0.15.0
 
 **Added**
