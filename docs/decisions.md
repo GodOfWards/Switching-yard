@@ -3,6 +3,24 @@
 Design calls Tom has made, newest first, with where they were made. The
 values these produced live in CONFIG and WORLD DATA in `index.html`.
 
+## 2026-11-24: Hook-and-screw couplings (#33)
+
+Made in the project thread, from the coupler research in
+[reference/train-physics.md](reference/train-physics.md#couplers). These
+replace "Coupling needs a minimum closing speed" (Physics update, first
+part) and the 5 cm of free play under Slack, for bogie cars.
+
+- **Hook and screw with side buffers is the rule for every broad-gauge car
+  and loco**, replacing the automatic coupler; not a second type beside it.
+  Vehicles that meet touch buffers and push, and never couple on their own.
+- **Two-axle cars use a plain chain link**, left slack.
+- **Slack: nearly tight.** The screw is tightened until the buffers touch,
+  so bogie cars lose the 5 cm of free play; the buffers and draft gear
+  still give.
+- **Hooking up takes a few seconds** of a shunter's work, as does
+  uncoupling.
+- **FA's 20 t and 30 t coupling rule** (MR-706 D-5) is left out for now.
+
 ## 2026-11-23: The Map (#53)
 
 Made in the "Big-map view" thread, with the Big-map lab (linked in #53).
