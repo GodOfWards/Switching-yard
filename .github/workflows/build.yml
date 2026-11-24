@@ -1,0 +1,21 @@
+name: Build
+
+# index.html is built from src/ by tools/build.py (#113). Fails when the
+# committed index.html isn't what src/ builds: src/ edited without
+# rebuilding, or index.html edited by hand.
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: index.html matches src/
+        run: python tools/build.py --check

@@ -1,7 +1,10 @@
 # Switching Game
 
 A top-down railway switching game in a single HTML file. Open `index.html`
-in a browser; there is no build step.
+in a browser; nothing needs installing.
+
+`index.html` is built from the source in `src/`: after editing it, run
+`python tools/build.py` (Python 3, nothing else).
 
 It's made for a phone held upright. Along the bottom are three notched
 levers, each a + and a −: the throttle (past zero it runs in reverse), the

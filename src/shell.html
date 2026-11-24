@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<title>Switching Game</title>
+<style>
+/* build: style.css */
+</style>
+</head>
+<body>
+<div id="view"><canvas id="yard"></canvas>
+  <div id="zoom">
+    <button id="zoomIn" aria-label="Zoom in">+</button>
+    <button id="zoomOut" aria-label="Zoom out">−</button>
+    <button id="followBtn" aria-label="Follow the loco">◎&#xFE0E;</button>
+    <button id="mapBtn" aria-label="Map">Map</button>
+    <button id="pauseBtn" aria-label="Pause">❚❚</button>
+    <button id="newYardBtn" aria-label="New yard">↺&#xFE0E;</button>
+  </div>
+  <div id="clockBar">
+    <div id="clock"><b id="clockTime"></b><span id="clockShift"></span></div>
+    <button id="skipBtn">Skip ▸&#xFE0E;</button>
+  </div>
+  <button id="jobChip"></button>
+  <button id="mainChip"></button>
+  <button id="jobsBtn">Jobs</button>
+  <div id="skipMenu"></div>
+  <div id="couplingMenu">
+    <button id="hookBtn">Hook up</button>
+    <button id="airBtn">Air</button>
+    <button id="uncoupleBtn">Uncouple</button>
+  </div>
+  <div id="mainMenu"><span>Ask for the main</span></div>
+  <div id="carCard"><div id="carText"></div><button id="handBrakeBtn"></button></div>
+  <div id="sheet"></div>
+</div>
+<div id="bar">
+  <div id="readout"></div>
+  <div id="controls">
+    <button id="revUp" aria-label="Reverser toward forward">▲&#xFE0E;</button>
+    <button id="thrUp" aria-label="Throttle up">+</button>
+    <button id="lbUp" aria-label="Loco brake on">+</button>
+    <button id="tbUp" aria-label="Train brake on">+</button>
+    <button id="releaseBtn" class="word">Release</button>
+    <div class="lever" id="revLever"></div>
+    <div class="lever" id="thrLever"></div>
+    <div class="lever" id="lbLever"></div>
+    <div class="lever" id="tbLever"></div>
+    <div class="spacer"></div>
+    <button id="revDown" aria-label="Reverser toward reverse">▼&#xFE0E;</button>
+    <button id="thrDown" aria-label="Throttle down">−</button>
+    <button id="lbDown" aria-label="Loco brake off">−</button>
+    <button id="tbDown" aria-label="Train brake off">−</button>
+    <button id="emergBtn" class="word">Emerg</button>
+  </div>
+</div>
+<script>
+"use strict";
+(() => {
+  // build: sections
+})();
+</script>
+</body>
+</html>

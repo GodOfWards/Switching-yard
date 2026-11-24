@@ -270,8 +270,12 @@
   // ==================================================
   // ARCHITECTURE
   // ==================================================
-  // One self-contained file, no build step, no dependencies. Content and
-  // mechanics are kept apart so a pass can touch one without the other.
+  // The game is one file, index.html, built from src/ by tools/build.py
+  // (#113): the page is src/shell.html, its style src/style.css, and each
+  // section below is one file, src/00-architecture.js to src/11-checks.js,
+  // in this order. They run inside one strict-mode IIFE and share its scope.
+  // No dependencies. Content and mechanics are kept apart so a pass can
+  // touch one without the other.
   //
   //   CONFIG       version and every tunable game rule, as named constants.
   //   WORLD DATA   the yard: track nodes, straight or curved segments between
