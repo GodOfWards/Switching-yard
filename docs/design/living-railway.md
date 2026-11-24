@@ -47,10 +47,21 @@ move).
   clear. A train offered while the player holds the main calls them off.
   The wait is the player's delay, noted on the results of the job being
   worked. No wreck is possible: the train obeys the signal.
+- **The *Aconcagua*** (#77), a passenger train, runs through once each
+  way a day like the freights: 565 from Retiro at 15:30 from the east, 566
+  from Mendoza at 23:30 from the west.
+- **A passenger train gets no conditional line clear at night** (#104).
+  By day it is handled like a freight. Between 20:00 and 06:00, if the
+  main isn't clear when it is offered, line clear is refused: it waits at
+  the station behind (La Oriental from the east, Junín station from the
+  west), out of sight, and the main chip says so. Once the player reports
+  clear it is offered again and sets off, reaching the map 10 minutes
+  later. Its delay, noted like any held train's, is its lateness at the
+  map's edge, so a refusal costs at least the 10-minute run-in more than
+  a conditional line clear would have.
 
 ## Open
 
-- Passenger trains, starting with the *Aconcagua*: #77.
 - Retiro road trains running in over the crossover: #78.
 - Other crews on the map: #46.
 - Knock-on delays: #47.

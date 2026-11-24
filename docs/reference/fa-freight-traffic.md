@@ -241,6 +241,25 @@ Not decided here; Tom's calls go in `../decisions.md`.
   stations east of Junín load grain outbound, O'Higgins most, Membrillar
   in small lots.
 
+## Molinos Tassara's rates (#105)
+
+Added 2026-11-24. The game's estimates, not findings; retunable. The mill
+and its sidings are in [fa-yard-operations.md](fa-yard-operations.md#junín).
+
+- **Flour out, 6 box cars a week:** 6 × 35.3 t × 52 weeks ≈ 11,000 t a
+  year. The 35.3 t a car is FA's 1977 average load from the World Bank
+  appraisal (above). **Estimate.**
+- **Wheat in, 4 hoppers a week:** at about 75% extraction, 11,000 t of
+  flour needs about 14,700 t of wheat; 4 × 35.3 t × 52 ≈ 7,300 t, about
+  half, the rest by truck. **Estimate**; the extraction rate is general
+  milling practice, no source recorded.
+- **2 days away**, there and back from the local track through the west
+  end. **Estimate.**
+- **Capacity:** the Retiro side's flows came to about 110 cars a week
+  each way against one 16-car departure a day (112). Tassara's 10 more
+  overloaded it: in a 90-day test, arrivals were held outside for days.
+  A second departure to Retiro clears it (Tom, 2026-11-24).
+
 ## Not found
 
 Open in #112 (FA records not online).

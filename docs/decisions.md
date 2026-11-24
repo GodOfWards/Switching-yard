@@ -3,6 +3,45 @@
 Design calls Tom has made, newest first, with where they were made. The
 values these produced live in CONFIG and WORLD DATA in `index.html`.
 
+## 2026-11-24: The *Aconcagua* and passenger trains at night (#77, #104)
+
+Made in the project thread. Facts in
+[reference/aconcagua.md](reference/aconcagua.md) and
+[reference/fa-yard-operations.md](reference/fa-yard-operations.md); the
+rules in [design/living-railway.md](design/living-railway.md).
+
+- **The *Aconcagua* runs through on the main**, once each way a day: 565
+  from Retiro reaches the map's east edge at 15:30, 566 from Mendoza its
+  west edge at 23:30. The times are the game's (Assumed), picked so every
+  shift sees two through trains.
+- **An RSD-16 and 7 Materfer coaches**: F, CT ×2, P ×2, R, PA. One coach
+  body labelled by FA code, 25 m long (Assumed). Grey with a thin red
+  stripe and dark blue ends; the RSD-16 in FA yellow-orange and red.
+- **The RSD-16 is a second loco type**, alongside the G12.
+- **No conditional line clear for a passenger train at night** (RITO art.
+  64 d 3). Daylight is 06:00 to 20:00, all year. At night, with the main
+  not clear, line clear is refused: the train waits off the map, is
+  offered again once the main is clear, and only then sets off, 10
+  minutes out. Its delay is its real lateness at the map's edge, run-in
+  included.
+## 2026-11-24: Hook-and-screw couplings (#33)
+
+Made in the project thread, from the coupler research in
+[reference/train-physics.md](reference/train-physics.md#couplers). These
+replace "Coupling needs a minimum closing speed" (Physics update, first
+part) and the 5 cm of free play under Slack, for bogie cars.
+
+- **Hook and screw with side buffers is the rule for every broad-gauge car
+  and loco**, replacing the automatic coupler; not a second type beside it.
+  Vehicles that meet touch buffers and push, and never couple on their own.
+- **Two-axle cars use a plain chain link**, left slack.
+- **Slack: nearly tight.** The screw is tightened until the buffers touch,
+  so bogie cars lose the 5 cm of free play; the buffers and draft gear
+  still give.
+- **Hooking up takes a few seconds** of a shunter's work, as does
+  uncoupling.
+- **FA's 20 t and 30 t coupling rule** (MR-706 D-5) is left out for now.
+
 ## 2026-11-24: Molinos Tassara off the map (#45)
 
 Made in the project chat, after the Junín research of 2026-11-23
@@ -19,6 +58,10 @@ Made in the project chat, after the Junín research of 2026-11-23
 - **Tassara cars use the west end**: a car for the mill waits on the local
   track, goes out at the next shift change, and comes back about 2 days
   later on an arrival. The moves to and from the mill stay off-screen.
+- **A second daily road train to Retiro** (2026-11-24, in the project
+  thread, #105): on top of the rest, Tassara's 10 cars a week overload the
+  one 16-car train to Retiro, which already left full 9 days in 10. A
+  departure 1102 to Retiro at 09:00 joins the timetable (time retunable).
 
 ## 2026-11-23: The Map (#53)
 

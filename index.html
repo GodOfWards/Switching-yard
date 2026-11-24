@@ -236,6 +236,7 @@
   <button id="jobsBtn">Jobs</button>
   <div id="skipMenu"></div>
   <div id="couplingMenu">
+    <button id="hookBtn">Hook up</button>
     <button id="airBtn">Air</button>
     <button id="uncoupleBtn">Uncouple</button>
   </div>
@@ -286,16 +287,18 @@
   //                Content passes (a new siding, a new yard) touch only this.
   //   STATE        what changes while playing: the time of day, switch
   //                positions, vehicles, the trains they are coupled into,
+  //                the shunter's work under way at couplings,
   //                the loco's controls, the cars' traffic (away off the
   //                map included) and the pool of cars elsewhere on the
   //                line, the industries' work, the jobs, the arrivals held
-  //                outside, the through trains offered or running, and who
-  //                holds the main.
+  //                outside, the through trains offered, refused line clear
+  //                or running, and who holds the main.
   //                Built from WORLD DATA by makeState(); never edits WORLD DATA.
   //   UTILITIES    small geometry, track-walking and lookup helpers.
   //   SIMULATION   advances STATE by one fixed step, step(dt): the clock, and
-  //                all movement rules: forces, brakes, slack, contact,
-  //                coupling. The events ahead (a job due, a shift change)
+  //                all movement rules: forces, brakes, slack, contact
+  //                buffer to buffer, and the shunter's hooking up and
+  //                uncoupling coming due. The events ahead (a job due, a shift change)
   //                come from here too. The
   //                loop calls it at a fixed rate, so behaviour never depends
   //                on the display's frame rate.
@@ -309,7 +312,7 @@
   //                offered, held or run past on the main.
   //   ACTIONS      what the player can do (reverser, levers, Emergency,
   //                Release, throw a switch, connect or part the air,
-  //                uncouple, set a hand brake, skip ahead, take, hand back
+  //                hook up or uncouple, set a hand brake, skip ahead, take, hand back
   //                or report a job, ask for the main or report it clear),
   //                and the rules on
   //                when they may. They change STATE; they never draw.
@@ -347,7 +350,7 @@
   // ==================================================
   // CONFIG
   // ==================================================
-  const GAME_CONFIG = { VERSION: "0.14.2" };
+  const GAME_CONFIG = { VERSION: "0.17.0" };
   const STEP_SECONDS = 1 / 60;          // fixed simulation step
   const MAX_STEPS_PER_FRAME = 5;        // drop time rather than spiral after a stall
   const VIEW_MARGIN = 8;                // metres of ground kept around the yard
@@ -414,22 +417,30 @@
   // empty stops sooner than a load. Unconfirmed; retunable.
   const HAND_BRAKE_FORCE = 0.1 * 0.3 * 60e3 * G;  // N, ≈ 17.7 kN
 
-  // Contact. Ends meeting between COUPLE_MIN_SPEED and COUPLE_MAX_SPEED
-  // couple. Slower, they touch and push without coupling, unless one presses
-  // on the other with COUPLE_PUSH_FORCE (shoving a cut to couple it). Faster
-  // is a hard hit: a jolt, and the two bounce apart by HARD_HIT_RESTITUTION.
-  const COUPLE_MIN_SPEED = 1.5 / 3.6;   // m/s closing speed; estimated, retunable
-  const COUPLE_PUSH_FORCE = 40e3;       // N; estimated, retunable
-  const COUPLE_MAX_SPEED = 5 / 3.6;     // m/s closing speed; retunable
-  const PRESS_SECONDS = 0.5;            // s the push between two touching ends is averaged over
+  // Contact (#33). Every vehicle has side buffers and a hook, as on FA's
+  // broad gauge: ends that meet touch buffers and push, and never couple on
+  // their own. Ends meeting faster than HARD_HIT_SPEED are a hard hit: a
+  // jolt, and the two bounce apart by HARD_HIT_RESTITUTION.
+  const HARD_HIT_SPEED = 5 / 3.6;       // m/s closing speed; retunable
+  // Coupling is a shunter's work (#33): Hook up puts the link over the hook
+  // and tightens the screw until the buffers meet (MR-706 D-8); Uncouple
+  // slackens and unhooks it. Either takes HOOK_UP_SECONDS, with both
+  // vehicles standing. Ends up to HOOK_REACH apart can be hooked up: the
+  // reach of a slackened screw coupling, the gap closed as it tightens.
+  const HOOK_UP_SECONDS = 10;           // s; "a few seconds" (Tom, 2026-11-24); retunable
+  const HOOK_REACH = 0.15;              // m; estimated, retunable
 
-  // Slack. A coupling has COUPLER_FREE_PLAY of play: inside it, nothing
+  // Slack. A screw coupling is tightened until the buffers touch, so it has
+  // SCREW_FREE_PLAY; a two-axle car's chain link is left slack (RITO art.
+  // 210 b), CHAIN_FREE_PLAY (#26's 5 cm). Inside the free play, nothing
   // passes between the two vehicles. Past it, stretched or bunched, the
-  // draft gear acts as a stiff damped spring, rated at DRAFT_GEAR_FORCE over
-  // DRAFT_GEAR_TRAVEL (AAR M-901-G: 500,000 lb over about 3 in). Secondary;
-  // see docs/reference/train-physics.md. The spring is stiff, so the
-  // simulation takes SLACK_SUBSTEPS smaller steps within each fixed step.
-  const COUPLER_FREE_PLAY = 0.05;       // m, about 2 in
+  // buffers and draft gear act as a stiff damped spring, rated at
+  // DRAFT_GEAR_FORCE over DRAFT_GEAR_TRAVEL (AAR M-901-G: 500,000 lb over
+  // about 3 in). Secondary; see docs/reference/train-physics.md. The spring
+  // is stiff, so the simulation takes SLACK_SUBSTEPS smaller steps within
+  // each fixed step.
+  const SCREW_FREE_PLAY = 0;            // m: nearly tight (Tom, 2026-11-24)
+  const CHAIN_FREE_PLAY = 0.05;         // m, about 2 in; Unconfirmed, retunable
   const DRAFT_GEAR_TRAVEL = 0.075;      // m, about 3 in
   const DRAFT_GEAR_FORCE = 500e3 * LBF; // N at full travel, ≈ 2.2 MN
   const DRAFT_GEAR_STIFFNESS = DRAFT_GEAR_FORCE / DRAFT_GEAR_TRAVEL;  // N/m, ≈ 30 MN/m
@@ -489,16 +500,24 @@
   // THROUGH_SPEED; held, it stands at the east home signal, HOME_SIGNAL_IN
   // metres in from the map's east edge, or waits off the map at the station
   // side. The player asks for the main for one of MAIN_ASK_MINUTES.
+  // A passenger train gets a conditional line clear only by day (#104;
+  // RITO art. 64 d 3): offered outside DAYLIGHT_FROM to DAYLIGHT_TO with the
+  // main not clear, it is refused line clear (art. 65) and waits at the
+  // station behind until the main is clear, then sets off, still
+  // OFFER_LEAD_SECONDS out. Daylight is a fixed window, the same all year,
+  // rounding Junín's sunrise and sunset; retunable.
   const OFFER_LEAD_SECONDS = 10 * 60;   // roughly the run from La Oriental; retunable
   const THROUGH_SPEED = 40 / 3.6;       // m/s; retunable
   const THROUGH_ACCEL = 0.15;           // m/s², a held train starting away; retunable
   const HOME_SIGNAL_IN = 330;           // m; more than the longest through train (14 m + 15 cars: 243 m); retunable
+  const DAYLIGHT_FROM = 6 * HOUR;
+  const DAYLIGHT_TO = 20 * HOUR;
   const MAIN_ASK_MINUTES = [10, 20, 30];  // retunable
   // A job is inefficient when its moves pass this many per car handled
   // and per block. A move is each start of the player's loco from a stand.
   const PAR_PER_CAR_AND_BLOCK = 1.5;    // retunable
   // A coupling closing faster than this damages the car: it goes bad order.
-  const DAMAGE_SPEED = COUPLE_MAX_SPEED;  // retunable
+  const DAMAGE_SPEED = HARD_HIT_SPEED;  // retunable
   // A car stands clear of the ladder where its yard track is this far from
   // any other track, centre to centre: about a car's width. Each track's
   // fouling point is worked out from it. Tracks 4 and 5 run as little as
@@ -884,13 +903,29 @@
   // docs/reference/fa-freight-cars.md. Every car length, and the tares and
   // loads marked there as estimates, are Unconfirmed; retunable. Colours
   // are FA's, lightened where FA's black would vanish on the black yard.
+  // The Materfer coach body (#77; docs/reference/aconcagua.md): light grey
+  // with a thin red stripe under the windows, dark blue ends. Its length
+  // and tare are Assumed (no source; European coaches of the era), and its
+  // bearings Unconfirmed. Retunable.
+  const MATERFER_COACH = { coach: true, length: 25, tare: 45, carga: 0, axles: 4, bearing: "roller",
+                           colour: "#c9c5ca", stripe: "#c23b2e", stripeShare: 0.1, ends: "#1d3561" };
   const VEHICLE_TYPES = {
     g12:       { loco: true, name: "GM G12", length: 14, mass: 109e3, axles: 4, bearing: "roller", colour: "#c0533a" }, // length approximate
+    // The Aconcagua's loco (#77): FA yellow-orange, its red lower band
+    // showing along the sides. docs/reference/locomotives.md.
+    rsd16:     { loco: true, name: "ALCo RSD-16", length: 17.1, mass: 108e3, axles: 6, bearing: "roller", colour: "#e3a12a",
+                 stripe: "#c23b2e", stripeShare: 0.22 },
     cubierto:  { name: "Vagón cubierto",  code: "26", length: 15.5, tare: 21, carga: 50, axles: 4, bearing: "plain", colour: "#a2a5a3" },
     tolva:     { name: "Tolva cerealera", code: "75", length: 15,   tare: 21, carga: 58, axles: 4, bearing: "plain", colour: "#a2a5a3" },
     bordeAlto: { name: "Borde alto",      code: "54", length: 14,   tare: 20, carga: 60, axles: 4, bearing: "plain", colour: "#a2a5a3" },
     plataforma: { name: "Plataforma",     code: "68", length: 19.5, tare: 19, carga: 61, axles: 4, bearing: "plain", colour: "#c9a634" },
     tanque:    { name: "Vagón tanque",    code: "82", length: 14,   tare: 21, carga: 50, axles: 4, bearing: "plain", colour: "#3a3c40", band: "#e2b420" },
+    // Passenger coaches (#77): one Materfer body, a kind for each FA code.
+    coachF:    { ...MATERFER_COACH, name: "Furgón",          code: "F" },
+    coachCT:   { ...MATERFER_COACH, name: "Coche turista",   code: "CT" },
+    coachP:    { ...MATERFER_COACH, name: "Coche primera",   code: "P" },
+    coachR:    { ...MATERFER_COACH, name: "Coche comedor",   code: "R" },
+    coachPA:   { ...MATERFER_COACH, name: "Coche pullman",   code: "PA" },
   };
   // FA's operating digit for plains, low speed (NEFA 956): the third digit
   // of every car's code here.
@@ -1021,8 +1056,9 @@
     elevator: { name: "Elevator", ordering: "none" },
     shed:    { name: "Goods shed", ordering: "exact" },
   };
-  // The industries at Junín (#84), each on its track, both invented: no
-  // rail-served industry at Junín was found (#45, docs/decisions.md). A
+  // The industries at Junín (#84), each on its track, both invented: the
+  // one rail-served industry found at Junín, Molinos Tassara, stood off the
+  // map, and is a station of its own in DESTINATIONS (#45, #105). A
   // flow with `atJunin` loads or unloads at that industry; the rest at
   // Junín stay the shift-change placeholder. `spot` is what a spot is
   // called there. The elevator's cars stand on any spot; at the shed, a
@@ -1036,7 +1072,10 @@
   // there included: from FA's 18-day broad-gauge car turnaround, split by
   // distance (docs/reference/fa-freight-traffic.md; the split is assumed,
   // retunable). Its block is also its side: cars come back from it on the
-  // arrivals from that side.
+  // arrivals from that side. A station `westEnd` is reached through the
+  // west end instead, off-screen (#105): its cars wait on its block's
+  // track, go out at the next shift change, and come back on the next
+  // arrival from either side.
   const DESTINATIONS = {
     ohiggins:   { name: "O'Higgins",          block: "retiro",  away: 8 * DAY },
     membrillar: { name: "Membrillar",         block: "retiro",  away: 8 * DAY },
@@ -1048,13 +1087,14 @@
     elevator:   { name: "Junín, the elevator", block: "empties" },
     shed:       { name: "Junín, the goods shed", block: "local" },
     stored:     { name: "Storage",            block: "storage" },
+    tassara:    { name: "Molinos Tassara",    block: "local",   away: 2 * DAY, westEnd: true },
   };
   // The traffic plan (#50): each flow carries `load` in cars of kind
   // `type` from one station to another, `perWeek` loaded cars a week, and
   // each car goes back empty to where it was loaded. Stations are
   // DESTINATIONS off the map, or "junin". Sized to what the timetable can
-  // carry: each side balances in and out, about 190 cars a week each way
-  // through the yard. FA's bulk (wine in tank trains, most grain) moved
+  // carry: each side balances in and out; the Retiro side, about 120
+  // cars a week each way, needs both its departures (#105). FA's bulk (wine in tank trains, most grain) moved
   // in through trains; these are wagonload. Estimates, retunable; Tom's
   // calls of 2026-10-12, docs/decisions.md.
   const FLOWS = {
@@ -1069,6 +1109,11 @@
     lotsVedia:    { from: "junin",   to: "vedia",      type: "cubierto",  load: "small lots",              perWeek: 8, atJunin: "shed" },
     lotsOHiggins: { from: "junin",   to: "ohiggins",   type: "cubierto",  load: "small lots",              perWeek: 4, atJunin: "shed" },
     materials:    { from: "junin",   to: "membrillar", type: "bordeAlto", load: "materials",               perWeek: 4 },
+    // Molinos Tassara's mill, off the map west of the station (#105): about
+    // 11,000 t of flour a year out, and about half the wheat it needs in
+    // (the rest by road). docs/reference/fa-freight-traffic.md.
+    flourTassara: { from: "tassara", to: "retiro",     type: "cubierto",  load: "bagged flour",            perWeek: 6 },
+    wheatTassara: { from: "ohiggins", to: "tassara",   type: "tolva",     load: "wheat",                   perWeek: 4 },
   };
   // Each car's traffic at the start: its flow, or a waybill when it has
   // none, and why it's bad order, if it is. Cars away at the start, and
@@ -1087,29 +1132,49 @@
   // a departure takes its block's cars from that block's track and goes.
   // The buffer stands for the rest of the yard toward the station. `at` is
   // the time of day; numbers are the game's. An arrival brings the cars
-  // coming back from the stations on its `side` (their block). Retunable.
+  // coming back from the stations on its `side` (their block). Retiro has
+  // two departures a day: one 16-car train can't take Molinos Tassara's
+  // traffic on top of the rest (#105). Retunable.
   const TIMETABLE = [
     { id: "a1101", number: "1101", arrives: true, from: "Retiro",  side: "retiro",   at: 7 * HOUR },
+    { id: "d1102", number: "1102", arrives: false, to: "Retiro",  block: "retiro",   at: 9 * HOUR },
     { id: "d1202", number: "1202", arrives: false, to: "Mendoza", block: "mendoza",  at: 12.5 * HOUR },
     { id: "a1203", number: "1203", arrives: true, from: "Mendoza", side: "mendoza",  at: 15 * HOUR },
     { id: "d1104", number: "1104", arrives: false, to: "Retiro",  block: "retiro",   at: 20.5 * HOUR },
     { id: "a1105", number: "1105", arrives: true, from: "Retiro",  side: "retiro",   at: 23 * HOUR },
     { id: "d1206", number: "1206", arrives: false, to: "Mendoza", block: "mendoza",    at: 4.5 * HOUR },
   ];
-  // Through freights (#56): they pass on the main without working the yard.
-  // `enters` is the edge of the map they come in at: from Retiro the east,
-  // from Mendoza the west, the station side. `at` is when the head reaches
-  // that edge. Each is a G12 and THROUGH_CONSIST, loaded. Numbers and times
-  // are the game's; retunable.
+  // Through trains (#56, #77): they pass on the main without working the
+  // yard. `enters` is the edge of the map they come in at: from Retiro the
+  // east, from Mendoza the west, the station side. `at` is when the head
+  // reaches that edge. `consist` is the train's make-up in
+  // THROUGH_CONSISTS, a freight's cars loaded. A `passenger` train gets no
+  // conditional line clear at night (#104). Numbers and freight times are
+  // the game's; the Aconcagua's numbers are FA's, its Junín times the
+  // game's, picked so every shift sees two trains (Assumed: no FA
+  // timetable found). Retunable.
   const THROUGH_TIMETABLE = [
-    { id: "x2401", number: "2401", from: "Retiro",  to: "Mendoza", enters: "east", at: 9.5 * HOUR },
-    { id: "x2402", number: "2402", from: "Mendoza", to: "Retiro",  enters: "west", at: 13.75 * HOUR },
-    { id: "x2403", number: "2403", from: "Retiro",  to: "Mendoza", enters: "east", at: 17.25 * HOUR },
-    { id: "x2404", number: "2404", from: "Mendoza", to: "Retiro",  enters: "west", at: 2 * HOUR },
+    { id: "x2401", number: "2401", from: "Retiro",  to: "Mendoza", enters: "east", at: 9.5 * HOUR,   consist: "freight" },
+    { id: "x2402", number: "2402", from: "Mendoza", to: "Retiro",  enters: "west", at: 13.75 * HOUR, consist: "freight" },
+    { id: "p565",  number: "565",  name: "Aconcagua", from: "Retiro", to: "Mendoza", enters: "east", at: 15.5 * HOUR,
+      consist: "aconcagua", passenger: true },
+    { id: "x2403", number: "2403", from: "Retiro",  to: "Mendoza", enters: "east", at: 17.25 * HOUR, consist: "freight" },
+    { id: "p566",  number: "566",  name: "Aconcagua", from: "Mendoza", to: "Retiro", enters: "west", at: 23.5 * HOUR,
+      consist: "aconcagua", passenger: true },
+    { id: "x2404", number: "2404", from: "Mendoza", to: "Retiro",  enters: "west", at: 2 * HOUR,     consist: "freight" },
   ];
-  const THROUGH_CONSIST = ["tolva", "tolva", "tolva", "cubierto", "cubierto", "tolva", "bordeAlto", "tanque",
-    "tanque", "tolva", "tolva", "cubierto", "plataforma", "tolva", "tolva"];
-  const THROUGH_EDGES = { east: "mainEastEnd", west: "mainWestEnd" };
+  // Each make-up: the loco at the head, then the cars from behind it. The
+  // Aconcagua's (#77, Tom 2026-11-24; retunable): an RSD-16, the van, two
+  // tourist, two first, the restaurant and the pullman.
+  const THROUGH_CONSISTS = {
+    freight: { loco: "g12", cars: ["tolva", "tolva", "tolva", "cubierto", "cubierto", "tolva", "bordeAlto", "tanque",
+      "tanque", "tolva", "tolva", "cubierto", "plataforma", "tolva", "tolva"] },
+    aconcagua: { loco: "rsd16", cars: ["coachF", "coachCT", "coachCT", "coachP", "coachP", "coachR", "coachPA"] },
+  };
+  // Each edge's end of track, and the station behind it, where a train
+  // refused line clear waits: La Oriental to the east, Junín station to
+  // the west.
+  const THROUGH_EDGES = { east: { node: "mainEastEnd", station: "La Oriental" }, west: { node: "mainWestEnd", station: "Junín station" } };
   const YARD_NAME = "Junín, east end";
 
   // The lines out of Junín to their next junction (#52), for the Map's
@@ -1136,7 +1201,10 @@
     // `air` holds each coupling whose air is connected, by its pair key, with
     // how far its charge has come (0 to 1).
     // `gaps` holds each coupling's opening past touching, by its pair key: 0
-    // fully bunched, COUPLER_FREE_PLAY fully stretched before the draft gear.
+    // buffers touching, its free play (freePlay()) fully stretched before the
+    // draft gear. `work` holds the shunter's work under way at a coupling or
+    // a meeting of buffers, by its pair key: hooking up or uncoupling, and
+    // when it is done (#33).
     // `cars` holds each car in the game's traffic, by id: its kind, number
     // and line initials (or null), whether it is loaded, its flow (a FLOWS
     // id, or null), its waybill (a DESTINATIONS id, or null), its `spot` at
@@ -1159,7 +1227,7 @@
     // vehicles on the map and its speed. `main` says whether the player
     // holds the main, and until when. `seed` drives the game's choices of
     // traffic.
-    const st = { clock: START_CLOCK, switches: {}, vehicles: {}, trains: {}, air: {}, gaps: {}, nextTrain: 1,
+    const st = { clock: START_CLOCK, switches: {}, vehicles: {}, trains: {}, air: {}, gaps: {}, work: {}, nextTrain: 1,
                  cars: {}, jobs: [], nextJob: 1, moves: 0, locoMoving: false, nextShiftAt: START_CLOCK,
                  timetableAt: START_CLOCK, held: [], throughAt: START_CLOCK, through: [], main: { held: false, until: null },
                  pool: {}, nextCar: 1, poolCount: { joined: 0, left: 0 }, poolSince: START_CLOCK, industries: {},
@@ -1318,6 +1386,9 @@
   // A coupling's identity: the ids of the two vehicles it joins, in order.
   const pairKey = (a, b) => a < b ? a + "|" + b : b + "|" + a;
   const trainOf = v => state.trains[v.train];
+  // A coupling's free play: a chain link's when either vehicle is a
+  // two-axle car, else a screw coupling's, nearly none (#33).
+  const freePlay = (a, b) => vehicleType(a).axles === 2 || vehicleType(b).axles === 2 ? CHAIN_FREE_PLAY : SCREW_FREE_PLAY;
 
   // Each yard track's shape, built once from WORLD DATA: for each of its
   // segments, `from` (metres from the switch to the segment's start) and
@@ -1488,12 +1559,12 @@
   // it: + pulling them together (stretched), − pushing them apart (bunched),
   // nothing while the gap is within the free play.
   function couplerForce(front, back) {
-    const gap = state.gaps[pairKey(front.id, back.id)];
-    if (gap >= 0 && gap <= COUPLER_FREE_PLAY) return 0;
+    const gap = state.gaps[pairKey(front.id, back.id)], play = freePlay(front, back);
+    if (gap >= 0 && gap <= play) return 0;
     const opening = front.speed - back.speed;                     // how fast the gap grows
     const mF = vehicleMass(front), mB = vehicleMass(back);
     const damping = 2 * DRAFT_GEAR_DAMPING * Math.sqrt(DRAFT_GEAR_STIFFNESS * mF * mB / (mF + mB));
-    if (gap > 0) return Math.max(0, DRAFT_GEAR_STIFFNESS * (gap - COUPLER_FREE_PLAY) + damping * opening);
+    if (gap > 0) return Math.max(0, DRAFT_GEAR_STIFFNESS * (gap - play) + damping * opening);
     return Math.min(0, DRAFT_GEAR_STIFFNESS * gap + damping * opening);
   }
 
@@ -1556,11 +1627,6 @@
     trailSwitches(v);
   }
 
-  // How hard each pair of touching train ends presses together, by pair key:
-  // the push between them averaged over PRESS_SECONDS, so a brief bump
-  // counts for little and a steady shove for its full force.
-  const pressing = {};
-
   // The vehicle at end `which` ("head" or "tail") of train `t`.
   const endVehicle = (t, which) => state.vehicles[t.vehicles[which === "head" ? 0 : t.vehicles.length - 1]];
   // Which end of train `t` its end vehicle `v` is; for a train of one, the
@@ -1568,8 +1634,9 @@
   const endOf = (t, v, which) => t.vehicles.length === 1 ? which : t.vehicles[0] === v.id ? "head" : "tail";
 
   // Train X's end `xEnd` has met train Y's end `yEnd`. The two end vehicles
-  // meet; the rest feel it through their couplings. Speeds are compared
-  // along one axis, pointing from X into Y.
+  // meet buffer to buffer; the rest feel it through their couplings. Speeds
+  // are compared along one axis, pointing from X into Y. They never couple:
+  // that is Hook up's work (hookUp()).
   function contact(X, xEnd, Y, yEnd) {
     const a = endVehicle(X, xEnd), b = endVehicle(Y, yEnd);
     const xs = xEnd === "head" ? 1 : -1, ys = yEnd === "head" ? -1 : 1;
@@ -1579,27 +1646,19 @@
     const shared = (mA * uA + mB * uB) / (mA + mB);              // momentum is kept
     const damaged = closing > DAMAGE_SPEED ? [a, b].filter(v => damageCar(v.id, closing)).map(v => carName(v.id)) : [];
     if (damaged.length) setNotice(`${damaged.join(", ")} damaged at ${(closing * 3.6).toFixed(0)} km/h: bad order`);
-    if (closing > COUPLE_MAX_SPEED) {
+    if (closing > HARD_HIT_SPEED) {
       a.speed = (shared + HARD_HIT_RESTITUTION * (shared - uA)) * xs;
       b.speed = (shared + HARD_HIT_RESTITUTION * (shared - uB)) * ys;
       if (!damaged.length) setNotice(`Hard hit at ${(closing * 3.6).toFixed(0)} km/h`);
       return;
     }
-    const k = pairKey(a.id, b.id);
-    pressing[k] = (pressing[k] || 0) + mB * (shared - uB) / PRESS_SECONDS;
-    a.speed = shared * xs;
+    a.speed = shared * xs;                                       // a gentle meeting: buffers touch and push
     b.speed = shared * ys;
-    // Fast enough, or pressed hard enough, they couple; else a gentle touch
-    // just pushes.
-    if (closing >= COUPLE_MIN_SPEED || pressing[k] >= COUPLE_PUSH_FORCE) {
-      delete pressing[k];
-      couple(X, xEnd, Y, yEnd);
-    }
   }
 
   // Joins Y onto X. X's coupling end becomes its tail and Y's its head, so
   // the joined train runs X's vehicles then Y's. The new coupling starts
-  // fully bunched, the two ends touching.
+  // with its buffers touching.
   function couple(X, xEnd, Y, yEnd) {
     if (xEnd === "head") reverseTrain(X);
     if (yEnd === "tail") reverseTrain(Y);
@@ -1607,6 +1666,52 @@
     for (const id of Y.vehicles) state.vehicles[id].train = X.id;
     X.vehicles = X.vehicles.concat(Y.vehicles);
     delete state.trains[Y.id];
+  }
+
+  // Where two trains' ends meet, buffer to buffer or up to HOOK_REACH
+  // apart, uncoupled: each with its pair key, the two end vehicles, their
+  // trains and ends, and the gap. A through train is never one of them.
+  function meetings() {
+    const out = [], seen = new Set();
+    for (const id in state.trains) {
+      const X = state.trains[id];
+      if (drivenBy(X)) continue;
+      const ends = trainEnds(X);
+      for (const xEnd of ["head", "tail"]) {
+        const hit = findObstacle(ends[xEnd], HOOK_REACH, id);
+        if (!hit || hit.kind !== "train") continue;
+        const Y = state.trains[hit.train];
+        if (drivenBy(Y)) continue;
+        const a = endVehicle(X, xEnd), b = endVehicle(Y, hit.which), key = pairKey(a.id, b.id);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push({ key, a: a.id, b: b.id, X, xEnd, Y, yEnd: hit.which, gap: hit.gap });
+      }
+    }
+    return out;
+  }
+
+  // The shunter's work at couplings (#33): each piece done once its time
+  // comes, or dropped, with a notice, if a vehicle moved or the coupling or
+  // meeting is gone. Hooking up closes the gap and joins the two trains;
+  // uncoupling parts them, and the air with them. Skipping stands
+  // everything, so work falls due during a skip as in play.
+  function stepWork() {
+    for (const k in state.work) {
+      const w = state.work[k], a = state.vehicles[w.a], b = state.vehicles[w.b];
+      const what = w.kind === "hook" ? "Hook-up" : "Uncoupling";
+      if (!a || !b) { delete state.work[k]; continue; }
+      if (a.speed !== 0 || b.speed !== 0) { delete state.work[k]; setNotice(`${what} stopped: the cars moved`); continue; }
+      if (state.clock < w.done) continue;
+      delete state.work[k];
+      if (w.kind === "unhook") { splitBehind(w.a, w.b); continue; }
+      const m = meetings().find(m => m.key === k);
+      if (!m) { setNotice(`${what} stopped: the cars are apart`); continue; }
+      // The screw draws the two together until the buffers meet.
+      const sense = m.yEnd === "head" ? 1 : -1;
+      for (const id of m.Y.vehicles) moveVehicle(state.vehicles[id], sense * m.gap);
+      couple(m.X, m.xEnd, m.Y, m.yEnd);
+    }
   }
 
   // Moves each vehicle of a train by its own speed. The two end vehicles
@@ -1629,7 +1734,7 @@
         // the player's train the same way; a through train leaves the map
         // there (stepThrough).
         if (MAP_EDGES.includes(hit.node)) { if (!drivenBy(trainOf(v))) setNotice("The line runs on beyond the map"); }
-        else if (Math.abs(v.speed) > COUPLE_MAX_SPEED) setNotice(`Hit the buffers at ${(Math.abs(v.speed) * 3.6).toFixed(0)} km/h`);
+        else if (Math.abs(v.speed) > HARD_HIT_SPEED) setNotice(`Hit the buffers at ${(Math.abs(v.speed) * 3.6).toFixed(0)} km/h`);
         v.speed = 0;
         continue;
       }
@@ -1655,7 +1760,6 @@
       }
       for (const vid of ids) accelerateVehicle(state.vehicles[vid], forces[vid], applied[vid], dt);
     }
-    for (const k in pressing) if ((pressing[k] -= pressing[k] * dt / PRESS_SECONDS) < 1) delete pressing[k];
     for (const id of Object.keys(state.trains)) if (state.trains[id]) advance(state.trains[id], dt);
   }
 
@@ -1666,6 +1770,7 @@
     const forces = {};
     for (const id in state.trains) vehicleForces(state.trains[id], forces);
     for (let i = 0; i < SLACK_SUBSTEPS; i++) substep(forces, dt / SLACK_SUBSTEPS);
+    stepWork();
     countMoves();
     stepThrough(dt);
     runEvents();
@@ -1885,12 +1990,14 @@
   // are repaired, and loads for Junín left on the local track unloaded and
   // empties for loading left on the empties track loaded (placeholders for
   // the traffic no industry takes), each with a new waybill; stored cars
-  // go to flows short of cars; set-outs open at the industries free for
+  // go to flows short of cars; cars for a station reached through the west
+  // end go out (toWestEnd()); set-outs open at the industries free for
   // them; and a job opens to sort the cars still not where they belong. A
   // car in an open job is left alone.
   function shiftChange(at) {
     carsChanged();
     for (const j of openJobs()) if (!j.taken && j.kind !== "build" && j.due <= at) doOffScreen(j, at);
+    toWestEnd(at);
     for (const id of Object.keys(state.cars)) {
       const t = state.cars[id].trip;
       if (t && t.pool && t.back <= at) { resolveTrip(id); toPool(id, at); state.poolCount.left++; }
@@ -2141,13 +2248,13 @@
   // back by then from the stations on its side, soonest due first, up to
   // ARRIVAL_CARS_MAX, topped up from the pool toward ARRIVAL_CARS_MIN. Each is
   // loaded or unloaded at its station by the plan, and billed on. A job
-  // opens to break it up, due at the shift change, and another to build
-  // the departure that follows it.
+  // opens to break it up, due at the shift change, and one to build each
+  // departure that follows it, up to the next arrival.
   function arrive(run, at) {
     const tt = timetableEntry(run.tt), late = at - run.at;
     const ids = Object.keys(state.cars).filter(id => {
       const t = state.cars[id].trip;
-      return t && !t.pool && t.back <= at && DESTINATIONS[t.at].block === tt.side;
+      return t && !t.pool && t.back <= at && (DESTINATIONS[t.at].westEnd || DESTINATIONS[t.at].block === tt.side);
     }).sort((a, b) => state.cars[a].trip.back - state.cars[b].trip.back).slice(0, ARRIVAL_CARS_MAX);
     for (let id; ids.length < ARRIVAL_CARS_MIN && (id = joinFromPool(tt.side, at));) ids.push(id);
     const note = late >= 60 ? `, held outside ${lateText(late)}` : "";
@@ -2162,8 +2269,10 @@
       addJob({ kind: "breakup", title: `Break up ${trainName(tt)}`, short: `Break up ${tt.number}`, opens: at,
                due: shiftAt(at).end, cars: ids, run: run.id, arrivedLate: late });
     }
-    const next = runsBetween(run.at + 1, run.at + DAY).find(r => !timetableEntry(r.tt).arrives);
-    if (next && next.at >= state.timetableAt && !state.jobs.some(j => j.run === next.id)) openBuild(next, at);
+    for (const next of runsBetween(run.at + 1, run.at + DAY)) {
+      if (timetableEntry(next.tt).arrives) break;
+      if (next.at >= state.timetableAt && !state.jobs.some(j => j.run === next.id)) openBuild(next, at);
+    }
   }
   // Opens the job to build departure `run`: every car on the map whose
   // disposition is its block, up to DEPARTURE_MAX_CARS, those already on
@@ -2194,16 +2303,31 @@
   function depart(job, at) {
     const tt = timetableEntry(job.run.split(".")[0]), late = Math.max(0, at - job.due);
     const going = job.cars.filter(id => state.cars[id].away === null && dispositionOf(id) === job.block && dispositionMet(id));
-    for (const id of going) {
-      detach(id);
-      delete state.vehicles[id];
-      const c = state.cars[id], x = c.waybill;
-      const pool = !c.flow || flowCars(c.flow) > flowShare(c.flow) + FLOW_SLACK;
-      const back = at + DESTINATIONS[x].away * (1 + TRIP_SPREAD * (2 * random() - 1));
-      Object.assign(c, { away: at, trip: { at: x, back, pool } });
-      logCar(id, `Left on ${trainName(tt)}${late >= 60 ? `, ${lateText(late)} late` : ""}`, at);
-    }
+    for (const id of going) sendAway(id, at, `Left on ${trainName(tt)}${late >= 60 ? `, ${lateText(late)} late` : ""}`);
     job.departed = { at, cars: going.length, late };
+  }
+  // Car `id` leaves the map at `at` on a trip to its waybill's station.
+  function sendAway(id, at, text) {
+    detach(id);
+    delete state.vehicles[id];
+    const c = state.cars[id], x = c.waybill;
+    const pool = !c.flow || flowCars(c.flow) > flowShare(c.flow) + FLOW_SLACK;
+    const back = at + DESTINATIONS[x].away * (1 + TRIP_SPREAD * (2 * random() - 1));
+    Object.assign(c, { away: at, trip: { at: x, back, pool } });
+    logCar(id, text, at);
+  }
+  // At a shift change, the cars billed to a station reached through the
+  // west end (#105) go out to it, off-screen: those standing where they
+  // belong on its block's track, sound, and in no open job or the loco's
+  // train.
+  function toWestEnd(at) {
+    const busy = new Set(openJobs().flatMap(j => j.cars));
+    for (const id of Object.keys(state.cars)) {
+      const c = state.cars[id], d = c.waybill && DESTINATIONS[c.waybill];
+      if (!d || !d.westEnd || c.away !== null || c.badOrder || c.spot || busy.has(id)) continue;
+      if (state.vehicles[id].speed !== 0 || !dispositionMet(id)) continue;
+      sendAway(id, at, `Left at the west end for ${d.name}`);
+    }
   }
 
   // Another crew does a job off-screen at `at`: each car not yet where it
@@ -2299,9 +2423,16 @@
   // standing at the east home signal or off the map at the station side,
   // until the player reports clear, and the wait is the player's delay. The
   // player holds the main by asking for it for a time, when no train is due
-  // in it; a train offered while they hold it calls them off.
+  // in it; a train offered while they hold it calls them off. A passenger
+  // train offered at night with the main not clear is refused line clear
+  // (#104): it waits at the station behind, and is offered again once the
+  // main is clear, reaching the map OFFER_LEAD_SECONDS after that.
+  // A run's `at` is its booked time at the map's edge; `enters`, when it
+  // will actually get there once it has line clear.
   const throughEntry = id => THROUGH_TIMETABLE.find(t => t.id === id);
-  const throughName = tt => `${tt.number} from ${tt.from}`;
+  const throughName = tt => tt.name ? `${tt.number} ${tt.name}` : `${tt.number} from ${tt.from}`;
+  const byDay = at => { const t = at % DAY; return t >= DAYLIGHT_FROM && t < DAYLIGHT_TO; };
+  const waitsAt = tt => THROUGH_EDGES[tt.enters].station;
   const throughRun = id => state.through.find(r => r.id === id);
   // The through train a train belongs to, if it is one: the game drives it.
   function drivenBy(t) {
@@ -2311,15 +2442,18 @@
   // Where a train coming in at map edge `edge` stands `d` metres in from
   // it, facing in: the segment, how far along it, and the sense it faces.
   function inFromEdge(edge, d) {
-    const node = THROUGH_EDGES[edge], seg = SEGMENTS_AT[node][0];
+    const node = THROUGH_EDGES[edge].node, seg = SEGMENTS_AT[node][0];
     const atA = SEGMENTS[seg].a === node;
     const w = walk(seg, atA ? 0 : segmentLength(seg), atA ? 1 : -1, d);
     return { seg: w.seg, s: w.s, dir: w.travel };
   }
   const homeSignal = () => inFromEdge("east", HOME_SIGNAL_IN);
-  const throughIds = r => [`${r.id}/0`, ...THROUGH_CONSIST.map((_, i) => `${r.id}/${i + 1}`)];
-  const throughType = id => { const i = Number(id.split("/")[1]); return i ? THROUGH_CONSIST[i - 1] : "g12"; };
-  const throughLength = () => throughIds({ id: "" }).reduce((sum, id) => sum + VEHICLE_TYPES[throughType(id)].length, 0);
+  // A through train's vehicle kinds, head first, and its vehicles' ids: the
+  // run's id and the place in the make-up.
+  const throughKinds = tt => { const c = THROUGH_CONSISTS[tt.consist]; return [c.loco, ...c.cars]; };
+  const throughIds = r => throughKinds(throughEntry(r.tt)).map((_, i) => `${r.id}/${i}`);
+  const throughType = id => { const [run, i] = id.split("/"); return throughKinds(throughEntry(run.split(".")[0]))[Number(i)]; };
+  const throughLength = tt => throughKinds(tt).reduce((sum, type) => sum + VEHICLE_TYPES[type].length, 0);
   // The main is clear for a train when no one holds it: the player gives it
   // back only with the crossover lying for the main and nothing of theirs on
   // the running tracks (reportClear).
@@ -2331,17 +2465,32 @@
   function mainEvents() {
     for (const run of runsBetween(state.throughAt + OFFER_LEAD_SECONDS, state.clock + OFFER_LEAD_SECONDS, THROUGH_TIMETABLE)) {
       state.throughAt = run.at - OFFER_LEAD_SECONDS + 1;
-      state.through.push({ id: run.id, tt: run.tt, at: run.at, status: "offered", speed: 0, vehicles: [] });
-      if (state.main.held) setNotice(`Clear the main for ${throughName(throughEntry(run.tt))}`);
+      const tt = throughEntry(run.tt), r = { id: run.id, tt: run.tt, at: run.at, enters: run.at, status: "offered", speed: 0, vehicles: [] };
+      state.through.push(r);
+      if (mainClear()) continue;
+      if (tt.passenger && !byDay(run.at - OFFER_LEAD_SECONDS)) {
+        r.status = "refused";
+        setNotice(`${tt.number} held at ${waitsAt(tt)}: night`);
+      } else setNotice(`Clear the main for ${throughName(tt)}`);
     }
     for (const r of state.through) {
-      if (r.status === "offered" && r.at <= state.clock) {
+      const tt = throughEntry(r.tt);
+      if (r.status === "refused" && mainClear()) {
+        // Line clear at last: it sets off, OFFER_LEAD_SECONDS out. Its
+        // delay is its lateness at the map's edge.
+        r.status = "offered";
+        r.enters = Math.max(r.at, state.clock + OFFER_LEAD_SECONDS);
+        const delay = r.enters - r.at;
+        if (delay > 0) for (const j of openJobs()) if (j.taken) j.trainsHeld.push({ number: tt.number, delay });
+        setNotice(`${tt.number} leaves ${waitsAt(tt)}${delay >= 60 ? `, ${lateText(delay)} late` : ""}`);
+      }
+      if (r.status === "offered" && r.enters <= state.clock) {
         if (!mainClear()) holdThrough(r);
-        else if (state.clock - r.at < (MAIN_LENGTH + throughLength()) / THROUGH_SPEED) runThrough(r, THROUGH_SPEED);
+        else if (state.clock - r.enters < (MAIN_LENGTH + throughLength(tt)) / THROUGH_SPEED) runThrough(r, THROUGH_SPEED);
         else r.status = "gone";                       // passed while the clock skipped
       }
       if (r.status === "held" && mainClear()) {
-        const delay = state.clock - r.at, tt = throughEntry(r.tt);
+        const delay = state.clock - r.at;
         for (const j of openJobs()) if (j.taken) j.trainsHeld.push({ number: tt.number, delay });
         setNotice(`${throughName(tt)} held ${lateText(delay)} for the main`);
         if (r.vehicles.length) { r.status = "running"; r.speed = 0; } else runThrough(r, THROUGH_SPEED);
@@ -2361,7 +2510,8 @@
   // A through train comes in at its edge of the map at `speed`.
   function runThrough(r, speed) {
     r.status = "running"; r.speed = speed;
-    layThrough(r, inFromEdge(throughEntry(r.tt).enters, throughLength()));
+    const tt = throughEntry(r.tt);
+    layThrough(r, inFromEdge(tt.enters, throughLength(tt)));
   }
   function layThrough(r, at) {
     const ids = throughIds(r);
@@ -2470,15 +2620,36 @@
     v.handBrake = !v.handBrake;
     return true;
   }
-  // Uncouples a train behind its vehicle `vehicleId`, parting the air there
-  // too. Both parts keep moving; a part without a loco has its air bled off.
+  // Coupling is a shunter's work, HOOK_UP_SECONDS with both vehicles
+  // standing (#33; stepWork() finishes it). Hook up joins two trains whose
+  // ends meet (meetings()), by the pair key of the meeting; Uncouple parts a
+  // train behind its vehicle `vehicleId`.
+  function startWork(kind, a, b) {
+    const k = pairKey(a, b);
+    if (state.work[k]) return false;
+    if (state.vehicles[a].speed !== 0 || state.vehicles[b].speed !== 0) { setNotice("Stop before the shunter goes in"); return false; }
+    state.work[k] = { kind, a, b, done: state.clock + HOOK_UP_SECONDS };
+    return true;
+  }
+  function hookUp(key) {
+    const m = meetings().find(m => m.key === key);
+    return !!m && startWork("hook", m.a, m.b);
+  }
   function uncouple(vehicleId) {
-    const v = state.vehicles[vehicleId], t = trainOf(v), i = t.vehicles.indexOf(vehicleId);
-    if (i < 0 || i === t.vehicles.length - 1) return false;
-    delete state.air[pairKey(vehicleId, t.vehicles[i + 1])];
-    delete state.gaps[pairKey(vehicleId, t.vehicles[i + 1])];
-    const rest = { id: "t" + state.nextTrain++, vehicles: t.vehicles.slice(i + 1) };
-    t.vehicles = t.vehicles.slice(0, i + 1);
+    const next = behind(vehicleId);
+    return !!next && startWork("unhook", vehicleId, next);
+  }
+  // Parts a train between its vehicles `a` and `b`, coupled next to each
+  // other, and the air there too. Both parts keep moving; a part without a
+  // loco has its air bled off.
+  function splitBehind(a, b) {
+    const t = trainOf(state.vehicles[a]), i = t.vehicles.indexOf(a), j = t.vehicles.indexOf(b);
+    if (i < 0 || j < 0 || Math.abs(i - j) !== 1) return false;
+    const at = Math.min(i, j);
+    delete state.air[pairKey(a, b)];
+    delete state.gaps[pairKey(a, b)];
+    const rest = { id: "t" + state.nextTrain++, vehicles: t.vehicles.slice(at + 1) };
+    t.vehicles = t.vehicles.slice(0, at + 1);
     for (const id of rest.vehicles) state.vehicles[id].train = rest.id;
     state.trains[rest.id] = rest;
     return true;
@@ -2491,7 +2662,7 @@
   function askForMain(minutes) {
     if (state.main.held || !MAIN_ASK_MINUTES.includes(minutes)) return false;
     const r = state.through[0];
-    if (r) { setNotice(`Refused: ${throughName(throughEntry(r.tt))} is ${r.status === "offered" ? "offered" : "on the main"}`); return false; }
+    if (r) { setNotice(`Refused: ${throughName(throughEntry(r.tt))} is ${r.status === "offered" ? "offered" : r.status === "refused" ? "waiting" : "on the main"}`); return false; }
     const next = nextOfferAt();
     if (next && next.at < state.clock + minutes * 60) {
       setNotice(`Refused: ${throughName(next.tt)} is due at ${clockText(next.at + OFFER_LEAD_SECONDS)}`);
@@ -2536,6 +2707,7 @@
       r.status = "gone";
     }
     state.clock = at;
+    stepWork();
     runEvents();
     return true;
   }
@@ -2589,7 +2761,7 @@
   // The benchmark page (index.html?bench, CHECKS) saves under keys of its
   // own, never over the player's yard.
   const BENCH = new URLSearchParams(location.search).has("bench");
-  const SAVE_KEY = "switching-game.yard.9" + (BENCH ? ".bench" : "");
+  const SAVE_KEY = "switching-game.yard.11" + (BENCH ? ".bench" : "");
   const CARS_KEY = SAVE_KEY + ".cars";
   let saves = 0;
 
@@ -2613,14 +2785,16 @@
     const sameKeys = (o, ref) => isObj(o) && Object.keys(o).sort().join() === Object.keys(ref).sort().join();
     if (!isObj(st) || !(st.clock >= 0 && Number.isFinite(st.clock))) return false;
     if (!isObj(st.trains) || !isObj(st.air) || !isObj(st.gaps) || !Number.isInteger(st.nextTrain)) return false;
+    if (!isObj(st.work) || !Object.values(st.work).every(w => isObj(w) && ["hook", "unhook"].includes(w.kind)
+        && typeof w.a === "string" && typeof w.b === "string" && Number.isFinite(w.done))) return false;
     if (!sameKeys(st.switches, SWITCHES)) return false;
     if (!isObj(st.cars) || !isObj(st.pool) || !Array.isArray(st.jobs) || !Number.isInteger(st.nextJob) || !Number.isInteger(st.moves)
         || !Number.isInteger(st.seed) || !Number.isFinite(st.nextShiftAt) || !Number.isFinite(st.timetableAt)) return false;
     if (!Array.isArray(st.held) || !st.held.every(r => isObj(r) && timetableEntry(r.tt) && Number.isFinite(r.at))) return false;
     if (!Number.isFinite(st.throughAt) || !isObj(st.main) || typeof st.main.held !== "boolean"
         || (st.main.held && !Number.isFinite(st.main.until))) return false;
-    if (!Array.isArray(st.through) || !st.through.every(r => isObj(r) && throughEntry(r.tt) && Number.isFinite(r.at)
-        && ["offered", "held", "running"].includes(r.status) && Number.isFinite(r.speed) && Array.isArray(r.vehicles))) return false;
+    if (!Array.isArray(st.through) || !st.through.every(r => isObj(r) && throughEntry(r.tt) && Number.isFinite(r.at) && Number.isFinite(r.enters)
+        && ["offered", "refused", "held", "running"].includes(r.status) && Number.isFinite(r.speed) && Array.isArray(r.vehicles))) return false;
     if (!Number.isInteger(st.nextCar) || !isObj(st.poolCount) || !Number.isInteger(st.poolCount.joined)
         || !Number.isInteger(st.poolCount.left) || !Number.isFinite(st.poolSince)) return false;
     // A car is in the traffic or in the pool, never both; one in the pool
@@ -2689,7 +2863,6 @@
   // A fresh yard as WORLD DATA lays it out, saved over the old one.
   function newYard() {
     state = makeState();
-    for (const k in pressing) delete pressing[k];
     saveYard(true);
   }
 
@@ -2853,15 +3026,20 @@
     const len = Math.hypot(q.x - p.x, q.y - p.y) || 1;
     return { x: p.x + (q.x - p.x) * d / len, y: p.y + (q.y - p.y) * d / len };
   }
-  // Where each coupling is: the joint behind every vehicle but a train's last.
+  // Where each coupling is: the joint behind every vehicle but a train's
+  // last, `hooked`; and where two trains' ends meet uncoupled, between them.
   function couplings() {
     const out = [];
     for (const id in state.trains) {
       const t = state.trains[id];
       for (let i = 0; i < t.vehicles.length - 1; i++) {
         const v = state.vehicles[t.vehicles[i]];
-        out.push({ vehicle: v.id, key: pairKey(v.id, t.vehicles[i + 1]), at: endPoint(vehicleEnds(v).tail) });
+        out.push({ vehicle: v.id, key: pairKey(v.id, t.vehicles[i + 1]), hooked: true, at: endPoint(vehicleEnds(v).tail) });
       }
+    }
+    for (const m of meetings()) {
+      const p = endPoint(trainEnds(m.X)[m.xEnd]), q = endPoint(trainEnds(m.Y)[m.yEnd]);
+      out.push({ vehicle: m.a, key: m.key, hooked: false, at: { x: (p.x + q.x) / 2, y: (p.y + q.y) / 2 } });
     }
     return out;
   }
@@ -3038,6 +3216,20 @@
           const p = toward(head, tail, type.length * at - 0.5), q = toward(head, tail, type.length * at + 0.5);
           line(p.x, p.y, q.x, q.y, type.band, bodyWidth);
         }
+      if (type.stripe) {                                  // a stripe along each side
+        const sw = bodyWidth * type.stripeShare, off = (bodyWidth - sw) / 2;   // screen px from the middle
+        const s1 = view.toScreen(front.x, front.y), s2 = view.toScreen(back.x, back.y);
+        const len = Math.hypot(s2.x - s1.x, s2.y - s1.y) || 1, nx = -(s2.y - s1.y) / len * off, ny = (s2.x - s1.x) / len * off;
+        ctx.strokeStyle = type.stripe; ctx.lineWidth = sw;
+        for (const side of [1, -1]) {
+          ctx.beginPath(); ctx.moveTo(s1.x + nx * side, s1.y + ny * side); ctx.lineTo(s2.x + nx * side, s2.y + ny * side); ctx.stroke();
+        }
+      }
+      if (type.ends)                                      // a coach's ends
+        for (const [a, b] of [[front, back], [back, front]]) {
+          const q = toward(a, b, 0.8);
+          line(a.x, a.y, q.x, q.y, type.ends, bodyWidth);
+        }
       if (car && !loadedNow(id)) {                        // an empty car is drawn hollow
         const f = toward(front, back, 1), b = toward(back, front, 1);
         line(b.x, b.y, f.x, f.y, PALETTE.bg, bodyWidth * 0.4);
@@ -3046,6 +3238,13 @@
         const cabEnd = v.flip > 0 ? front : back, other = v.flip > 0 ? back : front;
         const c1 = toward(cabEnd, other, 0.6), c2 = toward(cabEnd, other, 3);
         line(c1.x, c1.y, c2.x, c2.y, PALETTE.light, bodyWidth * 0.6);
+      }
+      if (type.coach && k > 2.5) {                        // a coach's FA code, on its roof
+        const m = view.toScreen((head.x + tail.x) / 2, (head.y + tail.y) / 2);
+        ctx.fillStyle = type.ends; ctx.font = `700 ${Math.round(Math.min(13, bodyWidth * 0.7))}px system-ui, sans-serif`;
+        ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillText(type.code, m.x, m.y + 0.5);
+        ctx.textAlign = "start"; ctx.textBaseline = "alphabetic";
       }
       if (v.handBrake) {                                  // a hand brake set: a light band at the middle
         const mid = toward(head, tail, type.length / 2), along = toward(head, tail, type.length / 2 + 1.5);
@@ -3066,15 +3265,27 @@
       }
     }
     // Couplings: dark with no air; with air connected, a larger dot that
-    // fills in blue as the air charges.
+    // fills in blue as the air charges. Buffers meeting uncoupled: a ring.
+    // The shunter's work under way: an arc round it, filling as it's done.
     for (const c of couplings()) {
-      const p = view.toScreen(c.at.x, c.at.y), air = state.air[c.key], r = Math.max(2.5, k * 0.5);
-      ctx.fillStyle = PALETTE.bg;
-      ctx.beginPath(); ctx.arc(p.x, p.y, air === undefined ? r : r * 1.6, 0, Math.PI * 2); ctx.fill();
-      if (air === undefined) continue;
-      ctx.fillStyle = PALETTE.air; ctx.globalAlpha = 0.35 + 0.65 * air;
-      ctx.beginPath(); ctx.arc(p.x, p.y, r * 1.1, 0, Math.PI * 2); ctx.fill();
-      ctx.globalAlpha = 1;
+      const p = view.toScreen(c.at.x, c.at.y), air = state.air[c.key], r = Math.max(2.5, k * 0.5), w = state.work[c.key];
+      if (!c.hooked) {
+        ctx.strokeStyle = PALETTE.bg; ctx.lineWidth = Math.max(1.5, r * 0.6);
+        ctx.beginPath(); ctx.arc(p.x, p.y, r * 1.3, 0, Math.PI * 2); ctx.stroke();
+      } else {
+        ctx.fillStyle = PALETTE.bg;
+        ctx.beginPath(); ctx.arc(p.x, p.y, air === undefined ? r : r * 1.6, 0, Math.PI * 2); ctx.fill();
+        if (air !== undefined) {
+          ctx.fillStyle = PALETTE.air; ctx.globalAlpha = 0.35 + 0.65 * air;
+          ctx.beginPath(); ctx.arc(p.x, p.y, r * 1.1, 0, Math.PI * 2); ctx.fill();
+          ctx.globalAlpha = 1;
+        }
+      }
+      if (w) {
+        const done = 1 - Math.max(0, w.done - state.clock) / HOOK_UP_SECONDS;
+        ctx.strokeStyle = PALETTE.accent; ctx.lineWidth = Math.max(2, r * 0.6);
+        ctx.beginPath(); ctx.arc(p.x, p.y, r * 2.4, -Math.PI / 2, -Math.PI / 2 + done * Math.PI * 2); ctx.stroke();
+      }
     }
     // Each yard track: a clearance mark across it at its fouling point, and
     // its number on a disc a little past it.
@@ -3334,7 +3545,7 @@
   // spot, and on step 3 steps in to the yard.
   // In play, a tap acts on the nearest thing within TAP_RADIUS_PX on screen: a
   // switch (throws it, or, padlocked, opens the menu to ask for the main),
-  // a coupling (opens its menu) or a car's middle (opens its card). Any tap
+  // a coupling or buffers meeting (opens its menu) or a car's middle (opens its card). Any tap
   // closes an open menu or card. Opening a card only shows, so it works
   // while paused. A through train's couplings aren't the player's.
   function tap(e) {
@@ -3394,10 +3605,11 @@
     let html = "", warn = false;
     if (state.main.held) {
       warn = !!r || state.clock > state.main.until;
-      html = (r ? `Clear the main for ${tt.number}` : `Main yours until ${clockText(state.main.until)}${state.clock > state.main.until ? " · over time" : ""}`)
+      html = (r ? (r.status === "refused" ? `${tt.number} held at ${waitsAt(tt)}` : `Clear the main for ${tt.number}`) : `Main yours until ${clockText(state.main.until)}${state.clock > state.main.until ? " · over time" : ""}`)
         + " · <em>Report clear</em>";
     } else if (r) {
-      html = `${throughName(tt)} · ${r.status === "offered" ? `due ${clockText(r.at)}` : r.status === "held" ? "held for the main" : "passing"}`;
+      html = `${throughName(tt)} · ${r.status === "offered" ? `due ${clockText(r.enters)}` : r.status === "refused" ? `held at ${waitsAt(tt)}`
+        : r.status === "held" ? "held for the main" : "passing"}`;
     }
     if (html !== mainChipHtml) mainChip.innerHTML = mainChipHtml = html;
     mainChip.classList.toggle("open", !!html);
@@ -3412,7 +3624,8 @@
   // The coupling menu, open over the coupling `menuFor` (its pair key) until
   // a button or another tap closes it, or the coupling is gone.
   const couplingMenu = document.getElementById("couplingMenu");
-  const airBtn = document.getElementById("airBtn");
+  const airBtn = document.getElementById("airBtn"), hookBtn = document.getElementById("hookBtn");
+  const uncoupleBtn = document.getElementById("uncoupleBtn");
   let menuFor = null;
   const menuCoupling = () => menuFor && couplings().find(c => c.key === menuFor);
   function placeCouplingMenu() {
@@ -3425,16 +3638,24 @@
     couplingMenu.style.left = `${Math.max(150, Math.min(screenW - 96, p.x))}px`;
     couplingMenu.style.top = `${p.y}px`;
     couplingMenu.style.transform = `translate(-50%, ${p.y < 80 ? "40%" : "-140%"})`;
+    // Buffers meeting: Hook up. A coupling: its air, and Uncouple. Work
+    // under way shows on its button, which then does nothing.
+    const w = state.work[c.key];
+    hookBtn.style.display = c.hooked ? "none" : "";
+    airBtn.style.display = uncoupleBtn.style.display = c.hooked ? "" : "none";
+    hookBtn.textContent = w ? "Hooking up…" : "Hook up";
+    uncoupleBtn.textContent = w ? "Uncoupling…" : "Uncouple";
     airBtn.textContent = menuFor in state.air ? "Part air" : "Connect air";
   }
   const onMenuPress = (id, fn) => document.getElementById(id).addEventListener("pointerdown", e => {
     e.preventDefault(); e.stopPropagation();
     const c = menuCoupling();
-    if (c) unlessPaused(fn)(c.vehicle);
+    if (c && !(id !== "airBtn" && state.work[c.key])) unlessPaused(fn)(c);
     menuFor = null;
   });
-  onMenuPress("airBtn", toggleAir);
-  onMenuPress("uncoupleBtn", uncouple);
+  onMenuPress("hookBtn", c => hookUp(c.key));
+  onMenuPress("airBtn", c => toggleAir(c.vehicle));
+  onMenuPress("uncoupleBtn", c => uncouple(c.vehicle));
 
   // The car card, open over the car `cardFor` (its id) until another tap
   // closes it: FA (or the line's initials, on a car not yet repainted) and
@@ -3490,7 +3711,8 @@
       if (e.kind === "offer") {
         const tt = throughEntry(e.through);
         html += `<button class="event" data-at="${e.at}"><b>${clockText(e.at)}</b><span>${throughName(tt)} offered` +
-          `<small>Through to ${tt.to}, due ${clockText(e.at + OFFER_LEAD_SECONDS)}${state.main.held ? "; clear the main" : ""}</small></span>${dayNote(e.at)}</button>`;
+          `<small>Through to ${tt.to}, due ${clockText(e.at + OFFER_LEAD_SECONDS)}${state.main.held ? "; clear the main" : ""}` +
+          `${tt.passenger && !byDay(e.at) ? `<br>At night: if the main isn’t clear, it waits at ${waitsAt(tt)}` : ""}</small></span>${dayNote(e.at)}</button>`;
         continue;
       }
       const j = e.job && jobById(e.job), crew = j && !j.taken ? `<small class="warn">Not taken: another crew does it</small>` : "";
@@ -3808,8 +4030,15 @@
       need(!t.waybill || has(DESTINATIONS, t.waybill), `starting traffic: ${id}'s waybill ${t.waybill} isn't a destination`);
     }
     for (const tt of TIMETABLE) need(has(BLOCKS, tt.arrives ? tt.side : tt.block), `train ${tt.number}: block ${tt.side || tt.block} doesn't exist`);
-    for (const tt of THROUGH_TIMETABLE) need(has(THROUGH_EDGES, tt.enters), `through train ${tt.number}: edge ${tt.enters} doesn't exist`);
-    for (const type of THROUGH_CONSIST) need(has(VEHICLE_TYPES, type), `through consist: kind ${type} doesn't exist`);
+    for (const tt of THROUGH_TIMETABLE) {
+      need(has(THROUGH_EDGES, tt.enters), `through train ${tt.number}: edge ${tt.enters} doesn't exist`);
+      need(has(THROUGH_CONSISTS, tt.consist), `through train ${tt.number}: make-up ${tt.consist} doesn't exist`);
+    }
+    for (const c in THROUGH_CONSISTS) {
+      need(has(VEHICLE_TYPES, THROUGH_CONSISTS[c].loco) && VEHICLE_TYPES[THROUGH_CONSISTS[c].loco].loco, `through make-up ${c}: loco ${THROUGH_CONSISTS[c].loco} isn't a loco`);
+      for (const type of THROUGH_CONSISTS[c].cars) need(has(VEHICLE_TYPES, type), `through make-up ${c}: kind ${type} doesn't exist`);
+    }
+    for (const e in THROUGH_EDGES) need(MAP_EDGES.includes(THROUGH_EDGES[e].node), `through edge ${e}: ${THROUGH_EDGES[e].node} isn't a map edge`);
     return out;
   }
 
@@ -3912,7 +4141,7 @@
     return { flows, cars: Object.keys(state.cars).length, pool: Object.keys(state.pool).length,
              joinedAWeek: +(state.poolCount.joined / weeks).toFixed(1), leftAWeek: +(state.poolCount.left / weeks).toFixed(1) };
   }
-  window.switching = { get state() { return state; }, step, traffic, throwSwitch, uncouple, moveReverser, moveThrottle,
+  window.switching = { get state() { return state; }, step, traffic, throwSwitch, uncouple, hookUp, meetings, moveReverser, moveThrottle,
     moveLocoBrake, moveTrainBrake, emergency, release, trainEnds, toggleAir, toggleHandBrake, brakeReach, skipTo, eventsAhead,
     takeJob, handBack, reportDone, jobStatus, dispositionOf, dispositionMet, blockInOrder, damageCar, TRACK_GEOM,
     get paused() { return paused; }, togglePause, askForMain, reportClear, homeSignal, NODES, get view() { return view; }, saveYard, loadYard, newYard, fitsYard, SAVE_KEY, worldProblems, stateProblems };

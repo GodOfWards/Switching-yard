@@ -23,10 +23,12 @@ exists independently of the player's jobs.
   receives set car types at set rates, and road trains run to a timetable.
 - **Cars are grouped into blocks**, operational units that can travel,
   wait and be handled together.
-- **Road trains run to a timetable** (#49): one arrival and one departure
-  a shift, directions alternating (07:00 from Retiro, 12:30 to Mendoza;
-  15:00 from Mendoza, 20:30 to Retiro; 23:00 from Retiro, 04:30 to
-  Mendoza; retunable). An arrival brings up to 12 cars, by the traffic
+- **Road trains run to a timetable** (#49): one arrival a shift and the
+  departures that follow it (07:00 from Retiro, 09:00 to Retiro, 12:30 to
+  Mendoza; 15:00 from Mendoza, 20:30 to Retiro; 23:00 from Retiro, 04:30
+  to Mendoza; retunable). The second train to Retiro carries Molinos
+  Tassara's traffic, which one a day can't (Tom, 2026-11-24, #105). An
+  arrival opens a build job for each departure up to the next arrival. An arrival brings up to 12 cars, by the traffic
   plan; a departure takes at most 16, so a whole train fits the head-shunt behind the loco.
 - **Road trains appear and leave at the yard tracks' cut-off west end**:
   an arrival stands on the arrival track at the buffer, its road loco
