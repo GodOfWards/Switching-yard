@@ -292,7 +292,7 @@
   //                map included) and the pool of cars elsewhere on the
   //                line, the industries' work, the jobs, the arrivals held
   //                outside, the through trains offered, refused line clear
-  //                or running, and who holds the main.
+  //                or running, who holds the main, and the train register.
   //                Built from WORLD DATA by makeState(); never edits WORLD DATA.
   //   UTILITIES    small geometry, track-walking and lookup helpers.
   //   SIMULATION   advances STATE by one fixed step, step(dt): the clock, and
@@ -309,7 +309,8 @@
   //                leaving, jobs opening with them and at shift changes,
   //                their lines checked against the yard, work done
   //                off-screen, rough handling, and results; through trains
-  //                offered, held or run past on the main.
+  //                offered, held or run past on the main; and the train
+  //                register of every train run and how late.
   //   ACTIONS      what the player can do (reverser, levers, Emergency,
   //                Release, throw a switch, connect or part the air,
   //                hook up or uncouple, set a hand brake, skip ahead, take, hand back
@@ -514,8 +515,14 @@
   const DAYLIGHT_TO = 20 * HOUR;
   const MAIN_ASK_MINUTES = [10, 20, 30];  // retunable
   // A job is inefficient when its moves pass this many per car handled
-  // and per block. A move is each start of the player's loco from a stand.
+  // and per block. A move is each change of direction of the player's
+  // loco (#62), so stopping to throw a switch or uncouple isn't one.
   const PAR_PER_CAR_AND_BLOCK = 1.5;    // retunable
+  // The train register (#62, RITO art. 41): a train less than
+  // ON_TIME_SECONDS late shows on time, and the register keeps
+  // REGISTER_DAYS days, today's and yesterday's.
+  const ON_TIME_SECONDS = 60;
+  const REGISTER_DAYS = 2;
   // A coupling closing faster than this damages the car: it goes bad order.
   const DAMAGE_SPEED = HARD_HIT_SPEED;  // retunable
   // A car stands clear of the ladder where its yard track is this far from
@@ -1218,7 +1225,11 @@
     // `poolCount` counts those that joined and left since `poolSince`.
     // `industries` holds, by industry, its set-out job open or being
     // worked, when that work is done (`readyAt`), and its pull job. `jobs`
-    // holds the jobs open and the last JOBS_KEPT finished. `moves` counts the loco's starts from a stand;
+    // holds the jobs open and the last JOBS_KEPT finished. `moves` counts the loco's changes of direction,
+    // `locoSense` the way it last moved (+1 cab first, −1 back, 0 not yet);
+    // `register` is Junín's train register (#62): a line for each road or
+    // through train run in REGISTER_DAYS, with its booked and actual times,
+    // how late, and the yard's cause;
     // `nextShiftAt` is the next shift change to act on, and `timetableAt`
     // the time from which road trains are still to run; `held` lists the
     // arrivals held outside, waiting for the arrival track. `throughAt` is
@@ -1228,7 +1239,7 @@
     // holds the main, and until when. `seed` drives the game's choices of
     // traffic.
     const st = { clock: START_CLOCK, switches: {}, vehicles: {}, trains: {}, air: {}, gaps: {}, work: {}, nextTrain: 1,
-                 cars: {}, jobs: [], nextJob: 1, moves: 0, locoMoving: false, nextShiftAt: START_CLOCK,
+                 cars: {}, jobs: [], nextJob: 1, moves: 0, locoSense: 0, register: [], nextShiftAt: START_CLOCK,
                  timetableAt: START_CLOCK, held: [], throughAt: START_CLOCK, through: [], main: { held: false, until: null },
                  pool: {}, nextCar: 1, poolCount: { joined: 0, left: 0 }, poolSince: START_CLOCK, industries: {},
                  seed: Math.floor(Math.random() * 2 ** 31), notice: null };
@@ -1928,11 +1939,11 @@
   // build, its train one cut with nothing else in it.
   const formationValid = st => st.inOrder !== false && (!st.cut || (st.cut.one && st.cut.clean));
 
-  // Each start of the player's loco from a stand is a move.
+  // Each change of direction of the player's loco is a move (#62): the
+  // way it moves, cab end first or not, unlike the last way it moved.
   function countMoves() {
-    const moving = playerLoco().speed !== 0;
-    if (moving && !state.locoMoving) state.moves++;
-    state.locoMoving = moving;
+    const v = playerLoco(), sense = Math.sign(v.speed * v.flip);
+    if (sense && sense !== state.locoSense) { state.moves++; state.locoSense = sense; }
   }
 
   // Rough handling: a car hit harder than DAMAGE_SPEED goes bad order.
@@ -2257,7 +2268,9 @@
       return t && !t.pool && t.back <= at && (DESTINATIONS[t.at].westEnd || DESTINATIONS[t.at].block === tt.side);
     }).sort((a, b) => state.cars[a].trip.back - state.cars[b].trip.back).slice(0, ARRIVAL_CARS_MAX);
     for (let id; ids.length < ARRIVAL_CARS_MIN && (id = joinFromPool(tt.side, at));) ids.push(id);
-    const note = late >= 60 ? `, held outside ${lateText(late)}` : "";
+    const note = late >= ON_TIME_SECONDS ? `, held outside ${lateText(late)}` : "";
+    registerTrain({ number: tt.number, name: trainName(tt), passenger: false, kind: "arrival", booked: run.at, late,
+                    cause: `Track ${YARD_TRACKS[ARRIVAL_TRACK].number} not clear` });
     for (const id of ids) {
       resolveTrip(id);
       addVehicle(id, state.cars[id].type);
@@ -2303,8 +2316,10 @@
   function depart(job, at) {
     const tt = timetableEntry(job.run.split(".")[0]), late = Math.max(0, at - job.due);
     const going = job.cars.filter(id => state.cars[id].away === null && dispositionOf(id) === job.block && dispositionMet(id));
-    for (const id of going) sendAway(id, at, `Left on ${trainName(tt)}${late >= 60 ? `, ${lateText(late)} late` : ""}`);
+    for (const id of going) sendAway(id, at, `Left on ${trainName(tt)}${late >= ON_TIME_SECONDS ? `, ${lateText(late)} late` : ""}`);
     job.departed = { at, cars: going.length, late };
+    registerTrain({ number: tt.number, name: trainName(tt), passenger: false, kind: "departure", booked: job.due, late,
+                    cause: "Build not ready" });
   }
   // Car `id` leaves the map at `at` on a trip to its waybill's station.
   function sendAway(id, at, text) {
@@ -2470,6 +2485,7 @@
       if (mainClear()) continue;
       if (tt.passenger && !byDay(run.at - OFFER_LEAD_SECONDS)) {
         r.status = "refused";
+        r.cause = `Held at ${waitsAt(tt)} by night`;
         setNotice(`${tt.number} held at ${waitsAt(tt)}: night`);
       } else setNotice(`Clear the main for ${throughName(tt)}`);
     }
@@ -2480,17 +2496,19 @@
         // delay is its lateness at the map's edge.
         r.status = "offered";
         r.enters = Math.max(r.at, state.clock + OFFER_LEAD_SECONDS);
-        const delay = r.enters - r.at;
+        const delay = r.late = r.enters - r.at;
         if (delay > 0) for (const j of openJobs()) if (j.taken) j.trainsHeld.push({ number: tt.number, delay });
-        setNotice(`${tt.number} leaves ${waitsAt(tt)}${delay >= 60 ? `, ${lateText(delay)} late` : ""}`);
+        setNotice(`${tt.number} leaves ${waitsAt(tt)}${delay >= ON_TIME_SECONDS ? `, ${lateText(delay)} late` : ""}`);
       }
       if (r.status === "offered" && r.enters <= state.clock) {
         if (!mainClear()) holdThrough(r);
         else if (state.clock - r.enters < (MAIN_LENGTH + throughLength(tt)) / THROUGH_SPEED) runThrough(r, THROUGH_SPEED);
-        else r.status = "gone";                       // passed while the clock skipped
+        else { r.status = "gone"; registerThrough(r); }  // passed while the clock skipped
       }
       if (r.status === "held" && mainClear()) {
         const delay = state.clock - r.at;
+        // Late by its wait, and from the home signal by its restart too.
+        r.late = delay + (r.vehicles.length ? THROUGH_SPEED / (2 * THROUGH_ACCEL) : 0);
         for (const j of openJobs()) if (j.taken) j.trainsHeld.push({ number: tt.number, delay });
         setNotice(`${throughName(tt)} held ${lateText(delay)} for the main`);
         if (r.vehicles.length) { r.status = "running"; r.speed = 0; } else runThrough(r, THROUGH_SPEED);
@@ -2503,6 +2521,7 @@
   // it waits off the map.
   function holdThrough(r) {
     r.status = "held";
+    r.cause = state.clock > state.main.until ? "Main kept past its time" : "Held for the main";
     const tt = throughEntry(r.tt), sig = homeSignal(), sx = pointOn(sig.seg, sig.s).x;
     const inTheWay = Object.values(state.vehicles).some(v => RUNNING.has(v.seg) && pointOn(v.seg, v.s).x > sx - 20);
     if (tt.enters === "east" && !inTheWay) layThrough(r, sig);
@@ -2534,10 +2553,29 @@
         delete state.vehicles[v.id];
         r.vehicles.shift();
       }
-      if (!r.vehicles.length) r.status = "gone";
+      if (!r.vehicles.length) { r.status = "gone"; registerThrough(r); }
     }
     state.through = state.through.filter(r => r.status !== "gone");
   }
+  // Junín's train register (#62; RITO art. 41, 219): a line for each train
+  // that runs, road trains as they arrive or leave and through trains as
+  // they pass, with its booked time, the time it actually ran (booked plus
+  // how late), and, when late, the yard's cause. Lines older than
+  // REGISTER_DAYS days are dropped.
+  function registerTrain(line) {
+    const from = (Math.floor(state.clock / DAY) - (REGISTER_DAYS - 1)) * DAY;
+    state.register = state.register.filter(l => l.actual >= from);
+    state.register.push({ ...line, actual: line.booked + line.late, cause: line.late >= ON_TIME_SECONDS ? line.cause : null });
+  }
+  // A through train has passed. Its lateness is when it leaves the map
+  // against when it would have left running through unhindered: the time
+  // it waited, and from a stand at the home signal its restart too.
+  function registerThrough(r) {
+    const tt = throughEntry(r.tt);
+    registerTrain({ number: tt.number, name: throughName(tt), passenger: !!tt.passenger, kind: "through",
+                    booked: r.at, late: r.late || 0, cause: r.cause || null });
+  }
+
   // When the next through train not yet offered will be.
   function nextOfferAt() {
     const run = runsBetween(state.throughAt + OFFER_LEAD_SECONDS, state.clock + DAY + OFFER_LEAD_SECONDS, THROUGH_TIMETABLE)[0];
@@ -2705,6 +2743,7 @@
     for (const r of state.through) if (r.status === "running") {
       for (const id of r.vehicles) { detach(id); delete state.vehicles[id]; }
       r.status = "gone";
+      registerThrough(r);
     }
     state.clock = at;
     stepWork();
@@ -2761,7 +2800,7 @@
   // The benchmark page (index.html?bench, CHECKS) saves under keys of its
   // own, never over the player's yard.
   const BENCH = new URLSearchParams(location.search).has("bench");
-  const SAVE_KEY = "switching-game.yard.11" + (BENCH ? ".bench" : "");
+  const SAVE_KEY = "switching-game.yard.12" + (BENCH ? ".bench" : "");
   const CARS_KEY = SAVE_KEY + ".cars";
   let saves = 0;
 
@@ -2789,6 +2828,8 @@
         && typeof w.a === "string" && typeof w.b === "string" && Number.isFinite(w.done))) return false;
     if (!sameKeys(st.switches, SWITCHES)) return false;
     if (!isObj(st.cars) || !isObj(st.pool) || !Array.isArray(st.jobs) || !Number.isInteger(st.nextJob) || !Number.isInteger(st.moves)
+        || !Number.isInteger(st.locoSense) || !Array.isArray(st.register)
+        || !st.register.every(l => isObj(l) && typeof l.number === "string" && Number.isFinite(l.booked) && Number.isFinite(l.late))
         || !Number.isInteger(st.seed) || !Number.isFinite(st.nextShiftAt) || !Number.isFinite(st.timetableAt)) return false;
     if (!Array.isArray(st.held) || !st.held.every(r => isObj(r) && timetableEntry(r.tt) && Number.isFinite(r.at))) return false;
     if (!Number.isFinite(st.throughAt) || !isObj(st.main) || typeof st.main.held !== "boolean"
@@ -3787,19 +3828,23 @@
     jobsBtn.classList.toggle("on", !!open.length);
     if (sheet && sheet.job && !jobById(sheet.job)) sheet = {};
     if (sheet) {
-      const html = sheet.consist ? consistHtml(jobById(sheet.job)) : sheet.job ? jobSheetHtml(jobById(sheet.job)) : boardHtml();
+      const html = sheet.register ? registerHtml() : sheet.consist ? consistHtml(jobById(sheet.job)) : sheet.job ? jobSheetHtml(jobById(sheet.job)) : boardHtml();
       if (html !== sheetHtml) sheetEl.innerHTML = sheetHtml = html;
     }
     sheetEl.classList.toggle("open", !!sheet);
   }
   // A finished job in a line; a build's train, gone or still to go.
   const trainText = j => j.kind !== "build" ? "" : j.departed
-    ? ` · left ${shortTime(j.departed.at)}${j.departed.late >= 60 ? `, ${lateText(j.departed.late)} late` : ""}` : ` · leaves ${shortTime(j.due)}`;
+    ? ` · left ${shortTime(j.departed.at)}${j.departed.late >= ON_TIME_SECONDS ? `, ${lateText(j.departed.late)} late` : ""}` : ` · leaves ${shortTime(j.due)}`;
+  // Timeliness sits beside the outcome, never in it (#62).
+  const lateness = late => late >= ON_TIME_SECONDS ? `${lateText(late)} late` : "on time";
+  const headline = r => `${r.outcome} · ${lateness(r.late)}`;
   const outcomeText = j => (j.result.by === "crew" ? `Done by another crew at ${shortTime(j.result.at)}`
-    : `${j.result.outcome} · ${shortTime(j.result.at)}`) + trainText(j);
+    : `${headline(j.result)} · ${shortTime(j.result.at)}`) + trainText(j);
   const dueText = j => j.kind === "build" ? `leaves ${shortTime(j.due)}` : `due ${shortTime(j.due)}`;
   function boardHtml() {
-    let h = `<div class="grab"></div><header><h2>Jobs · ${YARD_NAME}</h2><button data-act="close">Close ✕&#xFE0E;</button></header>`;
+    let h = `<div class="grab"></div><header><h2>Jobs · ${YARD_NAME}</h2><button data-act="register">Register</button>` +
+      `<button data-act="close">Close ✕&#xFE0E;</button></header>`;
     for (const j of openJobs()) {
       const late = j.due <= state.clock ? ` · <span class="warn">late</span>` : "";
       h += `<div class="job" data-job="${j.id}"><div><b>${j.title}</b><small>${j.cars.length} cars · ${dueText(j)}` +
@@ -3830,7 +3875,7 @@
       `<span>${j.kind === "build" ? "Leaves" : "Due"}</span><span>${shortTime(j.due)}</span></div>`;
     const remarks = [];
     if (j.kind === "breakup") remarks.push(`Train ${tt.number} from ${tt.from}, on Track ${YARD_TRACKS[ARRIVAL_TRACK].number}` +
-      (j.arrivedLate >= 60 ? `, held outside ${lateText(j.arrivedLate)}` : ""));
+      (j.arrivedLate >= ON_TIME_SECONDS ? `, held outside ${lateText(j.arrivedLate)}` : ""));
     if (j.kind === "build") remarks.push(`Train ${tt.number} to ${tt.to}, built on ${tracksText(j.block)} as one coupled cut, ` +
       `left by the loco, nothing else coupled in`);
     if (j.kind === "setout") remarks.push(INDUSTRIES[j.industry].workTime === null
@@ -3883,18 +3928,47 @@
   }
   function resultHtml(j) {
     const r = j.result, train = j.kind === "build" ? `<small>${j.departed ? `Left ${shortTime(j.departed.at)} with ${j.departed.cars} car${j.departed.cars === 1 ? "" : "s"}` +
-      (j.departed.late >= 60 ? `, <span class="warn">${lateText(j.departed.late)} late</span>` : "") : `Leaves ${shortTime(j.due)}`}</small>` : "";
+      (j.departed.late >= ON_TIME_SECONDS ? `, <span class="warn">${lateText(j.departed.late)} late</span>` : "") : `Leaves ${shortTime(j.due)}`}</small>` : "";
     if (r.by === "crew") return `<div class="result"><b>Done by another crew</b><small>At ${shortTime(r.at)}</small>${train}` +
       `${r.left.length ? `<small class="warn">Left where they stood, the track blocked or full: ${r.left.map(carName).join(", ")}</small>` : ""}</div>`;
     const rows = [
       `${r.met} of ${r.total} cars where they belong${r.inOrder === null || r.met < r.total ? "" : r.inOrder ? ", in block order" : ", out of block order"}`,
       r.cut && !(r.cut.one && r.cut.clean) ? `<span class="warn">${!r.cut.one ? "Not one coupled cut" : "Another car in the cut"}</span>` : "",
-      `${r.moves} move${r.moves === 1 ? "" : "s"}, par ${+r.par.toFixed(1)}`,
-      r.late ? `<span class="warn">Late by ${lateText(r.late)}</span>, at ${shortTime(r.at)}` : `On time, at ${shortTime(r.at)}`].filter(Boolean);
-    return `<div class="result"><b>${r.outcome}</b>${rows.map(t => `<small>${t}</small>`).join("")}${train}` +
+      `${r.moves} move${r.moves === 1 ? "" : "s"} (changes of direction), par ${+r.par.toFixed(1)}`,
+      `Reported at ${shortTime(r.at)}, due ${shortTime(j.due)}`].filter(Boolean);
+    return `<div class="result"><b>${r.outcome} · ${r.late >= ON_TIME_SECONDS ? `<span class="warn">${lateness(r.late)}</span>` : lateness(r.late)}</b>${rows.map(t => `<small>${t}</small>`).join("")}${train}` +
       `${j.damaged.length ? `<small class="warn">Rough handling: ${j.damaged.map(carName).join(", ")} damaged, bad order</small>` : ""}` +
       `${j.trainsHeld.length ? `<small class="warn">Main line: ${j.trainsHeld.map(h => `${h.number} held ${lateText(h.delay)}`).join(", ")}</small>` : ""}` +
       `${j.overruns.length ? `<small class="warn">Main kept past the time asked: ${j.overruns.map(lateText).join(", ")}</small>` : ""}</div>`;
+  }
+  // Junín's train register (#62), reached from the board: the trains of
+  // the last REGISTER_DAYS days by shift, newest first, each with its
+  // booked and actual times, how late, and the yard's cause; each shift
+  // with the minutes of delay the yard caused, freight and passenger apart.
+  function registerHtml() {
+    let h = `<div class="grab"></div><header><button data-act="board" aria-label="All jobs">‹</button>` +
+      `<h2>Train register</h2><button data-act="close" aria-label="Close">✕&#xFE0E;</button></header>`;
+    const lines = [...state.register].sort((a, b) => b.actual - a.actual);
+    if (!lines.length) return h + `<p class="remarks">No train has run yet.</p>`;
+    const verb = { arrival: "arrived", departure: "left", through: "passed" };
+    const shifts = [];
+    for (const l of lines) {
+      const start = shiftAt(l.actual).start;
+      if (!shifts.length || shifts[shifts.length - 1].start !== start) shifts.push({ start, lines: [] });
+      shifts[shifts.length - 1].lines.push(l);
+    }
+    for (const sh of shifts) {
+      const caused = p => sh.lines.filter(l => l.cause && l.passenger === p).reduce((t, l) => t + l.late, 0);
+      const total = p => { const s = caused(p); return s >= ON_TIME_SECONDS ? lateText(s) : "0 min"; };
+      h += `<h3><span>Shift ${clockText(sh.start).slice(0, 2)}–${clockText(sh.start + SHIFT_HOURS * HOUR).slice(0, 2)}, day ${dayOf(sh.start)}</span>` +
+        `<span>${sh.lines.length} train${sh.lines.length === 1 ? "" : "s"}</span></h3>` +
+        `<p class="remarks"><span>Delay caused by the yard:</span> freight ${total(false)}, passenger ${total(true)}.</p>`;
+      for (const l of sh.lines) h += `<div class="line"><div><b>${l.name}</b>` +
+        `<small>Booked ${clockText(l.booked)} · ${verb[l.kind]} ${clockText(l.actual)}</small>` +
+        `${l.cause ? `<small class="warn">${l.cause}</small>` : ""}</div>` +
+        `<div class="where"><span${l.late >= ON_TIME_SECONDS ? ` class="warn"` : ""}>${l.late >= ON_TIME_SECONDS ? `${lateText(l.late)} late` : "On time"}</span></div></div>`;
+    }
+    return h;
   }
   // The consist page of a build job: a line per car of its train, as it
   // stands on its track from the ladder end (cars elsewhere after), and the
@@ -3927,6 +4001,7 @@
       const act = b.dataset.act, id = b.dataset.job;
       if (act === "close") sheet = null;
       else if (act === "board") sheet = {};
+      else if (act === "register") sheet = { register: true };
       else if (act === "open") sheet = { job: id };
       else if (act === "consist") sheet = { job: id, consist: true };
       else if (act === "take") unlessPaused(() => { if (takeJob(id)) sheet = { job: id }; })();
