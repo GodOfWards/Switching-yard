@@ -150,6 +150,29 @@
   #sheet .consist td b { font-weight: 600; }
   #readout { font-variant-numeric: tabular-nums; display: flex; justify-content: space-between; }
   #readout small { color: var(--muted); font-size: 12px; align-self: center; }
+  /* The version number takes a long press (the dev overlay), so its target
+     reaches past its text to a thumb's size. */
+  #version { padding: 12px 16px; margin: -12px -16px; -webkit-touch-callout: none; touch-action: manipulation; }
+  /* The dev overlay's panel (#42): monospace, top left under the clock and
+     the chips, at most a third of the yard's height, scrolling inside; its
+     header folds it to one line, with Save state beside it. */
+  #devPanel { position: absolute; display: none; top: 54px; left: 52px; width: min(360px, calc(100% - 104px));
+    max-height: 33%; flex-direction: column; box-sizing: border-box; border-radius: 12px;
+    border: 1px solid var(--line); background: var(--overlay); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+    font: 11px/1.35 ui-monospace, Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; }
+  #devPanel.open { display: flex; }
+  #devTop { display: flex; flex: none; align-items: center; }
+  #devPanel button { min-height: 40px; border: 0; background: none; color: var(--fg); font: inherit; text-align: left;
+    padding: 0 10px; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+  #devHead { flex: 1; min-width: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #devBody { overflow-y: auto; padding: 0 10px 6px; overscroll-behavior: contain; -webkit-user-select: text; user-select: text; }
+  #devBody div { margin-top: 2px; overflow-wrap: anywhere; }
+  #devBody b { color: var(--muted); font-weight: 600; }
+  #devBody .warn { color: var(--warn); }
+  #devPanel #devSave { flex: none; min-height: 32px; margin: 4px 4px 4px 0; border: 1px solid var(--line); border-radius: 9px;
+    background: var(--button); font-weight: 600; white-space: nowrap; }
+  #devPanel #devSave:active { background: var(--button-down); }
+  #devPanel.folded #devBody { display: none; }
   /* The reverser and three notched levers (throttle, loco brake, train
      brake), each an up and a down with its setting between them, then
      Release over Emergency. Buttons are 40 px tall, 10% under the usual
@@ -219,6 +242,8 @@
 </head>
 <body>
 <div id="view"><canvas id="yard"></canvas>
+  <!-- The dev overlay's panel (#42), first so the menus, card and sheet open over it. -->
+  <div id="devPanel"><div id="devTop"><button id="devHead"></button><button id="devSave">Save state</button></div><div id="devBody"></div></div>
   <div id="zoom">
     <button id="zoomIn" aria-label="Zoom in">+</button>
     <button id="zoomOut" aria-label="Zoom out">−</button>
@@ -245,7 +270,7 @@
   <div id="sheet"></div>
 </div>
 <div id="bar">
-  <div id="readout"></div>
+  <div id="readout"><span id="readoutText"></span><small id="version"></small></div>
   <div id="controls">
     <button id="revUp" aria-label="Reverser toward forward">▲&#xFE0E;</button>
     <button id="thrUp" aria-label="Throttle up">+</button>
@@ -323,15 +348,19 @@
   //                when they may. They change STATE; they never draw.
   //   PERSISTENCE  keeps STATE in localStorage between visits, and starts a
   //                new yard: the cars apart from the rest, written only
-  //                when carsChanged() says they changed. SAVE_KEY changes
+  //                when carsChanged() says they changed, and gives the
+  //                save as a file, for a bug report. SAVE_KEY changes
   //                with every change to the saved shape.
   //   RENDERING    draws STATE to the canvas and the controls (the job
   //                board and sheet are drawn in INPUT, beside their menus),
   //                through a camera (zoom, follow or pan, or the Map's steps
-  //                out) that is display only. It never holds rules.
+  //                out) that is display only; and the dev overlay (#42),
+  //                ids and hidden figures over the yard and a panel of
+  //                STATE, for troubleshooting. It never holds rules.
   //   INPUT / LOOP keyboard, buttons and taps to ACTIONS; the fixed-step loop,
   //                and Pause, which holds the loop's steps and the player's
-  //                actions but not the camera; when to save.
+  //                actions but not the camera; when to save; the dev
+  //                overlay's long press, fold and Save state.
   //   CHECKS       what WORLD DATA names that doesn't exist, checked at every
   //                start; what is wrong with STATE; and the benchmark page
   //                (index.html?bench), which times fixed scenarios and ages
@@ -355,7 +384,7 @@
   // ==================================================
   // CONFIG
   // ==================================================
-  const GAME_CONFIG = { VERSION: "0.19.1" };
+  const GAME_CONFIG = { VERSION: "0.19.2" };
   const STEP_SECONDS = 1 / 60;          // fixed simulation step
   const MAX_STEPS_PER_FRAME = 5;        // drop time rather than spiral after a stall
   const VIEW_MARGIN = 8;                // metres of ground kept around the yard
@@ -365,6 +394,13 @@
   const MAP_WIDEN_MAX = 3;              // the Map's yard step widens across the yard up to this many times; retunable
   const DRAG_START_PX = 8;              // CSS px a press moves before it pans instead of tapping
   const TAP_RADIUS_PX = 32;             // CSS px from a switch or coupling that a tap counts; retunable (a fingertip)
+  // The dev overlay (#42): a long press of DEV_PRESS_SECONDS on the version
+  // number turns it on or off. Its labels are DEV_LABEL_PX high; the
+  // panel's live stateProblems() runs every DEV_PROBLEMS_SECONDS, as it
+  // checks the whole yard. All retunable.
+  const DEV_PRESS_SECONDS = 1;
+  const DEV_LABEL_PX = 11;
+  const DEV_PROBLEMS_SECONDS = 1;
   const GAUGE = 1.676;                  // m, Argentine broad gauge (Junín's)
   const TIE_SPACING = 0.65;             // m between tie centres; approximate
   const TIE_LENGTH = 2.75;              // m; approximate
@@ -2433,12 +2469,15 @@
     if (ids.length) state.vehicles[ids[0]].handBrake = true;
   }
 
+  // A job's moves since it was taken, and its par: PAR_PER_CAR_AND_BLOCK
+  // for each car and each block it handles.
+  const jobMoves = job => state.moves - job.movesAtTake;
+  const jobPar = job => PAR_PER_CAR_AND_BLOCK * (job.cars.length + job.blocks);
   // Assesses a job the player reports done at `at` (docs/design/results.md):
   // correctness, ordering, moves against par, timeliness, and the cars
   // damaged while it was worked.
   function assess(job, at) {
-    const st = jobStatus(job), moves = state.moves - job.movesAtTake;
-    const par = PAR_PER_CAR_AND_BLOCK * (job.cars.length + job.blocks);
+    const st = jobStatus(job), moves = jobMoves(job), par = jobPar(job);
     let outcome;
     if (st.met === st.lines.length) outcome = !formationValid(st) ? "Invalid formation" : moves > par ? "Valid but inefficient" : "Operationally valid";
     else outcome = st.met ? "Partially complete" : "Incomplete";
@@ -2821,16 +2860,27 @@
   const CARS_KEY = SAVE_KEY + ".cars";
   let saves = 0;
 
+  // The save's two parts, as written under CARS_KEY and SAVE_KEY.
+  function saveParts() {
+    const { cars, pool, notice, ...rest } = state;
+    return { cars: { saved: saves, cars, pool },
+             rest: { version: GAME_CONFIG.VERSION, saved: saves, state: { ...rest, notice: null } } };
+  }
   function saveYard(all = false) {
     try {
-      const { cars, pool, notice, ...rest } = state;
-      if (carsDirty || all) {
-        saves++;
-        localStorage.setItem(CARS_KEY, JSON.stringify({ saved: saves, cars, pool }));
-        carsDirty = false;
-      }
-      localStorage.setItem(SAVE_KEY, JSON.stringify({ version: GAME_CONFIG.VERSION, saved: saves, state: { ...rest, notice: null } }));
+      const withCars = carsDirty || all;
+      if (withCars) saves++;
+      const p = saveParts();
+      if (withCars) { localStorage.setItem(CARS_KEY, JSON.stringify(p.cars)); carsDirty = false; }
+      localStorage.setItem(SAVE_KEY, JSON.stringify(p.rest));
     } catch (e) { carsDirty = true; /* storage full or blocked: play goes on unsaved */ }
+  }
+  // The yard as it stands, as a file for a bug report (#42): both parts of
+  // the save under their keys, so writing each into localStorage and
+  // reloading opens this yard exactly (docs/design/view.md).
+  function saveFileText() {
+    const p = saveParts();
+    return JSON.stringify({ [SAVE_KEY]: p.rest, [CARS_KEY]: p.cars });
   }
 
   // Whether a saved STATE fits this yard: the same switches and vehicles,
@@ -2954,7 +3004,9 @@
   };
   const canvas = document.getElementById("yard");
   const ctx = canvas.getContext("2d");
-  const readout = document.getElementById("readout");
+  const readoutText = document.getElementById("readoutText");
+  const versionEl = document.getElementById("version");
+  versionEl.textContent = `v${GAME_CONFIG.VERSION}`;
   const followBtn = document.getElementById("followBtn");
   const mapBtn = document.getElementById("mapBtn");
   const pauseBtn = document.getElementById("pauseBtn");
@@ -3085,7 +3137,8 @@
     return { x: p.x + (q.x - p.x) * d / len, y: p.y + (q.y - p.y) * d / len };
   }
   // Where each coupling is: the joint behind every vehicle but a train's
-  // last, `hooked`; and where two trains' ends meet uncoupled, between them.
+  // last, `hooked`; and where two trains' ends meet uncoupled, between them,
+  // with the `gap` between their buffers.
   function couplings() {
     const out = [];
     for (const id in state.trains) {
@@ -3097,7 +3150,7 @@
     }
     for (const m of meetings()) {
       const p = endPoint(trainEnds(m.X)[m.xEnd]), q = endPoint(trainEnds(m.Y)[m.yEnd]);
-      out.push({ vehicle: m.a, key: m.key, hooked: false, at: { x: (p.x + q.x) / 2, y: (p.y + q.y) / 2 } });
+      out.push({ vehicle: m.a, key: m.key, hooked: false, gap: m.gap, at: { x: (p.x + q.x) / 2, y: (p.y + q.y) / 2 } });
     }
     return out;
   }
@@ -3107,6 +3160,7 @@
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.lineCap = "round";
     if (camera.map) drawMap(); else drawYard();
+    if (dev.on) drawDevLabels();
     placeCouplingMenu();
     placeCarCard();
     placeMainMenu();
@@ -3146,12 +3200,12 @@
     const loco = playerLoco(), c = loco.controls, t = trainOf(loco);
     const cars = t.vehicles.length - 1, reach = brakeReach(t);
     const braked = t.vehicles.filter(id => !state.vehicles[id].controls && reach[id] >= 1).length;
-    readout.innerHTML = `<span>${(Math.abs(loco.speed) * 3.6).toFixed(1)} km/h · ` +
-      `${cars} car${cars === 1 ? "" : "s"}${cars ? ` · air ${braked}/${cars}` : ""}</span>` +
-      `<small>v${GAME_CONFIG.VERSION}</small>`;
+    const text = `${(Math.abs(loco.speed) * 3.6).toFixed(1)} km/h · ${cars} car${cars === 1 ? "" : "s"}${cars ? ` · air ${braked}/${cars}` : ""}`;
+    if (readoutText.textContent !== text) readoutText.textContent = text;
     renderClock();
     renderJobs();
     renderMainChip();
+    renderDevPanel();
     followBtn.classList.toggle("on", camera.follow && !camera.map);
     mapBtn.classList.toggle("on", !!camera.map);
     pauseBtn.classList.toggle("on", paused);
@@ -3497,6 +3551,112 @@
     placeSkipMenu();
   }
 
+
+  // The dev overlay (#42), for troubleshooting: while `dev.on`, the yard's
+  // ids and the figures play hides, drawn over the yard, and a panel of
+  // STATE under the clock, folded to its header while `dev.folded`. A long
+  // press on the version number turns it on or off (INPUT); it starts off
+  // at every load. Display only: every figure is read from STATE or an
+  // existing helper, and it never takes a tap but on its own panel.
+  const dev = { on: false, folded: false };
+  const devTime = at => `day ${dayOf(at)} ${clockText(at)}:${pad2(Math.floor(at % 60))}`;
+  // Labels over the yard: at each coupling its gap past touching, its air's
+  // charge and the shunter's work with the seconds left; each vehicle's id,
+  // its train's and its speed when moving, and HB with its hand brake on;
+  // each switch's id and the leg it is set for; each yard track's id; each
+  // segment's id at its middle. Placed in that order, and a label that
+  // would overlap a coupling ring or one already placed is left out, so
+  // the yard thins itself out zoomed out. On the Map's yard steps, only
+  // the switches and the tracks; none on the lines out of Junín.
+  function drawDevLabels() {
+    if (camera.map === 3) return;
+    const k = view.k, h = DEV_LABEL_PX + 2, used = [];   // screen boxes taken
+    const free = b => !used.some(o => b.x0 < o.x1 && b.x1 > o.x0 && b.y0 < o.y1 && b.y1 > o.y0);
+    ctx.font = `600 ${DEV_LABEL_PX}px ui-monospace, Menlo, Consolas, monospace`;
+    ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.lineJoin = "round";
+    // `text` at world point (x, y), `dy` CSS px below it, if it fits.
+    const label = (text, x, y, colour, dy = 0) => {
+      const c = view.toScreen(x, y), w = ctx.measureText(text).width, cy = c.y + dy;
+      const b = { x0: c.x - w / 2 - 2, x1: c.x + w / 2 + 2, y0: cy - h / 2, y1: cy + h / 2 };
+      if (b.x1 < 0 || b.x0 > screenW || b.y1 < 0 || b.y0 > screenH || !free(b)) return;
+      used.push(b);
+      ctx.strokeStyle = PALETTE.bg; ctx.lineWidth = 3; ctx.strokeText(text, c.x, cy);
+      ctx.fillStyle = colour; ctx.fillText(text, c.x, cy);
+    };
+    const keep = (x, y, r) => { const c = view.toScreen(x, y); used.push({ x0: c.x - r, x1: c.x + r, y0: c.y - r, y1: c.y + r }); };
+    const swR = camera.map ? 4 : Math.max(6, k * 1.6) * 1.2, discR = camera.map ? 9 : Math.max(8, Math.min(12, k * 2));
+    for (const id in SWITCHES) keep(NODES[id].x, NODES[id].y, swR);          // the switch targets and track discs, kept clear
+    for (const id in YARD_TRACKS) { const at = trackPoint(id, TRACK_GEOM[id].fouling + 12); keep(at.x, at.y, discR); }
+    if (!camera.map) {
+      const cs = couplings(), ring = Math.max(2.5, k * 0.5) * 2.4 + 2;
+      for (const c of cs) keep(c.at.x, c.at.y, ring);   // the rings too
+      for (const c of cs) {
+        const air = state.air[c.key], w = state.work[c.key];
+        const parts = [`${((c.hooked ? state.gaps[c.key] : c.gap) * 100).toFixed(1)} cm${c.hooked ? "" : " apart"}`];
+        if (air !== undefined) parts.push(`air ${Math.round(air * 100)}%`);
+        if (w) parts.push(`${w.kind === "hook" ? "hook up" : "uncouple"} ${Math.max(0, Math.ceil(w.done - state.clock))} s`);
+        label(parts.join(" · "), c.at.x, c.at.y, PALETTE.air, -(ring + h / 2));
+      }
+      for (const id in state.vehicles) {
+        const v = state.vehicles[id], p = pointOn(v.seg, v.s);
+        label(`${id} · ${v.train}${v.speed ? ` · ${(Math.abs(v.speed) * 3.6).toFixed(1)} km/h` : ""}`, p.x, p.y, PALETTE.light);
+        if (v.handBrake) label("HB", p.x, p.y, PALETTE.switchReversed, h);
+      }
+    }
+    for (const id in SWITCHES) {
+      const set = state.switches[id].set;
+      label(`${id} → ${set}`, NODES[id].x, NODES[id].y, set === SWITCHES[id].normal ? PALETTE.switchNormal : PALETTE.switchReversed, swR + h / 2 + 1);
+    }
+    for (const id in YARD_TRACKS) {
+      const at = trackPoint(id, TRACK_GEOM[id].fouling + 12);
+      label(id, at.x, at.y, PALETTE.light, discR + h / 2 + 1);
+    }
+    if (!camera.map) for (const id in SEGMENTS) {
+      const p = pointOn(id, segmentLength(id) / 2);
+      label(id, p.x, p.y, PALETTE.north);
+    }
+    ctx.textAlign = "start"; ctx.textBaseline = "alphabetic";
+  }
+
+  // The panel: the clock raw and as day and time, day or night by the
+  // night rule, the seed; who holds the main; the through trains and the
+  // arrivals held outside; the open jobs; the industries and the pool;
+  // stateProblems(), run every DEV_PROBLEMS_SECONDS as it checks the whole
+  // yard. Written only when it changes.
+  const devPanel = document.getElementById("devPanel"), devHead = document.getElementById("devHead");
+  const devBody = document.getElementById("devBody");
+  let devHeadText = "", devBodyHtml = "", devProblems = [], devCheckedAt = -Infinity;
+  function renderDevPanel() {
+    devPanel.classList.toggle("open", dev.on);
+    if (!dev.on) return;
+    devPanel.style.top = `${54 + 38 * ((jobChip.classList.contains("open") ? 1 : 0) + (mainChip.classList.contains("open") ? 1 : 0))}px`;
+    const now = performance.now();
+    if (now - devCheckedAt >= DEV_PROBLEMS_SECONDS * 1000) { devProblems = stateProblems(); devCheckedAt = now; }
+    const head = `${dev.folded ? "▸" : "▾"} ${clockText(state.clock)}:${pad2(Math.floor(state.clock % 60))} · ${devProblems.length} problem${devProblems.length === 1 ? "" : "s"}`;
+    if (head !== devHeadText) devHead.textContent = devHeadText = head;
+    devPanel.classList.toggle("folded", dev.folded);
+    if (dev.folded) return;
+    const at = t => t === null || t === undefined ? "–" : devTime(t);
+    const row = (key, text, warn = false) => `<div${warn ? ' class="warn"' : ""}><b>${key}</b> ${text}</div>`;
+    let html = row("clock", `${state.clock.toFixed(1)} s · ${devTime(state.clock)} · ${byDay(state.clock) ? "by day" : "at night"} ` +
+      `(day is ${clockText(DAYLIGHT_FROM)}–${clockText(DAYLIGHT_TO)}) · seed ${state.seed}`);
+    html += row("main", state.main.held ? `held by you until ${at(state.main.until)}` : "clear", state.main.held && state.clock > state.main.until);
+    for (const r of state.through) html += row("through", `${r.id} · ${r.status}${r.cause ? ` · ${r.cause}` : ""} · booked ${at(r.at)}, ` +
+      `enters ${at(r.enters)}${r.late ? ` · late ${Math.round(r.late)} s` : ""}${r.vehicles.length ? ` · ${(r.speed * 3.6).toFixed(1)} km/h` : ""}`,
+      r.status !== "offered" && r.status !== "running");
+    if (!state.through.length) html += row("through", "none");
+    for (const r of state.held) html += row("held", `${r.tt} · due ${at(r.at)}, outside`, true);
+    for (const j of openJobs()) html += row(j.id, `${j.short || j.title} · ${j.taken ? `taken · moves ${jobMoves(j)} of par ${+jobPar(j).toFixed(1)}` : "not taken"}` +
+      ` · due ${at(j.due)}`, j.due <= state.clock);
+    if (!openJobs().length) html += row("jobs", "none open");
+    for (const id in state.industries) {
+      const i = state.industries[id];
+      html += row(id, `set-out ${i.setOut || "–"} · ready ${at(i.readyAt)} · pull ${i.pull || "–"}`);
+    }
+    html += row("pool", `${Object.keys(state.pool).length} cars · joined ${state.poolCount.joined}, left ${state.poolCount.left} since ${at(state.poolSince)}`);
+    html += row("problems", devProblems.length ? devProblems.join("; ") : "none", devProblems.length > 0);
+    if (html !== devBodyHtml) devBody.innerHTML = devBodyHtml = html;
+  }
   // ==================================================
   // INPUT / LOOP
   // ==================================================
@@ -4048,6 +4208,27 @@
     const j = openJobs().find(j => j.taken);
     sheet = j ? { job: j.id } : null; menuFor = null; cardFor = null;
     if (skipOpen) closeSkipMenu();
+  });
+
+  // The dev overlay (#42): a long press of DEV_PRESS_SECONDS on the version
+  // number turns it on or off; a tap on the panel's header folds it; Save
+  // state downloads the yard as it stands, for a bug report. None of it is
+  // an action, so all of it works while paused.
+  let devPress = null;
+  versionEl.addEventListener("pointerdown", e => {
+    e.preventDefault();
+    clearTimeout(devPress);
+    devPress = setTimeout(() => { devPress = null; dev.on = !dev.on; dev.folded = false; }, DEV_PRESS_SECONDS * 1000);
+  });
+  for (const type of ["pointerup", "pointercancel", "pointerleave"]) versionEl.addEventListener(type, () => { clearTimeout(devPress); devPress = null; });
+  versionEl.addEventListener("contextmenu", e => e.preventDefault());   // a long press opens no menu
+  devHead.addEventListener("pointerdown", e => { e.preventDefault(); dev.folded = !dev.folded; });
+  document.getElementById("devSave").addEventListener("click", () => {
+    const a = document.createElement("a"), t = Math.floor(state.clock);
+    a.href = URL.createObjectURL(new Blob([saveFileText()], { type: "application/json" }));
+    a.download = `switching-yard-v${GAME_CONFIG.VERSION}-day${dayOf(t)}-${clockText(t).replace(":", "")}.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   });
 
   // The yard is saved every SAVE_SECONDS of play, counted in steps.

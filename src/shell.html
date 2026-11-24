@@ -11,6 +11,8 @@
 </head>
 <body>
 <div id="view"><canvas id="yard"></canvas>
+  <!-- The dev overlay's panel (#42), first so the menus, card and sheet open over it. -->
+  <div id="devPanel"><div id="devTop"><button id="devHead"></button><button id="devSave">Save state</button></div><div id="devBody"></div></div>
   <div id="zoom">
     <button id="zoomIn" aria-label="Zoom in">+</button>
     <button id="zoomOut" aria-label="Zoom out">−</button>
@@ -37,7 +39,7 @@
   <div id="sheet"></div>
 </div>
 <div id="bar">
-  <div id="readout"></div>
+  <div id="readout"><span id="readoutText"></span><small id="version"></small></div>
   <div id="controls">
     <button id="revUp" aria-label="Reverser toward forward">▲&#xFE0E;</button>
     <button id="thrUp" aria-label="Throttle up">+</button>
