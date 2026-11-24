@@ -17,6 +17,20 @@ Made in the project thread. The rules are in
 - **Road locos:** an arriving one goes off west at the cut; a departing
   one comes off the depot fan 20 minutes ahead.
 
+## 2026-11-24: The dev overlay (#42)
+
+Made in the project thread. How it shows is in
+[design/view.md](design/view.md).
+
+- **Turned on by a long press** (about a second) on the version number in
+  the readout; the same press turns it off.
+- **Everything shows at once** when it is on; its panel folds to one line.
+- **In every release**, hidden behind the long press. No separate dev
+  build.
+- **Not remembered**: it starts off at every load.
+- It is display only, with a **Save state** button that downloads the yard
+  for a bug report.
+
 ## 2026-11-24: Job requirements for a departure (#61)
 
 Made in the project thread, all four as proposed. Facts in

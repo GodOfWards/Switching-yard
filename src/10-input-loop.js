@@ -585,6 +585,27 @@
     if (skipOpen) closeSkipMenu();
   });
 
+  // The dev overlay (#42): a long press of DEV_PRESS_SECONDS on the version
+  // number turns it on or off; a tap on the panel's header folds it; Save
+  // state downloads the yard as it stands, for a bug report. None of it is
+  // an action, so all of it works while paused.
+  let devPress = null;
+  versionEl.addEventListener("pointerdown", e => {
+    e.preventDefault();
+    clearTimeout(devPress);
+    devPress = setTimeout(() => { devPress = null; dev.on = !dev.on; dev.folded = false; }, DEV_PRESS_SECONDS * 1000);
+  });
+  for (const type of ["pointerup", "pointercancel", "pointerleave"]) versionEl.addEventListener(type, () => { clearTimeout(devPress); devPress = null; });
+  versionEl.addEventListener("contextmenu", e => e.preventDefault());   // a long press opens no menu
+  devHead.addEventListener("pointerdown", e => { e.preventDefault(); dev.folded = !dev.folded; });
+  document.getElementById("devSave").addEventListener("click", () => {
+    const a = document.createElement("a"), t = Math.floor(state.clock);
+    a.href = URL.createObjectURL(new Blob([saveFileText()], { type: "application/json" }));
+    a.download = `switching-yard-v${GAME_CONFIG.VERSION}-day${dayOf(t)}-${clockText(t).replace(":", "")}.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  });
+
   // The yard is saved every SAVE_SECONDS of play, counted in steps.
   let last = performance.now(), acc = 0, sinceSave = 0;
   function frame(now) {

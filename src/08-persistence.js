@@ -23,16 +23,27 @@
   const CARS_KEY = SAVE_KEY + ".cars";
   let saves = 0;
 
+  // The save's two parts, as written under CARS_KEY and SAVE_KEY.
+  function saveParts() {
+    const { cars, pool, notice, ...rest } = state;
+    return { cars: { saved: saves, cars, pool },
+             rest: { version: GAME_CONFIG.VERSION, saved: saves, state: { ...rest, notice: null } } };
+  }
   function saveYard(all = false) {
     try {
-      const { cars, pool, notice, ...rest } = state;
-      if (carsDirty || all) {
-        saves++;
-        localStorage.setItem(CARS_KEY, JSON.stringify({ saved: saves, cars, pool }));
-        carsDirty = false;
-      }
-      localStorage.setItem(SAVE_KEY, JSON.stringify({ version: GAME_CONFIG.VERSION, saved: saves, state: { ...rest, notice: null } }));
+      const withCars = carsDirty || all;
+      if (withCars) saves++;
+      const p = saveParts();
+      if (withCars) { localStorage.setItem(CARS_KEY, JSON.stringify(p.cars)); carsDirty = false; }
+      localStorage.setItem(SAVE_KEY, JSON.stringify(p.rest));
     } catch (e) { carsDirty = true; /* storage full or blocked: play goes on unsaved */ }
+  }
+  // The yard as it stands, as a file for a bug report (#42): both parts of
+  // the save under their keys, so writing each into localStorage and
+  // reloading opens this yard exactly (docs/design/view.md).
+  function saveFileText() {
+    const p = saveParts();
+    return JSON.stringify({ [SAVE_KEY]: p.rest, [CARS_KEY]: p.cars });
   }
 
   // Whether a saved STATE fits this yard: the same switches and vehicles,
