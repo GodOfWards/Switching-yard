@@ -3,6 +3,23 @@
 Design calls Tom has made, newest first, with where they were made. The
 values these produced live in CONFIG and WORLD DATA in `index.html`.
 
+## 2026-11-24: Molinos Tassara off the map (#45)
+
+Made in the project chat, after the Junín research of 2026-11-23
+([fa-yard-operations.md](reference/fa-yard-operations.md#junín)).
+
+- **The invented grain elevator stays on the east throat.** Molinos
+  Tassara, the one real rail-served industry found, stood west of the
+  station, off the map, so it doesn't replace it.
+- **Molinos Tassara becomes an off-map destination** cars can be sent to
+  (#105).
+- **Its traffic** (2026-11-24, #105): bagged flour in box cars to Retiro,
+  6 a week; wheat in hoppers from O'Higgins, 4 a week (about half the
+  mill's wheat; the rest by truck). Estimates, retunable.
+- **Tassara cars use the west end**: a car for the mill waits on the local
+  track, goes out at the next shift change, and comes back about 2 days
+  later on an arrival. The moves to and from the mill stay off-screen.
+
 ## 2026-11-23: The Map (#53)
 
 Made in the "Big-map view" thread, with the Big-map lab (linked in #53).
