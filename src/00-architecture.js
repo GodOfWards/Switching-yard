@@ -58,15 +58,19 @@
   //                when they may. They change STATE; they never draw.
   //   PERSISTENCE  keeps STATE in localStorage between visits, and starts a
   //                new yard: the cars apart from the rest, written only
-  //                when carsChanged() says they changed. SAVE_KEY changes
+  //                when carsChanged() says they changed, and gives the
+  //                save as a file, for a bug report. SAVE_KEY changes
   //                with every change to the saved shape.
   //   RENDERING    draws STATE to the canvas and the controls (the job
   //                board and sheet are drawn in INPUT, beside their menus),
   //                through a camera (zoom, follow or pan, or the Map's steps
-  //                out) that is display only. It never holds rules.
+  //                out) that is display only; and the dev overlay (#42),
+  //                ids and hidden figures over the yard and a panel of
+  //                STATE, for troubleshooting. It never holds rules.
   //   INPUT / LOOP keyboard, buttons and taps to ACTIONS; the fixed-step loop,
   //                and Pause, which holds the loop's steps and the player's
-  //                actions but not the camera; when to save.
+  //                actions but not the camera; when to save; the dev
+  //                overlay's long press, fold and Save state.
   //   CHECKS       what WORLD DATA names that doesn't exist, checked at every
   //                start; what is wrong with STATE; and the benchmark page
   //                (index.html?bench), which times fixed scenarios and ages

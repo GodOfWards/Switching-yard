@@ -26,7 +26,9 @@
   };
   const canvas = document.getElementById("yard");
   const ctx = canvas.getContext("2d");
-  const readout = document.getElementById("readout");
+  const readoutText = document.getElementById("readoutText"), fuelGauge = document.getElementById("fuelGauge");
+  const versionEl = document.getElementById("version");
+  versionEl.textContent = `v${GAME_CONFIG.VERSION}`;
   const followBtn = document.getElementById("followBtn");
   const mapBtn = document.getElementById("mapBtn");
   const pauseBtn = document.getElementById("pauseBtn");
@@ -165,7 +167,8 @@
     return { x: p.x + (q.x - p.x) * d / len, y: p.y + (q.y - p.y) * d / len };
   }
   // Where each coupling is: the joint behind every vehicle but a train's
-  // last, `hooked`; and where two trains' ends meet uncoupled, between them.
+  // last, `hooked`; and where two trains' ends meet uncoupled, between them,
+  // with the `gap` between their buffers.
   function couplings() {
     const out = [];
     for (const id in state.trains) {
@@ -177,7 +180,7 @@
     }
     for (const m of meetings()) {
       const p = endPoint(trainEnds(m.X)[m.xEnd]), q = endPoint(trainEnds(m.Y)[m.yEnd]);
-      out.push({ vehicle: m.a, key: m.key, hooked: false, at: { x: (p.x + q.x) / 2, y: (p.y + q.y) / 2 } });
+      out.push({ vehicle: m.a, key: m.key, hooked: false, gap: m.gap, at: { x: (p.x + q.x) / 2, y: (p.y + q.y) / 2 } });
     }
     return out;
   }
@@ -187,6 +190,7 @@
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.lineCap = "round";
     if (camera.map) drawMap(); else drawYard();
+    if (dev.on) drawDevLabels();
     placeCouplingMenu();
     placeCarCard();
     placeMainMenu();
@@ -226,12 +230,12 @@
     const loco = playerLoco(), c = loco.controls, t = trainOf(loco);
     const cars = t.vehicles.length - 1, reach = brakeReach(t);
     const braked = t.vehicles.filter(id => !state.vehicles[id].controls && reach[id] >= 1).length;
+    const text = `${(Math.abs(loco.speed) * 3.6).toFixed(1)} km/h · ${cars} car${cars === 1 ? "" : "s"}${cars ? ` · air ${braked}/${cars}` : ""}`;
+    if (readoutText.textContent !== text) readoutText.textContent = text;
     const tr = vehicleType(loco).traction, fuelShare = c.fuel / tr.tank;
-    readout.innerHTML = `<span>${(Math.abs(loco.speed) * 3.6).toFixed(1)} km/h · ` +
-      `${cars} car${cars === 1 ? "" : "s"}${cars ? ` · air ${braked}/${cars}` : ""}</span>` +
-      `<span class="fuel${fuelShare < FUEL_LOW ? " warn" : ""}">Fuel ${Math.round(fuelShare * 100)}%` +
-      `<span class="meter"><i style="width:${fuelShare * 100}%"></i></span></span>` +
-      `<small>v${GAME_CONFIG.VERSION}</small>`;
+    const fuelHtml = `Fuel ${Math.round(fuelShare * 100)}%<span class="meter"><i style="width:${fuelShare * 100}%"></i></span>`;
+    if (fuelGauge.innerHTML !== fuelHtml) fuelGauge.innerHTML = fuelHtml;
+    fuelGauge.classList.toggle("warn", fuelShare < FUEL_LOW);
     // The load meter: motor current as a share of continuous, and past it
     // the band it's in, the minutes allowed from cold. The light shows a
     // wheel slip, or else the power cut by hot motors or an empty tank.
@@ -249,6 +253,7 @@
     renderClock();
     renderJobs();
     renderMainChip();
+    renderDevPanel();
     followBtn.classList.toggle("on", camera.follow && !camera.map);
     mapBtn.classList.toggle("on", !!camera.map);
     pauseBtn.classList.toggle("on", paused);
@@ -609,3 +614,109 @@
     placeSkipMenu();
   }
 
+
+  // The dev overlay (#42), for troubleshooting: while `dev.on`, the yard's
+  // ids and the figures play hides, drawn over the yard, and a panel of
+  // STATE under the clock, folded to its header while `dev.folded`. A long
+  // press on the version number turns it on or off (INPUT); it starts off
+  // at every load. Display only: every figure is read from STATE or an
+  // existing helper, and it never takes a tap but on its own panel.
+  const dev = { on: false, folded: false };
+  const devTime = at => `day ${dayOf(at)} ${clockText(at)}:${pad2(Math.floor(at % 60))}`;
+  // Labels over the yard: at each coupling its gap past touching, its air's
+  // charge and the shunter's work with the seconds left; each vehicle's id,
+  // its train's and its speed when moving, and HB with its hand brake on;
+  // each switch's id and the leg it is set for; each yard track's id; each
+  // segment's id at its middle. Placed in that order, and a label that
+  // would overlap a coupling ring or one already placed is left out, so
+  // the yard thins itself out zoomed out. On the Map's yard steps, only
+  // the switches and the tracks; none on the lines out of Junín.
+  function drawDevLabels() {
+    if (camera.map === 3) return;
+    const k = view.k, h = DEV_LABEL_PX + 2, used = [];   // screen boxes taken
+    const free = b => !used.some(o => b.x0 < o.x1 && b.x1 > o.x0 && b.y0 < o.y1 && b.y1 > o.y0);
+    ctx.font = `600 ${DEV_LABEL_PX}px ui-monospace, Menlo, Consolas, monospace`;
+    ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.lineJoin = "round";
+    // `text` at world point (x, y), `dy` CSS px below it, if it fits.
+    const label = (text, x, y, colour, dy = 0) => {
+      const c = view.toScreen(x, y), w = ctx.measureText(text).width, cy = c.y + dy;
+      const b = { x0: c.x - w / 2 - 2, x1: c.x + w / 2 + 2, y0: cy - h / 2, y1: cy + h / 2 };
+      if (b.x1 < 0 || b.x0 > screenW || b.y1 < 0 || b.y0 > screenH || !free(b)) return;
+      used.push(b);
+      ctx.strokeStyle = PALETTE.bg; ctx.lineWidth = 3; ctx.strokeText(text, c.x, cy);
+      ctx.fillStyle = colour; ctx.fillText(text, c.x, cy);
+    };
+    const keep = (x, y, r) => { const c = view.toScreen(x, y); used.push({ x0: c.x - r, x1: c.x + r, y0: c.y - r, y1: c.y + r }); };
+    const swR = camera.map ? 4 : Math.max(6, k * 1.6) * 1.2, discR = camera.map ? 9 : Math.max(8, Math.min(12, k * 2));
+    for (const id in SWITCHES) keep(NODES[id].x, NODES[id].y, swR);          // the switch targets and track discs, kept clear
+    for (const id in YARD_TRACKS) { const at = trackPoint(id, TRACK_GEOM[id].fouling + 12); keep(at.x, at.y, discR); }
+    if (!camera.map) {
+      const cs = couplings(), ring = Math.max(2.5, k * 0.5) * 2.4 + 2;
+      for (const c of cs) keep(c.at.x, c.at.y, ring);   // the rings too
+      for (const c of cs) {
+        const air = state.air[c.key], w = state.work[c.key];
+        const parts = [`${((c.hooked ? state.gaps[c.key] : c.gap) * 100).toFixed(1)} cm${c.hooked ? "" : " apart"}`];
+        if (air !== undefined) parts.push(`air ${Math.round(air * 100)}%`);
+        if (w) parts.push(`${w.kind === "hook" ? "hook up" : "uncouple"} ${Math.max(0, Math.ceil(w.done - state.clock))} s`);
+        label(parts.join(" · "), c.at.x, c.at.y, PALETTE.air, -(ring + h / 2));
+      }
+      for (const id in state.vehicles) {
+        const v = state.vehicles[id], p = pointOn(v.seg, v.s);
+        label(`${id} · ${v.train}${v.speed ? ` · ${(Math.abs(v.speed) * 3.6).toFixed(1)} km/h` : ""}`, p.x, p.y, PALETTE.light);
+        if (v.handBrake) label("HB", p.x, p.y, PALETTE.switchReversed, h);
+      }
+    }
+    for (const id in SWITCHES) {
+      const set = state.switches[id].set;
+      label(`${id} → ${set}`, NODES[id].x, NODES[id].y, set === SWITCHES[id].normal ? PALETTE.switchNormal : PALETTE.switchReversed, swR + h / 2 + 1);
+    }
+    for (const id in YARD_TRACKS) {
+      const at = trackPoint(id, TRACK_GEOM[id].fouling + 12);
+      label(id, at.x, at.y, PALETTE.light, discR + h / 2 + 1);
+    }
+    if (!camera.map) for (const id in SEGMENTS) {
+      const p = pointOn(id, segmentLength(id) / 2);
+      label(id, p.x, p.y, PALETTE.north);
+    }
+    ctx.textAlign = "start"; ctx.textBaseline = "alphabetic";
+  }
+
+  // The panel: the clock raw and as day and time, day or night by the
+  // night rule, the seed; who holds the main; the through trains and the
+  // arrivals held outside; the open jobs; the industries and the pool;
+  // stateProblems(), run every DEV_PROBLEMS_SECONDS as it checks the whole
+  // yard. Written only when it changes.
+  const devPanel = document.getElementById("devPanel"), devHead = document.getElementById("devHead");
+  const devBody = document.getElementById("devBody");
+  let devHeadText = "", devBodyHtml = "", devProblems = [], devCheckedAt = -Infinity;
+  function renderDevPanel() {
+    devPanel.classList.toggle("open", dev.on);
+    if (!dev.on) return;
+    devPanel.style.top = `${54 + 38 * ((jobChip.classList.contains("open") ? 1 : 0) + (mainChip.classList.contains("open") ? 1 : 0))}px`;
+    const now = performance.now();
+    if (now - devCheckedAt >= DEV_PROBLEMS_SECONDS * 1000) { devProblems = stateProblems(); devCheckedAt = now; }
+    const head = `${dev.folded ? "▸" : "▾"} ${clockText(state.clock)}:${pad2(Math.floor(state.clock % 60))} · ${devProblems.length} problem${devProblems.length === 1 ? "" : "s"}`;
+    if (head !== devHeadText) devHead.textContent = devHeadText = head;
+    devPanel.classList.toggle("folded", dev.folded);
+    if (dev.folded) return;
+    const at = t => t === null || t === undefined ? "–" : devTime(t);
+    const row = (key, text, warn = false) => `<div${warn ? ' class="warn"' : ""}><b>${key}</b> ${text}</div>`;
+    let html = row("clock", `${state.clock.toFixed(1)} s · ${devTime(state.clock)} · ${byDay(state.clock) ? "by day" : "at night"} ` +
+      `(day is ${clockText(DAYLIGHT_FROM)}–${clockText(DAYLIGHT_TO)}) · seed ${state.seed}`);
+    html += row("main", state.main.held ? `held by you until ${at(state.main.until)}` : "clear", state.main.held && state.clock > state.main.until);
+    for (const r of state.through) html += row("through", `${r.id} · ${r.status}${r.cause ? ` · ${r.cause}` : ""} · booked ${at(r.at)}, ` +
+      `enters ${at(r.enters)}${r.late ? ` · late ${Math.round(r.late)} s` : ""}${r.vehicles.length ? ` · ${(r.speed * 3.6).toFixed(1)} km/h` : ""}`,
+      r.status !== "offered" && r.status !== "running");
+    if (!state.through.length) html += row("through", "none");
+    for (const r of state.held) html += row("held", `${r.tt} · due ${at(r.at)}, outside`, true);
+    for (const j of openJobs()) html += row(j.id, `${j.short || j.title} · ${j.taken ? `taken · moves ${jobMoves(j)} of par ${+jobPar(j).toFixed(1)}` : "not taken"}` +
+      ` · due ${at(j.due)}`, j.due <= state.clock);
+    if (!openJobs().length) html += row("jobs", "none open");
+    for (const id in state.industries) {
+      const i = state.industries[id];
+      html += row(id, `set-out ${i.setOut || "–"} · ready ${at(i.readyAt)} · pull ${i.pull || "–"}`);
+    }
+    html += row("pool", `${Object.keys(state.pool).length} cars · joined ${state.poolCount.joined}, left ${state.poolCount.left} since ${at(state.poolSince)}`);
+    html += row("problems", devProblems.length ? devProblems.join("; ") : "none", devProblems.length > 0);
+    if (html !== devBodyHtml) devBody.innerHTML = devBodyHtml = html;
+  }

@@ -30,6 +30,20 @@ Made in the project thread and on #117, from the research in #116
   point when it runs low, about every 4 days.
 - **No maintenance mechanic** in this build.
 
+## 2026-11-24: The dev overlay (#42)
+
+Made in the project thread. How it shows is in
+[design/view.md](design/view.md).
+
+- **Turned on by a long press** (about a second) on the version number in
+  the readout; the same press turns it off.
+- **Everything shows at once** when it is on; its panel folds to one line.
+- **In every release**, hidden behind the long press. No separate dev
+  build.
+- **Not remembered**: it starts off at every load.
+- It is display only, with a **Save state** button that downloads the yard
+  for a bug report.
+
 ## 2026-11-24: Job requirements for a departure (#61)
 
 Made in the project thread, all four as proposed. Facts in
