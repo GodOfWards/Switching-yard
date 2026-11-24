@@ -93,7 +93,9 @@
   // job touches stands in it (null when it touches none). A job gone away
   // on its train is met. For a build job, `cut` too: whether its train's
   // cars that are on the map stand coupled as one cut (`one`), with
-  // nothing else coupled in (`clean`).
+  // nothing else coupled in (`clean`), their air hoses joined between
+  // every two of them (`air`), and every hand brake off (`brakes`), as a
+  // departure needs (#61; RITO art. 367, 450).
   function jobStatus(job) {
     const lines = job.cars.map(id => ({ id, block: dispositionOf(id), met: dispositionMet(id), away: state.cars[id].away !== null }));
     const ordered = [...new Set(lines.map(l => l.block))].filter(b => b && BLOCKS[b].ordering === "block");
@@ -103,14 +105,17 @@
       const ids = lines.filter(l => l.block === job.block).map(l => l.id);
       const trains = new Set(ids.map(id => state.vehicles[id].train));
       const t = trains.size === 1 && state.trains[[...trains][0]];
-      st.cut = !ids.length ? { one: true, clean: true }
-        : { one: !!t && !t.vehicles.some(id => state.vehicles[id].controls), clean: !!t && t.vehicles.every(id => ids.includes(id)) };
+      st.cut = !ids.length ? { one: true, clean: true, air: true, brakes: true }
+        : { one: !!t && !t.vehicles.some(id => state.vehicles[id].controls), clean: !!t && t.vehicles.every(id => ids.includes(id)),
+            air: !!t && t.vehicles.every((id, i) => !i || pairKey(t.vehicles[i - 1], id) in state.air),
+            brakes: ids.every(id => !state.vehicles[id].handBrake) };
     }
     return st;
   }
   // Whether a job's formation is usable: its blocks in order and, for a
-  // build, its train one cut with nothing else in it.
-  const formationValid = st => st.inOrder !== false && (!st.cut || (st.cut.one && st.cut.clean));
+  // build, its train one cut with nothing else in it, the air joined
+  // through it and no hand brake on.
+  const formationValid = st => st.inOrder !== false && (!st.cut || (st.cut.one && st.cut.clean && st.cut.air && st.cut.brakes));
 
   // Each change of direction of the player's loco is a move (#62): the
   // way it moves, cab end first or not, unlike the last way it moved.
@@ -1253,7 +1258,9 @@
     const taken = trainOf(state.vehicles[order[0]]);
     const end = taken.vehicles.length === 1 ? which : taken.vehicles[0] === order[0] ? "head" : "tail";
     for (const id of taken.vehicles) moveVehicle(state.vehicles[id], (end === "head" ? 1 : -1) * gap);
+    const loco = lt.vehicles[0];        // its head end meets the cut
     couple(lt, "head", taken, end);      // the loco leads, away from the cut
+    state.air[pairKey(loco, order[0])] = 1;   // its crew joins the hose to the train (#61)
     for (const id of lt.vehicles) state.vehicles[id].run = r.id;
     r.vehicles = lt.vehicles.slice();
   }

@@ -8,9 +8,10 @@ Almost everything here rests on Spanish Wikipedia stubs and railfan blogs; no FA
 ramal list, CNRT table or closure decree annex was found online (see "Not found").
 Statuses as in [README.md](README.md).
 
-**Where the game disagrees:** WORLD DATA's `NETWORK_LINES` ends SM-B at
-Membrillar as a junction (28.6 km). Membrillar is not a junction (below); the
-next one is Chacabuco. Fixing the game is #107, Tom's call.
+**The game agrees since #107 (2026-11-24):** WORLD DATA's `NETWORK_LINES`
+used to end SM-B at Membrillar as a junction (28.6 km). Membrillar is not a
+junction (below); `tools/rail_network.py` now treats it as double track and
+ends SM-B at Chacabuco (42.6 km).
 
 ## The three questions
 

@@ -17,6 +17,23 @@ Made in the project thread. The rules are in
 - **Road locos:** an arriving one goes off west at the cut; a departing
   one comes off the depot fan 20 minutes ahead.
 
+## 2026-11-24: Job requirements for a departure (#61)
+
+Made in the project thread, all four as proposed. Facts in
+[reference/fa-yard-operations.md](reference/fa-yard-operations.md); the
+rules in [design/jobs.md](design/jobs.md).
+
+- **A departure also needs its air hoses joined through the train and
+  every hand brake off** (RITO art. 367, 450). Not asked of a sort or a
+  set-out.
+- **Each block in a consist keeps its own ordering level** (the Retiro
+  block in block order, the rest none); **the blocks go in order of
+  destination** (art. 197).
+- **"Left on a track"** stays: uncoupled from the loco and clear of the
+  fouling point.
+- **Left out for now**: art. 197's places for dangerous goods and two-axle
+  cars, until the game has either (#59's fuel, or the first two-axle car).
+
 ## 2026-11-24: Results: the train register, lateness, moves (#62)
 
 Made in the project thread. The rules are in
