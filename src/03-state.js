@@ -30,7 +30,11 @@
     // how late, and the yard's cause;
     // `nextShiftAt` is the next shift change to act on, and `timetableAt`
     // the time from which road trains are still to run; `held` lists the
-    // arrivals held outside, waiting for the arrival track. `throughAt` is
+    // arrivals held outside, waiting for the arrival track; `roadAt` the
+    // time from which Retiro's road trains (#78) are still to start, and
+    // `road` those started: offered, refused, coming in, a road loco off
+    // shed, standing for the station's check, or leaving, each with its
+    // vehicles on the map, its speed and its waits by cause. `throughAt` is
     // the time from which through trains are still to be offered;
     // `through` lists those offered, held or running, each with its
     // vehicles on the map and its speed. `main` says whether the player
@@ -38,7 +42,7 @@
     // traffic.
     const st = { clock: START_CLOCK, switches: {}, vehicles: {}, trains: {}, air: {}, gaps: {}, work: {}, nextTrain: 1,
                  cars: {}, jobs: [], nextJob: 1, moves: 0, locoSense: 0, register: [], nextShiftAt: START_CLOCK,
-                 timetableAt: START_CLOCK, held: [], throughAt: START_CLOCK, through: [], main: { held: false, until: null },
+                 timetableAt: START_CLOCK, held: [], roadAt: START_CLOCK, road: [], throughAt: START_CLOCK, through: [], main: { held: false, until: null },
                  pool: {}, nextCar: 1, poolCount: { joined: 0, left: 0 }, poolSince: START_CLOCK, industries: {},
                  seed: Math.floor(Math.random() * 2 ** 31), notice: null };
     for (const id in SWITCHES) st.switches[id] = { set: SWITCHES[id].normal };

@@ -594,23 +594,50 @@
     car14: { waybill: "stored" },    car16: { waybill: "stored" },     car11: { waybill: "stored" },
     car4:  { flow: "materials" },    car5:  { waybill: "stored" },     car10: { flow: "grainJunin" },
   };
-  // Road trains (#49), each day: an arrival comes onto ARRIVAL_TRACK at the
-  // buffer end, its road loco already gone, bringing cars back from away;
-  // a departure takes its block's cars from that block's track and goes.
-  // The buffer stands for the rest of the yard toward the station. `at` is
-  // the time of day; numbers are the game's. An arrival brings the cars
-  // coming back from the stations on its `side` (their block). Retiro has
-  // two departures a day: one 16-car train can't take Molinos Tassara's
-  // traffic on top of the rest (#105). Retunable.
+  // Road trains (#49), each day: an arrival comes onto ARRIVAL_TRACK,
+  // bringing cars back from away; a departure takes its block's cars from
+  // that block's track and goes. `at` is the time of day an arrival stands
+  // on its track or a departure leaves; numbers are the game's. An arrival
+  // brings the cars coming back from the stations on its `side` (their
+  // block). Retiro has two departures a day: one 16-car train can't take
+  // Molinos Tassara's traffic on top of the rest (#105). Retunable.
+  // Mendoza's trains appear at, and vanish from, the yard tracks' cut-off
+  // west end: an arrival stands at the buffer, its road loco gone. The
+  // buffer stands for the rest of the yard toward the station. Retiro's,
+  // `east`, run in and out over the crossover on ROAD_ROUTES (#78).
   const TIMETABLE = [
-    { id: "a1101", number: "1101", arrives: true, from: "Retiro",  side: "retiro",   at: 7 * HOUR },
-    { id: "d1102", number: "1102", arrives: false, to: "Retiro",  block: "retiro",   at: 9 * HOUR },
+    { id: "a1101", number: "1101", arrives: true, from: "Retiro",  side: "retiro",   at: 7 * HOUR, east: true },
+    { id: "d1102", number: "1102", arrives: false, to: "Retiro",  block: "retiro",   at: 9 * HOUR, east: true },
     { id: "d1202", number: "1202", arrives: false, to: "Mendoza", block: "mendoza",  at: 12.5 * HOUR },
     { id: "a1203", number: "1203", arrives: true, from: "Mendoza", side: "mendoza",  at: 15 * HOUR },
-    { id: "d1104", number: "1104", arrives: false, to: "Retiro",  block: "retiro",   at: 20.5 * HOUR },
-    { id: "a1105", number: "1105", arrives: true, from: "Retiro",  side: "retiro",   at: 23 * HOUR },
+    { id: "d1104", number: "1104", arrives: false, to: "Retiro",  block: "retiro",   at: 20.5 * HOUR, east: true },
+    { id: "a1105", number: "1105", arrives: true, from: "Retiro",  side: "retiro",   at: 23 * HOUR, east: true },
     { id: "d1206", number: "1206", arrives: false, to: "Mendoza", block: "mendoza",    at: 4.5 * HOUR },
   ];
+  // The routes the station sets and locks for a Retiro road train (#78),
+  // each as legs: a leg runs from end of track `from`, the switches lying as
+  // `set` says (trailing ones too, so they show it), to its `stop`: the
+  // buffer, off the map at the edge, on sight against the cut it takes, or
+  // standing clear of a switch or of a yard track's fouling point
+  // (`clearOf`), where it reverses for the next leg. An arrival runs in from
+  // the east edge to Track 3, loco first; a departure out from Track 1. Its
+  // road loco, ROAD_LOCO's kind, comes off fan track 8, the nearest the
+  // ladder: the fan leaves Track 7 beside the ladder, so the loco reverses
+  // on Track 7, and on the lead past J1, to reach Track 1 from the lead.
+  // The routes are the game's reading of the map; retunable.
+  const ROAD_LOCO = "g12";
+  const ROAD_ROUTES = {
+    in: [{ from: "mainEastEnd", stop: "buffer",
+           set: { X2: "crossover_2", X1: "crossover_1", T1: "lead_3", J1: "J1J2_1", J2: "J2J3_1", J3: "J3J4_1", J4: "yard3_1" } }],
+    out: [{ from: "yard1End", stop: "edge",
+            set: { J2: "yard1_1", J1: "J1J2_1", T1: "lead_3", X1: "crossover_1", X2: "crossover_2" } }],
+    shed: [
+      { from: "fan8End", stop: { clearOf: "yard7" }, set: { J12: "fan8_1", J10: "J10J12_1", J11: "J10J11_2" } },
+      { from: "yard7End", stop: { clearOf: "J1" }, set: { J11: "J10J11_2", J10: "J7J10_2", J7: "J5J7_2", J5: "J1J5_6", J1: "J1J5_1" } },
+      { from: "leadEnd", stop: "cut", set: { J1: "J1J2_1", J2: "yard1_1" } },
+    ],
+  };
+
   // Through trains (#56, #77): they pass on the main without working the
   // yard. `enters` is the edge of the map they come in at: from Retiro the
   // east, from Mendoza the west, the station side. `at` is when the head

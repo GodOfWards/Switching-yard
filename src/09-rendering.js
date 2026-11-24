@@ -310,7 +310,9 @@
         ctx.closePath();
       }
       ctx.stroke(); ctx.fill();
-      if (MAIN_SWITCHES.includes(id) && !state.main.held) {   // padlocked: a small lock beside it
+      // Padlocked, lying for the main or locked for a Retiro road train's
+      // route (#78): a small lock beside it.
+      if ((MAIN_SWITCHES.includes(id) && !state.main.held) || roadLock(id)) {
         const lx = c.x + r * 1.3, ly = c.y - r * 1.3, w = Math.max(7, r * 0.9);
         ctx.strokeStyle = PALETTE.light; ctx.lineWidth = Math.max(1.5, w * 0.18);
         ctx.beginPath(); ctx.arc(lx, ly - w * 0.25, w * 0.3, Math.PI, 0); ctx.stroke();
@@ -318,12 +320,13 @@
       }
     }
     // The east home signal, beside the main on the side away from the yard:
-    // clear while a through train from the east runs in past it, at danger
-    // otherwise.
+    // clear while a through train or a Retiro road train from the east runs
+    // in past it, at danger otherwise.
     {
       const sig = homeSignal(), p = pointOn(sig.seg, sig.s), side = 3.5;
-      const clear = state.through.some(r => r.status === "running" && throughEntry(r.tt).enters === "east"
-        && r.vehicles.some(id => pointOn(state.vehicles[id].seg, state.vehicles[id].s).x > p.x));
+      const past = r => r.vehicles.some(id => pointOn(state.vehicles[id].seg, state.vehicles[id].s).x > p.x);
+      const clear = state.through.some(r => r.status === "running" && throughEntry(r.tt).enters === "east" && past(r))
+        || state.road.some(r => r.kind === "arrival" && r.status === "running" && past(r));
       const foot = { x: p.x - p.uy * 2, y: p.y + p.ux * 2 }, top = { x: p.x - p.uy * (2 + side), y: p.y + p.ux * (2 + side) };
       line(foot.x, foot.y, top.x, top.y, PALETTE.light, Math.max(1.5, k * 0.25));
       const c = view.toScreen(top.x, top.y);

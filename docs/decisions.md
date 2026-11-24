@@ -3,6 +3,20 @@
 Design calls Tom has made, newest first, with where they were made. The
 values these produced live in CONFIG and WORLD DATA in `index.html`.
 
+## 2026-11-24: Retiro road trains over the crossover (#78)
+
+Made in the project thread. The rules are in
+[design/living-railway.md](design/living-railway.md#retiro-road-trains).
+
+- **Scope:** the Retiro arrivals and the Retiro departures both run over
+  the crossover; Mendoza's stay off the map at the station side.
+- **Route:** the station sets and locks it when it accepts the train; the
+  player only keeps it clear.
+- **A train that can't come in** waits at La Oriental, off the map, its
+  lateness in the register; it never blocks the main.
+- **Road locos:** an arriving one goes off west at the cut; a departing
+  one comes off the depot fan 20 minutes ahead.
+
 ## 2026-11-24: Results: the train register, lateness, moves (#62)
 
 Made in the project thread. The rules are in
