@@ -2,6 +2,19 @@
 
 Newest first. One entry per version bump.
 
+## 0.15.0
+
+**Added**
+- Hook-and-screw couplings, as on FA's broad gauge (#33). Cars never
+  couple on their own: ease up until the buffers touch, tap the ring
+  between them and Hook up. Hooking up and uncoupling take the shunter
+  10 s, with everything standing.
+
+**Changed**
+- Bogie cars are screwed up tight, with no free play between them; a
+  two-axle car's chain link keeps 5 cm.
+- A yard saved before this version is not carried over.
+
 ## 0.14.2
 
 **Added**

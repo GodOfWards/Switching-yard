@@ -17,7 +17,7 @@ an economy or reward system.
 - **Nothing fails.** Late is recorded, and the train leaves late; delays
   can carry on down the line (#47).
 - **Rough handling is a consequence, not a score:** a coupling closing
-  faster than the hard-hit speed (`COUPLE_MAX_SPEED`, 5 km/h) damages the
+  faster than the hard-hit speed (`HARD_HIT_SPEED`, 5 km/h) damages the
   car, which becomes bad order and needs the repair track. Retunable.
 - **Efficiency** is measured against a simple par, not the best possible
   solution: a job is "inefficient" when its moves exceed 1.5 × (cars
