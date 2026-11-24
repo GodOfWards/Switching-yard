@@ -44,6 +44,8 @@ game builds on them are in [../design/](../design/README.md).
 | [fa-freight-cars.md](fa-freight-cars.md) | FA freight cars: load limits and tares from FA's specifications, type codes, the marking panel, tare stencil, paint colours, couplers in brief, lengths of the grain hopper and box car, estimates for the rest |
 | [junin-yard.md](junin-yard.md) | Junín yard from OpenStreetMap, the depot fan section and how it became game track |
 | [rail-network-junin.md](rail-network-junin.md) | The lines out of Junín to their next junction, from OpenStreetMap, and how they were extracted (`tools/rail_network.py`) |
+| [rail-network-fa-era.md](rail-network-fa-era.md) | Which lines around Junín were open in 1977, the second ring of lines, SM-B's real next junction, FA's ramal codes; `rail-network-fa-era.json` |
+| [next-yard.md](next-yard.md) | Candidates for the next yard after Junín (Rufino, Palmira, Caseros, Justo Daract, Chacabuco), ranked from OSM yard track and FA traffic |
 | [fa-yard-operations.md](fa-yard-operations.md) | How an FA yard worked, from FA's rulebook (RITO): train formation order, switching rules, crews, the vehicle list and train weight, bad-order labels, authority to use the main line; Junín's inspection station and rail-served mill |
 | [fa-freight-traffic.md](fa-freight-traffic.md) | What FA carried, how much and how far (1977, World Bank), wine by rail from Mendoza, freight car turnaround (1977 actual and target) |
 | [aconcagua.md](aconcagua.md) | The *Aconcagua* (FA trains 565/566): route, consist, Materfer coaches and their FA codes, livery from a photo, the RSD-16, what wasn't found |

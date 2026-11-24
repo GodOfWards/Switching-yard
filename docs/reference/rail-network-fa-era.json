@@ -1,0 +1,176 @@
+{
+ "researched": "2026-11-23",
+ "issue": "GodOfWards/Switching-yard#52",
+ "game_from": 1977,
+ "doc": "rail-network-fa-era.md",
+ "lines": [
+  {
+   "ref": "SM-B",
+   "branch": "Retiro–Junín (BAP main line)",
+   "fa_1977": "open",
+   "status": "Confirmed",
+   "closed": null,
+   "note": "first ring"
+  },
+  {
+   "ref": "SM-C",
+   "branch": "Junín–Rufino–Mendoza (main line)",
+   "fa_1977": "open",
+   "status": "Confirmed",
+   "closed": null,
+   "note": "first ring"
+  },
+  {
+   "ref": "SM-7",
+   "branch": "Saforcada–Santa Isabel",
+   "fa_1977": "open",
+   "status": "Secondary",
+   "closed": null,
+   "note": "first ring"
+  },
+  {
+   "ref": "SM-5",
+   "branch": "Junín–Pergamino",
+   "fa_1977": "closed",
+   "status": "Secondary",
+   "closed": "1977 (also closed 1961, reopened for freight 1964)",
+   "note": "first ring"
+  },
+  {
+   "ref": "SM-6",
+   "branch": "Chacabuco–Mayor José Orellano",
+   "fa_1977": "probably_open",
+   "status": "Unconfirmed",
+   "closed": null,
+   "note": "leaves SM-B at Chacabuco, not Membrillar"
+  },
+  {
+   "ref": "SM-4",
+   "branch": "Rawson–Arribeños",
+   "fa_1977": "open",
+   "status": "Secondary",
+   "closed": null,
+   "note": "meets SM-B at Rawson, crosses SM-5, meets SM-7 at Arribeños"
+  },
+  {
+   "ref": "SM-8",
+   "branch": "Alberdi–Hipólito Bouchard",
+   "fa_1977": "closed",
+   "status": "Secondary",
+   "closed": "1976",
+   "note": "meets SM-C at Alberdi"
+  },
+  {
+   "ref": "SM-10",
+   "branch": "Rufino–Monte Comán",
+   "fa_1977": "open",
+   "status": "Secondary",
+   "closed": null,
+   "note": "beyond SM-C"
+  },
+  {
+   "ref": "SM-11",
+   "branch": "Villa María–Rufino",
+   "fa_1977": "unknown",
+   "status": null,
+   "closed": null,
+   "note": "beyond SM-C"
+  },
+  {
+   "ref": "SM-9",
+   "branch": "Rufino–Venado Tuerto",
+   "fa_1977": "unknown",
+   "status": null,
+   "closed": null,
+   "note": "beyond SM-C"
+  },
+  {
+   "ref": "GM-46",
+   "branch": "Peyrano–Wheelwright–Rastreador Fournier",
+   "fa_1977": "open",
+   "status": "Secondary",
+   "closed": null,
+   "note": "continues SM-7 from Santa Isabel to Rosario"
+  },
+  {
+   "ref": "GM-5",
+   "branch": "San Nicolás–Pergamino",
+   "fa_1977": "closed",
+   "status": "Secondary",
+   "closed": "1961-12",
+   "note": null
+  },
+  {
+   "ref": "GM-8",
+   "branch": "Victoria–Capilla del Señor–Pergamino",
+   "fa_1977": "open",
+   "status": "Secondary",
+   "closed": null,
+   "note": null
+  },
+  {
+   "ref": "GM-15",
+   "branch": "Pergamino–Peyrano–Cañada de Gómez",
+   "fa_1977": "probably_open",
+   "status": "Unconfirmed",
+   "closed": null,
+   "note": null
+  },
+  {
+   "ref": "G",
+   "branch": "Buenos Aires–Pergamino–Rosario (CGBA, metre)",
+   "fa_1977": "probably_open",
+   "status": "Unconfirmed",
+   "closed": null,
+   "note": null
+  },
+  {
+   "ref": "G-6",
+   "branch": "Pergamino–Vedia (CGBA, metre)",
+   "fa_1977": "closed",
+   "status": "Secondary",
+   "closed": "1961-10-28",
+   "note": null
+  },
+  {
+   "ref": "U-1",
+   "branch": "Fátima–Rojas (Urquiza, standard)",
+   "fa_1977": "open",
+   "status": "Unconfirmed",
+   "closed": null,
+   "note": "Fátima–Rojas section only"
+  },
+  {
+   "ref": "U-1",
+   "branch": "Rojas–Cuatro de Febrero (Urquiza)",
+   "fa_1977": "closed",
+   "status": "Secondary",
+   "closed": "1961 or 1974",
+   "note": "section"
+  },
+  {
+   "ref": "S-5",
+   "branch": "Suipacha–Bayauca",
+   "fa_1977": "open",
+   "status": "Secondary",
+   "closed": null,
+   "note": null
+  },
+  {
+   "ref": "S-7",
+   "branch": "Bragado–Lincoln–Villegas–Realicó",
+   "fa_1977": "open",
+   "status": "Secondary",
+   "closed": null,
+   "note": "Chamaicó–Bowen closed 1977-08-05, far west"
+  },
+  {
+   "ref": "S-9",
+   "branch": "Los Toldos–Roberts–Ojeda–Ingeniero Luiggi",
+   "fa_1977": "unknown",
+   "status": null,
+   "closed": null,
+   "note": null
+  }
+ ]
+}

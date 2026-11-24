@@ -24,6 +24,40 @@ rules in [design/living-railway.md](design/living-railway.md).
   offered again once the main is clear, and only then sets off, 10
   minutes out. Its delay is its real lateness at the map's edge, run-in
   included.
+## 2026-11-24: Hook-and-screw couplings (#33)
+
+Made in the project thread, from the coupler research in
+[reference/train-physics.md](reference/train-physics.md#couplers). These
+replace "Coupling needs a minimum closing speed" (Physics update, first
+part) and the 5 cm of free play under Slack, for bogie cars.
+
+- **Hook and screw with side buffers is the rule for every broad-gauge car
+  and loco**, replacing the automatic coupler; not a second type beside it.
+  Vehicles that meet touch buffers and push, and never couple on their own.
+- **Two-axle cars use a plain chain link**, left slack.
+- **Slack: nearly tight.** The screw is tightened until the buffers touch,
+  so bogie cars lose the 5 cm of free play; the buffers and draft gear
+  still give.
+- **Hooking up takes a few seconds** of a shunter's work, as does
+  uncoupling.
+- **FA's 20 t and 30 t coupling rule** (MR-706 D-5) is left out for now.
+
+## 2026-11-24: Molinos Tassara off the map (#45)
+
+Made in the project chat, after the Junín research of 2026-11-23
+([fa-yard-operations.md](reference/fa-yard-operations.md#junín)).
+
+- **The invented grain elevator stays on the east throat.** Molinos
+  Tassara, the one real rail-served industry found, stood west of the
+  station, off the map, so it doesn't replace it.
+- **Molinos Tassara becomes an off-map destination** cars can be sent to
+  (#105).
+- **Its traffic** (2026-11-24, #105): bagged flour in box cars to Retiro,
+  6 a week; wheat in hoppers from O'Higgins, 4 a week (about half the
+  mill's wheat; the rest by truck). Estimates, retunable.
+- **Tassara cars use the west end**: a car for the mill waits on the local
+  track, goes out at the next shift change, and comes back about 2 days
+  later on an arrival. The moves to and from the mill stay off-screen.
 
 ## 2026-11-23: The Map (#53)
 
