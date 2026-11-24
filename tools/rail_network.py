@@ -140,7 +140,7 @@ def walk_line(g, prev, cur, area):
             incoming = next(i for i, (f, _) in enumerate(gs) if prev in f)
             lines = [i for i, (f, far) in enumerate(gs) if i != incoming and far >= BRANCH_MIN_M]
             if len(lines) >= 2:
-                return path, "junction"
+                return double_track(g, path, seen, [m for i in lines for m in gs[i][0] if m in nxt and m not in seen])
             onward = [i for i in range(len(gs)) if i != incoming]
             if not onward:
                 return path, "loop"
@@ -152,6 +152,20 @@ def walk_line(g, prev, cur, area):
             options.sort(key=lambda m: g.edge[frozenset((cur, m))]["tags"].get("ref") != same)
             prev, cur = cur, options[0]
         path.append(cur); seen.add(cur)
+
+
+def double_track(g, path, seen, firsts):
+    """At a split, a line that only divides into tracks of its own ref is double
+    track, not a junction (SM-B at Membrillar, #107): walk each track and keep the
+    nearest junction. Otherwise the split is the junction."""
+    prev, cur = path[-2], path[-1]
+    ref = g.edge[frozenset((prev, cur))]["tags"].get("ref")
+    if not ref or any(g.edge[frozenset((cur, m))]["tags"].get("ref") != ref for m in firsts):
+        return path, "junction"
+    track = lambda p: sum(g.length(a, b) for a, b in zip(p, p[1:]))
+    tries = [walk_line(g, cur, m, seen) for m in firsts]
+    sub, how = min(tries, key=lambda t: (t[1] != "junction", track(t[0])))
+    return path + sub[1:], how
 
 
 def off_line(p, pts):
