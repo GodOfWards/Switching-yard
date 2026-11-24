@@ -87,6 +87,9 @@ Researched 2026-10-08.
   millimetres, so the free play is what the player feels: a loco moves
   about 5 cm per car before each car starts, and a cut runs in by as much
   when the loco brakes alone.
+- On FA's broad gauge a screw coupling is tightened until the buffers meet
+  (see Couplers), so the 5 cm applies only to a chain link. Since #33 the
+  game gives bogie cars no free play and keeps the 5 cm for two-axle cars.
 
 ## Couplers
 
