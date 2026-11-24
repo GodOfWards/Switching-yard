@@ -1,7 +1,7 @@
   // ==================================================
   // CONFIG
   // ==================================================
-  const GAME_CONFIG = { VERSION: "0.19.2" };
+  const GAME_CONFIG = { VERSION: "0.20.0" };
   const STEP_SECONDS = 1 / 60;          // fixed simulation step
   const MAX_STEPS_PER_FRAME = 5;        // drop time rather than spiral after a stall
   const VIEW_MARGIN = 8;                // metres of ground kept around the yard
@@ -171,6 +171,22 @@
   const DAYLIGHT_FROM = 6 * HOUR;
   const DAYLIGHT_TO = 20 * HOUR;
   const MAIN_ASK_MINUTES = [10, 20, 30];  // retunable
+  // Retiro road trains over the crossover (#78; docs/design/living-railway.md).
+  // The game drives them, at THROUGH_SPEED while the whole train is on the
+  // main and YARD_SPEED off it, on sight: braking at ROAD_DECEL, each stops
+  // ROAD_SIGHT_MARGIN short of anything in its way, and stands
+  // ROAD_STAND_CLEAR past a switch or fouling point it clears to reverse. A
+  // departure's road loco comes off the depot fan LOCO_OFF_SHED before the
+  // train leaves; once it is coupled, the station checks the train
+  // (RITO art. 207) for DEPARTURE_CHECK. A road train waiting for its
+  // route has it checked every ROAD_CHECK_SECONDS.
+  const YARD_SPEED = 15 / 3.6;          // m/s; Assumed: no FA switching speed found; retunable
+  const ROAD_DECEL = 0.3;               // m/s²; estimated, retunable
+  const ROAD_SIGHT_MARGIN = 10;         // m; retunable
+  const ROAD_STAND_CLEAR = 5;           // m; retunable
+  const LOCO_OFF_SHED = 20 * 60;        // s; retunable
+  const DEPARTURE_CHECK = 10 * 60;      // s, brake test and paperwork; Assumed, retunable
+  const ROAD_CHECK_SECONDS = 1;
   // A job is inefficient when its moves pass this many per car handled
   // and per block. A move is each change of direction of the player's
   // loco (#62), so stopping to throw a switch or uncouple isn't one.

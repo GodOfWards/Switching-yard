@@ -230,3 +230,7 @@ plan survey, enthusiast blogs and forums.
 - Junín's yard track roles, crews and FA-era traffic (assumed above).
 - A hump yard: a search summary named a "playa de gravitación" at Villa
   María, not confirmed on any page read.
+- Noted 2026-11-24 for #78: who threw the yard's switches for a road
+  train arriving at Junín (the game has the station set and lock its
+  route), and any FA speed limit for switching moves (the game assumes
+  15 km/h, `YARD_SPEED`).

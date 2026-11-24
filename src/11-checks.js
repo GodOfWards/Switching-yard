@@ -71,6 +71,27 @@
       need(has(VEHICLE_TYPES, THROUGH_CONSISTS[c].loco) && VEHICLE_TYPES[THROUGH_CONSISTS[c].loco].loco, `through make-up ${c}: loco ${THROUGH_CONSISTS[c].loco} isn't a loco`);
       for (const type of THROUGH_CONSISTS[c].cars) need(has(VEHICLE_TYPES, type), `through make-up ${c}: kind ${type} doesn't exist`);
     }
+    // Retiro's road trains (#78): each leg's path (ROAD_LEGS, built from
+    // these) passes every switch it sets, set to one of its own legs, and
+    // ends where its stop says.
+    need(has(VEHICLE_TYPES, ROAD_LOCO) && VEHICLE_TYPES[ROAD_LOCO].loco, `road loco ${ROAD_LOCO} isn't a loco`);
+    for (const id in ROAD_ROUTES) ROAD_ROUTES[id].forEach((spec, i) => {
+      const leg = ROAD_LEGS[id][i], name = `road route ${id}, leg ${i + 1}`;
+      need(has(NODES, spec.from) && SEGMENTS_AT[spec.from].length === 1, `${name}: ${spec.from} isn't an end of track`);
+      for (const sw in spec.set) {
+        if (!has(SWITCHES, sw)) { out.push(`${name}: switch ${sw} doesn't exist`); continue; }
+        need(SWITCHES[sw].legs.includes(spec.set[sw]), `${name}: ${spec.set[sw]} isn't a leg of ${sw}`);
+        need(has(leg.nodes, sw), `${name}: its path doesn't pass ${sw}`);
+      }
+      const ends = leg.end && SEGMENTS_AT[leg.end].length === 1;
+      if (spec.stop === "edge") need(MAP_EDGES.includes(leg.end), `${name}: its path doesn't reach the map's edge`);
+      else if (spec.stop === "buffer" || spec.stop === "cut") need(ends && !MAP_EDGES.includes(leg.end) && (spec.stop === "buffer" || legTrack(leg)),
+        `${name}: its path doesn't end at a ${spec.stop === "cut" ? "yard track's " : ""}buffer`);
+      else {
+        const c = spec.stop && spec.stop.clearOf, at = has(YARD_TRACKS, c) ? YARD_TRACKS[c].switch : c;
+        need(has(leg.nodes, at), `${name}: its stop, clear of ${c}, isn't on its path`);
+      }
+    });
     for (const e in THROUGH_EDGES) need(MAP_EDGES.includes(THROUGH_EDGES[e].node), `through edge ${e}: ${THROUGH_EDGES[e].node} isn't a map edge`);
     return out;
   }
@@ -127,6 +148,9 @@
       if (!playerLoco().speed) out.problems.push("the loco didn't move under power");
 
       freshYard();
+      // The loco parked on a short track, clear of Retiro's road trains'
+      // routes (#78), so they run as the yard ages.
+      layTrain("stub2_7", 20, -1, (detach(PLAYER_LOCO), [PLAYER_LOCO]));
       const start = state.clock;
       let skips = 0, skipMs = 0;
       while (state.clock < start + BENCH_DAYS * DAY) {
@@ -176,5 +200,5 @@
   }
   window.switching = { get state() { return state; }, step, traffic, throwSwitch, uncouple, hookUp, meetings, moveReverser, moveThrottle,
     moveLocoBrake, moveTrainBrake, emergency, release, trainEnds, toggleAir, toggleHandBrake, brakeReach, skipTo, eventsAhead,
-    takeJob, handBack, reportDone, jobStatus, dispositionOf, dispositionMet, blockInOrder, damageCar, TRACK_GEOM,
+    takeJob, handBack, reportDone, ROAD_LEGS, ROAD_IN_TIME, ROAD_OUT_TIME, LOCO_RUN_TIME, jobStatus, dispositionOf, dispositionMet, blockInOrder, damageCar, TRACK_GEOM,
     get paused() { return paused; }, togglePause, askForMain, reportClear, homeSignal, NODES, get view() { return view; }, saveYard, loadYard, newYard, fitsYard, SAVE_KEY, worldProblems, stateProblems };

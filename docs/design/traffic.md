@@ -30,13 +30,15 @@ exists independently of the player's jobs.
   Tassara's traffic, which one a day can't (Tom, 2026-11-24, #105). An
   arrival opens a build job for each departure up to the next arrival. An arrival brings up to 12 cars, by the traffic
   plan; a departure takes at most 16, so a whole train fits the head-shunt behind the loco.
-- **Road trains appear and leave at the yard tracks' cut-off west end**:
-  an arrival stands on the arrival track at the buffer, its road loco
-  gone; a departure vanishes from its track. Road locos stay off the map.
-  Main-line traffic (#56) and authority to move (#57) may later bring
-  them in over the lead.
-- **An arrival is held outside** while the arrival track has anything on
-  it, and comes in late when it clears; the delay is recorded.
+- **Mendoza's road trains appear and leave at the yard tracks' cut-off
+  west end**: an arrival stands on the arrival track at the buffer, its
+  road loco gone; a departure vanishes from its track. Their road locos
+  stay off the map. An arrival is **held outside** while the arrival track
+  has anything on it, and comes in late when it clears; the delay is
+  recorded.
+- **Retiro's road trains run in and out over the crossover** (#78), as
+  real trains the game drives: see
+  [living-railway.md](living-railway.md#retiro-road-trains).
 - **The traffic plan (#50)** decides where cars go:
   - flows between Junín and the stations off the map, each a car type, a
     load and a rate in cars a week, sized to what the timetable can carry

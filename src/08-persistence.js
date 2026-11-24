@@ -19,7 +19,7 @@
   // The benchmark page (index.html?bench, CHECKS) saves under keys of its
   // own, never over the player's yard.
   const BENCH = new URLSearchParams(location.search).has("bench");
-  const SAVE_KEY = "switching-game.yard.12" + (BENCH ? ".bench" : "");
+  const SAVE_KEY = "switching-game.yard.13" + (BENCH ? ".bench" : "");
   const CARS_KEY = SAVE_KEY + ".cars";
   let saves = 0;
 
@@ -62,6 +62,12 @@
         || !st.register.every(l => isObj(l) && typeof l.number === "string" && Number.isFinite(l.booked) && Number.isFinite(l.late))
         || !Number.isInteger(st.seed) || !Number.isFinite(st.nextShiftAt) || !Number.isFinite(st.timetableAt)) return false;
     if (!Array.isArray(st.held) || !st.held.every(r => isObj(r) && timetableEntry(r.tt) && Number.isFinite(r.at))) return false;
+    if (!Number.isFinite(st.roadAt) || !Array.isArray(st.road) || !st.road.every(r => isObj(r) && typeof r.id === "string"
+        && timetableEntry(r.tt) && timetableEntry(r.tt).east && Number.isFinite(r.at) && ROAD_ROUTES[r.route]
+        && Number.isInteger(r.leg) && r.leg >= 0 && r.leg < ROAD_ROUTES[r.route].length && Number.isFinite(r.speed)
+        && ["refused", "accepted", "running", "cutting", "waiting", "shed", "hooking", "check", "ready"].includes(r.status)
+        && Array.isArray(r.vehicles) && Array.isArray(r.cars) && Array.isArray(r.locks) && r.locks.every(id => SWITCHES[id])
+        && isObj(r.wait) && Number.isFinite(r.checkedAt))) return false;
     if (!Number.isFinite(st.throughAt) || !isObj(st.main) || typeof st.main.held !== "boolean"
         || (st.main.held && !Number.isFinite(st.main.until))) return false;
     if (!Array.isArray(st.through) || !st.through.every(r => isObj(r) && throughEntry(r.tt) && Number.isFinite(r.at) && Number.isFinite(r.enters)
@@ -95,6 +101,9 @@
     for (const id in st.cars) if (st.cars[id].away === null) startIds[id] = st.cars[id].type;
     const runOf = {};                     // a through train's vehicles on the map
     for (const r of st.through) for (const id of r.vehicles) { startIds[id] = throughType(id); runOf[id] = r.id; }
+    // A Retiro road train's (#78): its loco, and its cars, away while they
+    // run in or out.
+    for (const r of st.road) for (const id of r.vehicles) { startIds[id] = st.cars[id] ? st.cars[id].type : ROAD_LOCO; runOf[id] = r.id; }
     if (!sameKeys(st.vehicles, startIds)) return false;
     for (const id in st.vehicles) {
       const v = st.vehicles[id], type = VEHICLE_TYPES[v.type];

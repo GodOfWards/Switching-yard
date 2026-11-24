@@ -314,7 +314,9 @@
         ctx.closePath();
       }
       ctx.stroke(); ctx.fill();
-      if (MAIN_SWITCHES.includes(id) && !state.main.held) {   // padlocked: a small lock beside it
+      // Padlocked, lying for the main or locked for a Retiro road train's
+      // route (#78): a small lock beside it.
+      if ((MAIN_SWITCHES.includes(id) && !state.main.held) || roadLock(id)) {
         const lx = c.x + r * 1.3, ly = c.y - r * 1.3, w = Math.max(7, r * 0.9);
         ctx.strokeStyle = PALETTE.light; ctx.lineWidth = Math.max(1.5, w * 0.18);
         ctx.beginPath(); ctx.arc(lx, ly - w * 0.25, w * 0.3, Math.PI, 0); ctx.stroke();
@@ -322,12 +324,13 @@
       }
     }
     // The east home signal, beside the main on the side away from the yard:
-    // clear while a through train from the east runs in past it, at danger
-    // otherwise.
+    // clear while a through train or a Retiro road train from the east runs
+    // in past it, at danger otherwise.
     {
       const sig = homeSignal(), p = pointOn(sig.seg, sig.s), side = 3.5;
-      const clear = state.through.some(r => r.status === "running" && throughEntry(r.tt).enters === "east"
-        && r.vehicles.some(id => pointOn(state.vehicles[id].seg, state.vehicles[id].s).x > p.x));
+      const past = r => r.vehicles.some(id => pointOn(state.vehicles[id].seg, state.vehicles[id].s).x > p.x);
+      const clear = state.through.some(r => r.status === "running" && throughEntry(r.tt).enters === "east" && past(r))
+        || state.road.some(r => r.kind === "arrival" && r.status === "running" && past(r));
       const foot = { x: p.x - p.uy * 2, y: p.y + p.ux * 2 }, top = { x: p.x - p.uy * (2 + side), y: p.y + p.ux * (2 + side) };
       line(foot.x, foot.y, top.x, top.y, PALETTE.light, Math.max(1.5, k * 0.25));
       const c = view.toScreen(top.x, top.y);
@@ -641,8 +644,9 @@
   }
 
   // The panel: the clock raw and as day and time, day or night by the
-  // night rule, the seed; who holds the main; the through trains and the
-  // arrivals held outside; the open jobs; the industries and the pool;
+  // night rule, the seed; who holds the main; the through trains, the
+  // Retiro road trains and the arrivals held outside; the open jobs; the
+  // industries and the pool;
   // stateProblems(), run every DEV_PROBLEMS_SECONDS as it checks the whole
   // yard. Written only when it changes.
   const devPanel = document.getElementById("devPanel"), devHead = document.getElementById("devHead");
@@ -667,6 +671,9 @@
       `enters ${at(r.enters)}${r.late ? ` · late ${Math.round(r.late)} s` : ""}${r.vehicles.length ? ` · ${(r.speed * 3.6).toFixed(1)} km/h` : ""}`,
       r.status !== "offered" && r.status !== "running");
     if (!state.through.length) html += row("through", "none");
+    for (const r of state.road) html += row("road", `${r.id} · ${r.kind} · ${r.status}${r.why ? ` · ${r.why}` : ""} · booked ${at(r.at)} · ` +
+      `${r.route} leg ${r.leg}${r.locks.length ? ` · locked ${r.locks.join(" ")}` : ""}${r.vehicles.length ? ` · ${(r.speed * 3.6).toFixed(1)} km/h` : ""}`,
+      r.status === "refused" || r.blocked);
     for (const r of state.held) html += row("held", `${r.tt} · due ${at(r.at)}, outside`, true);
     for (const j of openJobs()) html += row(j.id, `${j.short || j.title} · ${j.taken ? `taken · moves ${jobMoves(j)} of par ${+jobPar(j).toFixed(1)}` : "not taken"}` +
       ` · due ${at(j.due)}`, j.due <= state.clock);
