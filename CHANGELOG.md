@@ -17,6 +17,14 @@ Newest first. One entry per version bump.
   start from a stand.
 - A yard saved before this version is not carried over.
 
+## 0.17.1
+
+**Changed**
+- Cuts left by other crews stand with a hand brake set on the car at the
+  buffer end (#109). Buffer up to one at walking pace and it holds, ready
+  to hook up. Release the brake from the car's card before pulling, or
+  drag it.
+
 ## 0.17.0
 
 **Added**
