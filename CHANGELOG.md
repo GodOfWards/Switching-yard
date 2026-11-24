@@ -2,6 +2,21 @@
 
 Newest first. One entry per version bump.
 
+## 0.17.0
+
+**Added**
+- The *Aconcagua*, FA's daily Retiro–Mendoza express, runs through on the
+  main: 565 from Retiro at 15:30, 566 from Mendoza at 23:30. An ALCo
+  RSD-16 in FA yellow-orange and red heads seven grey Materfer coaches,
+  each marked with its FA code.
+- At night (20:00 to 06:00), a passenger train offered while the main
+  isn't clear is refused line clear. It waits off the map until the main
+  is reported clear, then sets off and arrives 10 minutes later. Its delay
+  counts from its booked time.
+
+**Changed**
+- A yard saved by an earlier version starts fresh.
+
 ## 0.16.0
 
 **Added**

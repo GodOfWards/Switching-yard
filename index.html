@@ -291,8 +291,8 @@
   //                the loco's controls, the cars' traffic (away off the
   //                map included) and the pool of cars elsewhere on the
   //                line, the industries' work, the jobs, the arrivals held
-  //                outside, the through trains offered or running, and who
-  //                holds the main.
+  //                outside, the through trains offered, refused line clear
+  //                or running, and who holds the main.
   //                Built from WORLD DATA by makeState(); never edits WORLD DATA.
   //   UTILITIES    small geometry, track-walking and lookup helpers.
   //   SIMULATION   advances STATE by one fixed step, step(dt): the clock, and
@@ -350,7 +350,7 @@
   // ==================================================
   // CONFIG
   // ==================================================
-  const GAME_CONFIG = { VERSION: "0.16.0" };
+  const GAME_CONFIG = { VERSION: "0.17.0" };
   const STEP_SECONDS = 1 / 60;          // fixed simulation step
   const MAX_STEPS_PER_FRAME = 5;        // drop time rather than spiral after a stall
   const VIEW_MARGIN = 8;                // metres of ground kept around the yard
@@ -500,10 +500,18 @@
   // THROUGH_SPEED; held, it stands at the east home signal, HOME_SIGNAL_IN
   // metres in from the map's east edge, or waits off the map at the station
   // side. The player asks for the main for one of MAIN_ASK_MINUTES.
+  // A passenger train gets a conditional line clear only by day (#104;
+  // RITO art. 64 d 3): offered outside DAYLIGHT_FROM to DAYLIGHT_TO with the
+  // main not clear, it is refused line clear (art. 65) and waits at the
+  // station behind until the main is clear, then sets off, still
+  // OFFER_LEAD_SECONDS out. Daylight is a fixed window, the same all year,
+  // rounding Junín's sunrise and sunset; retunable.
   const OFFER_LEAD_SECONDS = 10 * 60;   // roughly the run from La Oriental; retunable
   const THROUGH_SPEED = 40 / 3.6;       // m/s; retunable
   const THROUGH_ACCEL = 0.15;           // m/s², a held train starting away; retunable
   const HOME_SIGNAL_IN = 330;           // m; more than the longest through train (14 m + 15 cars: 243 m); retunable
+  const DAYLIGHT_FROM = 6 * HOUR;
+  const DAYLIGHT_TO = 20 * HOUR;
   const MAIN_ASK_MINUTES = [10, 20, 30];  // retunable
   // A job is inefficient when its moves pass this many per car handled
   // and per block. A move is each start of the player's loco from a stand.
@@ -895,13 +903,29 @@
   // docs/reference/fa-freight-cars.md. Every car length, and the tares and
   // loads marked there as estimates, are Unconfirmed; retunable. Colours
   // are FA's, lightened where FA's black would vanish on the black yard.
+  // The Materfer coach body (#77; docs/reference/aconcagua.md): light grey
+  // with a thin red stripe under the windows, dark blue ends. Its length
+  // and tare are Assumed (no source; European coaches of the era), and its
+  // bearings Unconfirmed. Retunable.
+  const MATERFER_COACH = { coach: true, length: 25, tare: 45, carga: 0, axles: 4, bearing: "roller",
+                           colour: "#c9c5ca", stripe: "#c23b2e", stripeShare: 0.1, ends: "#1d3561" };
   const VEHICLE_TYPES = {
     g12:       { loco: true, name: "GM G12", length: 14, mass: 109e3, axles: 4, bearing: "roller", colour: "#c0533a" }, // length approximate
+    // The Aconcagua's loco (#77): FA yellow-orange, its red lower band
+    // showing along the sides. docs/reference/locomotives.md.
+    rsd16:     { loco: true, name: "ALCo RSD-16", length: 17.1, mass: 108e3, axles: 6, bearing: "roller", colour: "#e3a12a",
+                 stripe: "#c23b2e", stripeShare: 0.22 },
     cubierto:  { name: "Vagón cubierto",  code: "26", length: 15.5, tare: 21, carga: 50, axles: 4, bearing: "plain", colour: "#a2a5a3" },
     tolva:     { name: "Tolva cerealera", code: "75", length: 15,   tare: 21, carga: 58, axles: 4, bearing: "plain", colour: "#a2a5a3" },
     bordeAlto: { name: "Borde alto",      code: "54", length: 14,   tare: 20, carga: 60, axles: 4, bearing: "plain", colour: "#a2a5a3" },
     plataforma: { name: "Plataforma",     code: "68", length: 19.5, tare: 19, carga: 61, axles: 4, bearing: "plain", colour: "#c9a634" },
     tanque:    { name: "Vagón tanque",    code: "82", length: 14,   tare: 21, carga: 50, axles: 4, bearing: "plain", colour: "#3a3c40", band: "#e2b420" },
+    // Passenger coaches (#77): one Materfer body, a kind for each FA code.
+    coachF:    { ...MATERFER_COACH, name: "Furgón",          code: "F" },
+    coachCT:   { ...MATERFER_COACH, name: "Coche turista",   code: "CT" },
+    coachP:    { ...MATERFER_COACH, name: "Coche primera",   code: "P" },
+    coachR:    { ...MATERFER_COACH, name: "Coche comedor",   code: "R" },
+    coachPA:   { ...MATERFER_COACH, name: "Coche pullman",   code: "PA" },
   };
   // FA's operating digit for plains, low speed (NEFA 956): the third digit
   // of every car's code here.
@@ -1120,20 +1144,37 @@
     { id: "a1105", number: "1105", arrives: true, from: "Retiro",  side: "retiro",   at: 23 * HOUR },
     { id: "d1206", number: "1206", arrives: false, to: "Mendoza", block: "mendoza",    at: 4.5 * HOUR },
   ];
-  // Through freights (#56): they pass on the main without working the yard.
-  // `enters` is the edge of the map they come in at: from Retiro the east,
-  // from Mendoza the west, the station side. `at` is when the head reaches
-  // that edge. Each is a G12 and THROUGH_CONSIST, loaded. Numbers and times
-  // are the game's; retunable.
+  // Through trains (#56, #77): they pass on the main without working the
+  // yard. `enters` is the edge of the map they come in at: from Retiro the
+  // east, from Mendoza the west, the station side. `at` is when the head
+  // reaches that edge. `consist` is the train's make-up in
+  // THROUGH_CONSISTS, a freight's cars loaded. A `passenger` train gets no
+  // conditional line clear at night (#104). Numbers and freight times are
+  // the game's; the Aconcagua's numbers are FA's, its Junín times the
+  // game's, picked so every shift sees two trains (Assumed: no FA
+  // timetable found). Retunable.
   const THROUGH_TIMETABLE = [
-    { id: "x2401", number: "2401", from: "Retiro",  to: "Mendoza", enters: "east", at: 9.5 * HOUR },
-    { id: "x2402", number: "2402", from: "Mendoza", to: "Retiro",  enters: "west", at: 13.75 * HOUR },
-    { id: "x2403", number: "2403", from: "Retiro",  to: "Mendoza", enters: "east", at: 17.25 * HOUR },
-    { id: "x2404", number: "2404", from: "Mendoza", to: "Retiro",  enters: "west", at: 2 * HOUR },
+    { id: "x2401", number: "2401", from: "Retiro",  to: "Mendoza", enters: "east", at: 9.5 * HOUR,   consist: "freight" },
+    { id: "x2402", number: "2402", from: "Mendoza", to: "Retiro",  enters: "west", at: 13.75 * HOUR, consist: "freight" },
+    { id: "p565",  number: "565",  name: "Aconcagua", from: "Retiro", to: "Mendoza", enters: "east", at: 15.5 * HOUR,
+      consist: "aconcagua", passenger: true },
+    { id: "x2403", number: "2403", from: "Retiro",  to: "Mendoza", enters: "east", at: 17.25 * HOUR, consist: "freight" },
+    { id: "p566",  number: "566",  name: "Aconcagua", from: "Mendoza", to: "Retiro", enters: "west", at: 23.5 * HOUR,
+      consist: "aconcagua", passenger: true },
+    { id: "x2404", number: "2404", from: "Mendoza", to: "Retiro",  enters: "west", at: 2 * HOUR,     consist: "freight" },
   ];
-  const THROUGH_CONSIST = ["tolva", "tolva", "tolva", "cubierto", "cubierto", "tolva", "bordeAlto", "tanque",
-    "tanque", "tolva", "tolva", "cubierto", "plataforma", "tolva", "tolva"];
-  const THROUGH_EDGES = { east: "mainEastEnd", west: "mainWestEnd" };
+  // Each make-up: the loco at the head, then the cars from behind it. The
+  // Aconcagua's (#77, Tom 2026-11-24; retunable): an RSD-16, the van, two
+  // tourist, two first, the restaurant and the pullman.
+  const THROUGH_CONSISTS = {
+    freight: { loco: "g12", cars: ["tolva", "tolva", "tolva", "cubierto", "cubierto", "tolva", "bordeAlto", "tanque",
+      "tanque", "tolva", "tolva", "cubierto", "plataforma", "tolva", "tolva"] },
+    aconcagua: { loco: "rsd16", cars: ["coachF", "coachCT", "coachCT", "coachP", "coachP", "coachR", "coachPA"] },
+  };
+  // Each edge's end of track, and the station behind it, where a train
+  // refused line clear waits: La Oriental to the east, Junín station to
+  // the west.
+  const THROUGH_EDGES = { east: { node: "mainEastEnd", station: "La Oriental" }, west: { node: "mainWestEnd", station: "Junín station" } };
   const YARD_NAME = "Junín, east end";
 
   // The lines out of Junín to their next junction (#52), for the Map's
@@ -2382,9 +2423,16 @@
   // standing at the east home signal or off the map at the station side,
   // until the player reports clear, and the wait is the player's delay. The
   // player holds the main by asking for it for a time, when no train is due
-  // in it; a train offered while they hold it calls them off.
+  // in it; a train offered while they hold it calls them off. A passenger
+  // train offered at night with the main not clear is refused line clear
+  // (#104): it waits at the station behind, and is offered again once the
+  // main is clear, reaching the map OFFER_LEAD_SECONDS after that.
+  // A run's `at` is its booked time at the map's edge; `enters`, when it
+  // will actually get there once it has line clear.
   const throughEntry = id => THROUGH_TIMETABLE.find(t => t.id === id);
-  const throughName = tt => `${tt.number} from ${tt.from}`;
+  const throughName = tt => tt.name ? `${tt.number} ${tt.name}` : `${tt.number} from ${tt.from}`;
+  const byDay = at => { const t = at % DAY; return t >= DAYLIGHT_FROM && t < DAYLIGHT_TO; };
+  const waitsAt = tt => THROUGH_EDGES[tt.enters].station;
   const throughRun = id => state.through.find(r => r.id === id);
   // The through train a train belongs to, if it is one: the game drives it.
   function drivenBy(t) {
@@ -2394,15 +2442,18 @@
   // Where a train coming in at map edge `edge` stands `d` metres in from
   // it, facing in: the segment, how far along it, and the sense it faces.
   function inFromEdge(edge, d) {
-    const node = THROUGH_EDGES[edge], seg = SEGMENTS_AT[node][0];
+    const node = THROUGH_EDGES[edge].node, seg = SEGMENTS_AT[node][0];
     const atA = SEGMENTS[seg].a === node;
     const w = walk(seg, atA ? 0 : segmentLength(seg), atA ? 1 : -1, d);
     return { seg: w.seg, s: w.s, dir: w.travel };
   }
   const homeSignal = () => inFromEdge("east", HOME_SIGNAL_IN);
-  const throughIds = r => [`${r.id}/0`, ...THROUGH_CONSIST.map((_, i) => `${r.id}/${i + 1}`)];
-  const throughType = id => { const i = Number(id.split("/")[1]); return i ? THROUGH_CONSIST[i - 1] : "g12"; };
-  const throughLength = () => throughIds({ id: "" }).reduce((sum, id) => sum + VEHICLE_TYPES[throughType(id)].length, 0);
+  // A through train's vehicle kinds, head first, and its vehicles' ids: the
+  // run's id and the place in the make-up.
+  const throughKinds = tt => { const c = THROUGH_CONSISTS[tt.consist]; return [c.loco, ...c.cars]; };
+  const throughIds = r => throughKinds(throughEntry(r.tt)).map((_, i) => `${r.id}/${i}`);
+  const throughType = id => { const [run, i] = id.split("/"); return throughKinds(throughEntry(run.split(".")[0]))[Number(i)]; };
+  const throughLength = tt => throughKinds(tt).reduce((sum, type) => sum + VEHICLE_TYPES[type].length, 0);
   // The main is clear for a train when no one holds it: the player gives it
   // back only with the crossover lying for the main and nothing of theirs on
   // the running tracks (reportClear).
@@ -2414,17 +2465,32 @@
   function mainEvents() {
     for (const run of runsBetween(state.throughAt + OFFER_LEAD_SECONDS, state.clock + OFFER_LEAD_SECONDS, THROUGH_TIMETABLE)) {
       state.throughAt = run.at - OFFER_LEAD_SECONDS + 1;
-      state.through.push({ id: run.id, tt: run.tt, at: run.at, status: "offered", speed: 0, vehicles: [] });
-      if (state.main.held) setNotice(`Clear the main for ${throughName(throughEntry(run.tt))}`);
+      const tt = throughEntry(run.tt), r = { id: run.id, tt: run.tt, at: run.at, enters: run.at, status: "offered", speed: 0, vehicles: [] };
+      state.through.push(r);
+      if (mainClear()) continue;
+      if (tt.passenger && !byDay(run.at - OFFER_LEAD_SECONDS)) {
+        r.status = "refused";
+        setNotice(`${tt.number} held at ${waitsAt(tt)}: night`);
+      } else setNotice(`Clear the main for ${throughName(tt)}`);
     }
     for (const r of state.through) {
-      if (r.status === "offered" && r.at <= state.clock) {
+      const tt = throughEntry(r.tt);
+      if (r.status === "refused" && mainClear()) {
+        // Line clear at last: it sets off, OFFER_LEAD_SECONDS out. Its
+        // delay is its lateness at the map's edge.
+        r.status = "offered";
+        r.enters = Math.max(r.at, state.clock + OFFER_LEAD_SECONDS);
+        const delay = r.enters - r.at;
+        if (delay > 0) for (const j of openJobs()) if (j.taken) j.trainsHeld.push({ number: tt.number, delay });
+        setNotice(`${tt.number} leaves ${waitsAt(tt)}${delay >= 60 ? `, ${lateText(delay)} late` : ""}`);
+      }
+      if (r.status === "offered" && r.enters <= state.clock) {
         if (!mainClear()) holdThrough(r);
-        else if (state.clock - r.at < (MAIN_LENGTH + throughLength()) / THROUGH_SPEED) runThrough(r, THROUGH_SPEED);
+        else if (state.clock - r.enters < (MAIN_LENGTH + throughLength(tt)) / THROUGH_SPEED) runThrough(r, THROUGH_SPEED);
         else r.status = "gone";                       // passed while the clock skipped
       }
       if (r.status === "held" && mainClear()) {
-        const delay = state.clock - r.at, tt = throughEntry(r.tt);
+        const delay = state.clock - r.at;
         for (const j of openJobs()) if (j.taken) j.trainsHeld.push({ number: tt.number, delay });
         setNotice(`${throughName(tt)} held ${lateText(delay)} for the main`);
         if (r.vehicles.length) { r.status = "running"; r.speed = 0; } else runThrough(r, THROUGH_SPEED);
@@ -2444,7 +2510,8 @@
   // A through train comes in at its edge of the map at `speed`.
   function runThrough(r, speed) {
     r.status = "running"; r.speed = speed;
-    layThrough(r, inFromEdge(throughEntry(r.tt).enters, throughLength()));
+    const tt = throughEntry(r.tt);
+    layThrough(r, inFromEdge(tt.enters, throughLength(tt)));
   }
   function layThrough(r, at) {
     const ids = throughIds(r);
@@ -2595,7 +2662,7 @@
   function askForMain(minutes) {
     if (state.main.held || !MAIN_ASK_MINUTES.includes(minutes)) return false;
     const r = state.through[0];
-    if (r) { setNotice(`Refused: ${throughName(throughEntry(r.tt))} is ${r.status === "offered" ? "offered" : "on the main"}`); return false; }
+    if (r) { setNotice(`Refused: ${throughName(throughEntry(r.tt))} is ${r.status === "offered" ? "offered" : r.status === "refused" ? "waiting" : "on the main"}`); return false; }
     const next = nextOfferAt();
     if (next && next.at < state.clock + minutes * 60) {
       setNotice(`Refused: ${throughName(next.tt)} is due at ${clockText(next.at + OFFER_LEAD_SECONDS)}`);
@@ -2694,7 +2761,7 @@
   // The benchmark page (index.html?bench, CHECKS) saves under keys of its
   // own, never over the player's yard.
   const BENCH = new URLSearchParams(location.search).has("bench");
-  const SAVE_KEY = "switching-game.yard.10" + (BENCH ? ".bench" : "");
+  const SAVE_KEY = "switching-game.yard.11" + (BENCH ? ".bench" : "");
   const CARS_KEY = SAVE_KEY + ".cars";
   let saves = 0;
 
@@ -2726,8 +2793,8 @@
     if (!Array.isArray(st.held) || !st.held.every(r => isObj(r) && timetableEntry(r.tt) && Number.isFinite(r.at))) return false;
     if (!Number.isFinite(st.throughAt) || !isObj(st.main) || typeof st.main.held !== "boolean"
         || (st.main.held && !Number.isFinite(st.main.until))) return false;
-    if (!Array.isArray(st.through) || !st.through.every(r => isObj(r) && throughEntry(r.tt) && Number.isFinite(r.at)
-        && ["offered", "held", "running"].includes(r.status) && Number.isFinite(r.speed) && Array.isArray(r.vehicles))) return false;
+    if (!Array.isArray(st.through) || !st.through.every(r => isObj(r) && throughEntry(r.tt) && Number.isFinite(r.at) && Number.isFinite(r.enters)
+        && ["offered", "refused", "held", "running"].includes(r.status) && Number.isFinite(r.speed) && Array.isArray(r.vehicles))) return false;
     if (!Number.isInteger(st.nextCar) || !isObj(st.poolCount) || !Number.isInteger(st.poolCount.joined)
         || !Number.isInteger(st.poolCount.left) || !Number.isFinite(st.poolSince)) return false;
     // A car is in the traffic or in the pool, never both; one in the pool
@@ -3149,6 +3216,20 @@
           const p = toward(head, tail, type.length * at - 0.5), q = toward(head, tail, type.length * at + 0.5);
           line(p.x, p.y, q.x, q.y, type.band, bodyWidth);
         }
+      if (type.stripe) {                                  // a stripe along each side
+        const sw = bodyWidth * type.stripeShare, off = (bodyWidth - sw) / 2;   // screen px from the middle
+        const s1 = view.toScreen(front.x, front.y), s2 = view.toScreen(back.x, back.y);
+        const len = Math.hypot(s2.x - s1.x, s2.y - s1.y) || 1, nx = -(s2.y - s1.y) / len * off, ny = (s2.x - s1.x) / len * off;
+        ctx.strokeStyle = type.stripe; ctx.lineWidth = sw;
+        for (const side of [1, -1]) {
+          ctx.beginPath(); ctx.moveTo(s1.x + nx * side, s1.y + ny * side); ctx.lineTo(s2.x + nx * side, s2.y + ny * side); ctx.stroke();
+        }
+      }
+      if (type.ends)                                      // a coach's ends
+        for (const [a, b] of [[front, back], [back, front]]) {
+          const q = toward(a, b, 0.8);
+          line(a.x, a.y, q.x, q.y, type.ends, bodyWidth);
+        }
       if (car && !loadedNow(id)) {                        // an empty car is drawn hollow
         const f = toward(front, back, 1), b = toward(back, front, 1);
         line(b.x, b.y, f.x, f.y, PALETTE.bg, bodyWidth * 0.4);
@@ -3157,6 +3238,13 @@
         const cabEnd = v.flip > 0 ? front : back, other = v.flip > 0 ? back : front;
         const c1 = toward(cabEnd, other, 0.6), c2 = toward(cabEnd, other, 3);
         line(c1.x, c1.y, c2.x, c2.y, PALETTE.light, bodyWidth * 0.6);
+      }
+      if (type.coach && k > 2.5) {                        // a coach's FA code, on its roof
+        const m = view.toScreen((head.x + tail.x) / 2, (head.y + tail.y) / 2);
+        ctx.fillStyle = type.ends; ctx.font = `700 ${Math.round(Math.min(13, bodyWidth * 0.7))}px system-ui, sans-serif`;
+        ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillText(type.code, m.x, m.y + 0.5);
+        ctx.textAlign = "start"; ctx.textBaseline = "alphabetic";
       }
       if (v.handBrake) {                                  // a hand brake set: a light band at the middle
         const mid = toward(head, tail, type.length / 2), along = toward(head, tail, type.length / 2 + 1.5);
@@ -3517,10 +3605,11 @@
     let html = "", warn = false;
     if (state.main.held) {
       warn = !!r || state.clock > state.main.until;
-      html = (r ? `Clear the main for ${tt.number}` : `Main yours until ${clockText(state.main.until)}${state.clock > state.main.until ? " · over time" : ""}`)
+      html = (r ? (r.status === "refused" ? `${tt.number} held at ${waitsAt(tt)}` : `Clear the main for ${tt.number}`) : `Main yours until ${clockText(state.main.until)}${state.clock > state.main.until ? " · over time" : ""}`)
         + " · <em>Report clear</em>";
     } else if (r) {
-      html = `${throughName(tt)} · ${r.status === "offered" ? `due ${clockText(r.at)}` : r.status === "held" ? "held for the main" : "passing"}`;
+      html = `${throughName(tt)} · ${r.status === "offered" ? `due ${clockText(r.enters)}` : r.status === "refused" ? `held at ${waitsAt(tt)}`
+        : r.status === "held" ? "held for the main" : "passing"}`;
     }
     if (html !== mainChipHtml) mainChip.innerHTML = mainChipHtml = html;
     mainChip.classList.toggle("open", !!html);
@@ -3622,7 +3711,8 @@
       if (e.kind === "offer") {
         const tt = throughEntry(e.through);
         html += `<button class="event" data-at="${e.at}"><b>${clockText(e.at)}</b><span>${throughName(tt)} offered` +
-          `<small>Through to ${tt.to}, due ${clockText(e.at + OFFER_LEAD_SECONDS)}${state.main.held ? "; clear the main" : ""}</small></span>${dayNote(e.at)}</button>`;
+          `<small>Through to ${tt.to}, due ${clockText(e.at + OFFER_LEAD_SECONDS)}${state.main.held ? "; clear the main" : ""}` +
+          `${tt.passenger && !byDay(e.at) ? `<br>At night: if the main isn’t clear, it waits at ${waitsAt(tt)}` : ""}</small></span>${dayNote(e.at)}</button>`;
         continue;
       }
       const j = e.job && jobById(e.job), crew = j && !j.taken ? `<small class="warn">Not taken: another crew does it</small>` : "";
@@ -3940,8 +4030,15 @@
       need(!t.waybill || has(DESTINATIONS, t.waybill), `starting traffic: ${id}'s waybill ${t.waybill} isn't a destination`);
     }
     for (const tt of TIMETABLE) need(has(BLOCKS, tt.arrives ? tt.side : tt.block), `train ${tt.number}: block ${tt.side || tt.block} doesn't exist`);
-    for (const tt of THROUGH_TIMETABLE) need(has(THROUGH_EDGES, tt.enters), `through train ${tt.number}: edge ${tt.enters} doesn't exist`);
-    for (const type of THROUGH_CONSIST) need(has(VEHICLE_TYPES, type), `through consist: kind ${type} doesn't exist`);
+    for (const tt of THROUGH_TIMETABLE) {
+      need(has(THROUGH_EDGES, tt.enters), `through train ${tt.number}: edge ${tt.enters} doesn't exist`);
+      need(has(THROUGH_CONSISTS, tt.consist), `through train ${tt.number}: make-up ${tt.consist} doesn't exist`);
+    }
+    for (const c in THROUGH_CONSISTS) {
+      need(has(VEHICLE_TYPES, THROUGH_CONSISTS[c].loco) && VEHICLE_TYPES[THROUGH_CONSISTS[c].loco].loco, `through make-up ${c}: loco ${THROUGH_CONSISTS[c].loco} isn't a loco`);
+      for (const type of THROUGH_CONSISTS[c].cars) need(has(VEHICLE_TYPES, type), `through make-up ${c}: kind ${type} doesn't exist`);
+    }
+    for (const e in THROUGH_EDGES) need(MAP_EDGES.includes(THROUGH_EDGES[e].node), `through edge ${e}: ${THROUGH_EDGES[e].node} isn't a map edge`);
     return out;
   }
 

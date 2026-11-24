@@ -3,6 +3,27 @@
 Design calls Tom has made, newest first, with where they were made. The
 values these produced live in CONFIG and WORLD DATA in `index.html`.
 
+## 2026-11-24: The *Aconcagua* and passenger trains at night (#77, #104)
+
+Made in the project thread. Facts in
+[reference/aconcagua.md](reference/aconcagua.md) and
+[reference/fa-yard-operations.md](reference/fa-yard-operations.md); the
+rules in [design/living-railway.md](design/living-railway.md).
+
+- **The *Aconcagua* runs through on the main**, once each way a day: 565
+  from Retiro reaches the map's east edge at 15:30, 566 from Mendoza its
+  west edge at 23:30. The times are the game's (Assumed), picked so every
+  shift sees two through trains.
+- **An RSD-16 and 7 Materfer coaches**: F, CT ×2, P ×2, R, PA. One coach
+  body labelled by FA code, 25 m long (Assumed). Grey with a thin red
+  stripe and dark blue ends; the RSD-16 in FA yellow-orange and red.
+- **The RSD-16 is a second loco type**, alongside the G12.
+- **No conditional line clear for a passenger train at night** (RITO art.
+  64 d 3). Daylight is 06:00 to 20:00, all year. At night, with the main
+  not clear, line clear is refused: the train waits off the map, is
+  offered again once the main is clear, and only then sets off, 10
+  minutes out. Its delay is its real lateness at the map's edge, run-in
+  included.
 ## 2026-11-24: Hook-and-screw couplings (#33)
 
 Made in the project thread, from the coupler research in
