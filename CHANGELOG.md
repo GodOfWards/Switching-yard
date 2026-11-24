@@ -2,6 +2,13 @@
 
 Newest first. One entry per version bump.
 
+## 0.19.1
+
+**Changed**
+- The Map's lines out of Junín end SM-B at Chacabuco, where the branch to
+  Mayor José Orellano leaves, not at Membrillar (#107). SM-B only becomes
+  double track at Membrillar.
+
 ## 0.19.0
 
 **Added**

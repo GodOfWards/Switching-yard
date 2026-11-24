@@ -2,8 +2,8 @@
 
 Researched 2026-10-08 from OpenStreetMap (#52). The yard itself is in
 [junin-yard.md](junin-yard.md). Which lines were open in the FA era, the
-second ring of lines and a correction to the table below (SM-B's next
-junction) are in [rail-network-fa-era.md](rail-network-fa-era.md)
+second ring of lines and the research behind the correction to SM-B's
+next junction (#107) are in [rail-network-fa-era.md](rail-network-fa-era.md)
 (2026-11-23). The lines are in the game as the Map's
 outermost step (#53): `tools/rail_network.py game` writes them, simplified
 to 200 m, into WORLD DATA as `NETWORK_LINES`.
@@ -35,7 +35,7 @@ to 200 m, into WORLD DATA as `NETWORK_LINES`.
 | SM-C, FC San Martín | West | Juan Bautista Alberdi, where disused SM-8 leaves | 78.5 km | In use | Saforcada, Las Parvas, Blandengues, Leandro N. Alem, Vedia, Edmundo Banbury Perkins, Juan Bautista Alberdi | Secondary |
 | SM-7, FC San Martín | West, then north-west at Saforcada | Arribeños, where disused SM-4 leaves | 64.3 km | In use | Saforcada, Agustina, Fortín Tiburcio, Arenales, Arribeños | Secondary |
 | SM-5, FC Mitre | East, then north | A junction with disused SM-4 in Rojas partido, 8 km past Rafael Obligado | 35.1 km | Disused | Agustín Roca, Rafael Obligado | Secondary |
-| SM-B, FC San Martín | East, towards Buenos Aires | Membrillar, read as where SM-6 leaves. **Corrected 2026-11-23:** SM-B only divides there into two tracks that rejoin past Chacabuco; SM-6 leaves at Chacabuco ([rail-network-fa-era.md](rail-network-fa-era.md)) | 28.6 km | In use | La Oriental, O'Higgins, Membrillar | Secondary |
+| SM-B, FC San Martín | East, towards Buenos Aires | Chacabuco, where SM-6 leaves. **Corrected 2026-11-24 (#107):** the first walk stopped at Membrillar, where SM-B becomes double track, and read that as SM-6 leaving ([rail-network-fa-era.md](rail-network-fa-era.md)) | 42.6 km | In use | La Oriental, O'Higgins, Membrillar, Chacabuco | Secondary |
 
 Source: the OpenStreetMap extract of Argentina from
 download.openstreetmap.fr, data as of 2026-10-07 01:06 UTC (© OpenStreetMap
@@ -112,7 +112,12 @@ argentina.gob.ar/node/267687 (Trenes Argentinos Cargas, 2021).
    the ways onward reach 5 km or more from it (followed up to 20 km of
    track) without rejoining each other or leading back into Junín.
    Shorter ones are spurs, and rejoining ones are loops, so the walk
-   carries on past them.
+   carries on past them. A divide where every way onward carries the
+   line's own `ref` is **double track**, not a junction: OSM draws SM-B
+   from Membrillar east as two tracks that don't rejoin within the search.
+   The walk follows each track and keeps the nearer junction (added
+   2026-11-24, #107; it found SM-6 leaving the southern track at
+   Chacabuco).
 4. A station is **on a line** when it's within 400 m of the track; one
    from another railway can show up where two lines pass close (Vedia has
    a Belgrano station beside the San Martín one).
@@ -125,6 +130,7 @@ Access from the cloud environment: download.openstreetmap.fr works
 
 ## Size
 
-Simplified to 50 m, the four lines are 32 points in all (OSM has 268).
+Simplified to 50 m, the four lines are 32 points in all (OSM has 268;
+measured before #107, which made SM-B 9 points of 83).
 At that rate the network for a whole province would still be small for
 WORLD DATA, so size doesn't limit how far the graph can reach.
