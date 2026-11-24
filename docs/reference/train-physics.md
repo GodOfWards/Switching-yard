@@ -90,20 +90,49 @@ Researched 2026-10-08.
 
 ## Couplers
 
-Researched 2026-10-08.
+Researched 2026-10-08; which vehicles carried which, 2026-11-24 (#33).
 
-- **FA ran two coupler systems on broad (1676 mm) and standard gauge.**
-  Its 1982 coupler-height standard sets a **central hook** ("gancho
-  central", the hook with screw link and side buffers) at 1055.5 mm and an
-  **automatic coupler** at 900 mm, both for 1676 and 1435 mm gauge. Metre
-  gauge (804 mm) and 750 mm (660 mm) are listed with automatic couplers
-  only. **Confirmed** (FAT E-726).
-- So in the FA era both were in service. Which cars and locos carried
-  which, and in what share, is **Unconfirmed**: a FA rolling-stock list or
-  a NEFA drawing per car type would settle it.
-- A hook-and-screw coupling never joins on impact: someone drops the link
-  over the hook and tightens the screw by hand. An automatic coupler joins
-  on impact only if one knuckle is open. **Unconfirmed** here (general
+- **FA standardised two coupler systems for broad (1676 mm) and standard
+  gauge.** Its 1982 coupler-height standard sets a **central hook**
+  ("gancho central", the hook with screw link and side buffers) at 1055.5
+  mm and an **automatic coupler** at 900 mm, both for 1676 and 1435 mm
+  gauge. Metre gauge (804 mm) and 750 mm (660 mm) are listed with
+  automatic couplers only. **Confirmed** (FAT E-726).
+- **But on broad gauge the hook and screw was the coupler in service.**
+  FAT MR-706 (November 1975) makes the **30 t screw coupling mandatory on
+  all motive power and every new 1676 and 1435 mm vehicle**, and declares
+  the older 20 t one non-standard. **Confirmed**.
+- **New cars of 1975–1981** (FAT V-1527, V-1529, V-1534, V-1545) came with
+  side buffers, a draw hook and a screw coupling, plus brackets or a pocket
+  for a *future* automatic coupler. **Confirmed**.
+- **Transition couplers** (FAT E-724, 1978; E-721, 1981): an automatic head
+  that folds down to uncover a hook, so a vehicle can meet either system.
+  New line locos (FAT LG-1801, 1981) were specified with one at each end,
+  side buffers 930 mm off centre, and a changeover done by hand in the
+  yard. Private-owner cars (FAT VP-3009, 1978) took buffers and the hook
+  and screw, or a transition coupler. **Confirmed** for the specs; whether
+  locos ran with the transition head fitted is **Unconfirmed**.
+- **Locos in practice:** the broad-gauge GM GT22CW carried buffers and the
+  hook, chain and screw coupling. **Secondary**.
+- **Two-axle cars used a chain link, not the screw.** RITO art. 210: four-axle
+  cars couple with the screw coupling tightened fully; two-axle cars
+  "with the link chain they carry", whatever is next to them; a screw
+  coupling on a two-axle car is left slack. NEFA 479 (1951) shows the
+  central chain on a broad-gauge common-use car. **Confirmed**.
+- **So the share, as far as found:** broad-gauge bogie cars and locos all
+  on buffers and the hook with screw coupling; two-axle cars on buffers and
+  the hook with a chain link; **no automatic coupler found in broad-gauge
+  freight service**. The last is **Unconfirmed** (no source shows one,
+  none says there were none). RITO art. 210 e, on automatic couplers, is
+  FA-wide and fits metre gauge.
+- **Order in a heavy train:** in trains over 20 t of tractive effort, at
+  least a third of the cars must have the 30 t coupling, placed **next to
+  the locomotive**, with the 20 t ones behind (MR-706 D-5). **Confirmed**.
+- **How it's coupled** (MR-706 D-7, D-8): centre the screw, slacken it,
+  drop the shackle over the facing hook, then **tighten until the buffer
+  faces meet**. Steam-hauled freight trains were exempt from tightening.
+  It never joins on impact. **Confirmed**. An automatic coupler joins on
+  impact only if one knuckle is open. **Unconfirmed** here (general
   railway practice, no source recorded).
 
 ## Sources
@@ -120,3 +149,10 @@ Researched 2026-10-08.
 - Vacuum brakes: [CNRT FAT specifications](https://www.argentina.gob.ar/cnrt/especificaciones-fat)
 - Couplers: [FAT E-726, Alturas de enganches de vehículos en Ferrocarriles
   Argentinos, Nov 1982 (CNRT copy)](https://argentina.gob.ar/sites/default/files/normas_fat/FAT_E_726.pdf)
+- Coupler use, read 2026-11-24: [FAT MR-706](https://www.argentina.gob.ar/sites/default/files/normas_fat/FAT_MR_706.pdf) (Nov 1975),
+  [E-721](https://www.argentina.gob.ar/sites/default/files/normas_fat/FAT_E_721.pdf), [E-724](https://www.argentina.gob.ar/sites/default/files/normas_fat/FAT_E_724.pdf) (transition couplers),
+  [LG-1801](https://www.argentina.gob.ar/sites/default/files/normas_fat/FAT_LG_1801.pdf) (line locos, 1981), [VP-3009](https://www.argentina.gob.ar/sites/default/files/normas_fat/FAT_VP_3009.pdf) (private cars, 1978),
+  [V-1534](https://www.argentina.gob.ar/sites/default/files/normas_fat/FAT_V_1534.pdf), [V-1545](https://www.argentina.gob.ar/sites/default/files/normas_fat/FAT_V_1545.pdf);
+  [NEFA 479](https://www.argentina.gob.ar/sites/default/files/subidos_tanda_2/NEFA_479.pdf) (chain coupling, 1951);
+  RITO 1993 art. 210 (see [fa-yard-operations.md](fa-yard-operations.md));
+  GT22CW: [leivag1991vehicles blog](http://leivag1991vehicles.blogspot.com/2021/08/984-locomotoras-general-motors-gt22-en.html?m=1) (Secondary)

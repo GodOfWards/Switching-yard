@@ -2,7 +2,8 @@
 
 Load limits, tares and markings of Ferrocarriles Argentinos broad-gauge
 (1676 mm) freight cars, for the game's cars. Researched 2026-10-08 (#18, #54);
-lengths added 2026-10-13 (#54).
+lengths added 2026-10-13 (#54) and 2026-11-24 (#98), couplers 2026-11-24
+(#33).
 
 **Decided (Tom):**
 - **Car marks: both kinds** (2026-10-08, #54). Most cars carry FA's
@@ -13,11 +14,12 @@ lengths added 2026-10-13 (#54).
 
 **Status:** load limits, some tares, the numbering, the marking layout and
 the paint colours are **Confirmed**, read on FA's own technical
-specifications (FAT) and drawings (NEFA), hosted by CNRT. **Lengths: one
-kind found.** No general-arrangement drawing of a game car is on CNRT's
-site, but a detail sheet of a broad-gauge grain hopper gives its bogie
-centres and end overhang, so its length over buffers is about **15.0 m**
-(derived). The other kinds stay estimates. Open gap: lengths, in #98.
+specifications (FAT) and drawings (NEFA), hosted by CNRT. **Lengths: two
+kinds found.** No general-arrangement drawing of a game car is on CNRT's
+site, but detail sheets give the grain hopper about **15.0 m** and the 50 t
+box car about **13.5 m** over buffers (both derived). The borde alto,
+tank, jaula and two-axle cars stay estimates. Open gap: those lengths and
+the fleet split by axles, in #98.
 
 ## Load limits and tares
 
@@ -146,8 +148,11 @@ black frame and black lettering.
 
 FAT V-1527 and V-1529 give the borde alto **side buffers 1850–1860 mm
 apart** and a **screw coupling** on the central draw hook, with brackets
-for a future automatic coupler. Confirmed. Broad-gauge FA cars of the
-period ran on buffers and screw couplings, which bears on #33.
+for a future automatic coupler. Confirmed. Which coupler each kind of FA
+vehicle carried, and the standards behind it, is in
+[train-physics.md](train-physics.md#couplers): in short, the whole
+broad-gauge fleet ran on buffers and the hook, with the screw coupling on
+bogie cars and a chain link on two-axle cars.
 
 ## Length clues
 
@@ -166,6 +171,17 @@ buffers. No drawing found gives it directly. What was found:
   the same. Confirmed for the drawing's figures, derived for the length.
   The sheets carry no date; the numbers are in FA's broad-gauge range
   (40000–99999).
+- **Vagón cubierto todo uso, 50 t** (2026-11-24): NEFA 594, the box car's
+  roof, gives **12,402 mm "entre paneles de frente y sobre cabezales del
+  bastidor"** (between the end panels, over the headstocks), with 2,760
+  mm between the side soles. So **about 13.5 m over buffers**. Confirmed
+  for the drawing's figure, derived for the length. The sheet names no
+  gauge or date. It's tied to the broad-gauge 50 t car of NEFA 29.0xx
+  (dated 10 February 1971) by its width: NEFA 29.016 gives the same roof
+  2,770 and 2,950 mm wide. A cross-check fits: NEFA 29.007 gives ten
+  side panels per side (four of 1,016 mm, six of 956 mm), which with
+  NEFA 29.006's 1,930 mm door make about 11.6 m of wall before corner
+  posts, inside a 12.4 m frame. Derived.
 - **An old bogie car, class C 19** (NEFA 1267, gauge 1676, converted to
   carry rail): frame **10,973 mm (36 ft)** with bogie centres 7,011 mm
   (23 ft). So about **12.0 m over buffers**. Round feet point to a car
@@ -174,9 +190,32 @@ buffers. No drawing found gives it directly. What was found:
 - **Tolva pedrero, broad gauge** (NEFA 32.060): side sill **10.43 m**.
   Confirmed. Over buffers is longer by the headstocks and buffers; about
   11.5–12 m, Unconfirmed.
-- **Tanque monocasco** (NEFA 25.015): frame **12.7 m**, but the sheet
-  gives no gauge, and FA's monocoque tank spec is metre gauge (V-1528), so
-  it isn't applied here.
+- **Tanque monocasco** (NEFA 25.015, 25.024): frame **12.7 m**, barrel
+  **11,140 mm** at 1,270 mm inner radius, drawn for **metre gauge**
+  (title block: trocha 1000). Confirmed. Not a broad-gauge car, but it
+  sizes a tank of about 56 m³ plus its heads.
+- **Broad-gauge petroleum tank, 1948** (NEFA 833, the British companies'
+  ABGS drawing 707, "Argentine broad gauge standard"): its heating coil is
+  **9,804 mm** long inside a tank of about 1.22–1.25 m radius. So a barrel
+  of about 10–10.5 m and about 50 m³. Confirmed for the figures, derived
+  for the barrel (the drawing is broken, so it can't be scaled).
+- **So a 60 m³ broad-gauge tank** is about 10.5–12.2 m of barrel at 2.5–2.7
+  m diameter, and with a frame about 1 m longer and the buffers, **12.5–13.5
+  m over buffers, about 13.0 m.** Derived, weak. FAT V-1548 (its frame)
+  still won't download.
+- **Borde alto:** no length found (2026-11-24). FAT V-1527 and V-1529 give
+  none; NEFA 544, its marking layout, isn't drawn to scale. World Bank 1979
+  (Annex, item 20) planned to **replace 256 old broad-gauge high-sided
+  wagons with 128 new ones**, so the old ones carried about half a new
+  one's load. Confirmed for the figures; that they were shorter or
+  two-axle is an inference.
+- **Jaula:** no drawing found. It's a type 2 cubierto in FA's code, so the
+  box car's 13.5 m is the nearest figure. Unconfirmed.
+- **Length classes** (NEFA 429, broad gauge, 1962): buffer face sizes are
+  set for vehicles **up to 15.25 m**, 15.25–19 m and over 19 m over
+  buffers, so 15.25 m was the ordinary upper limit for a car. Confirmed.
+- **Rail wagon** (NEFA 1037, revised 1983): **18,650 mm** over headstocks,
+  so about 19.7 m over buffers. Derived.
 - **Container flat**: three 20 ft (6.06 m) containers, so at least 18.2 m
   of deck. Derived.
 
@@ -184,11 +223,19 @@ buffers. No drawing found gives it directly. What was found:
   of FA's 34,169 broad-gauge freight cars (58%) were over 40 years old,
   that is built before about 1938 (World Bank 1979, Table 2.5), and
   two-axle broad-gauge cars still ran, always at the rear of a train
-  (RITO art. 203, [fa-yard-operations.md](fa-yard-operations.md)). How many
-  of them were two-axle, and how long they were: not found.
+  (RITO art. 203, [fa-yard-operations.md](fa-yard-operations.md)), and
+  were still in the 1993 rulebook (arts. 196, 210). How many were
+  two-axle: not found (2026-11-24); World Bank Tables 2.2 and 2.5 don't
+  split the fleet by axles. How long: no NEFA sheet of a two-axle
+  broad-gauge wagon found. British four-wheel wagons of the period were
+  typically 18–24 ft (5.5–7.3 m) over headstocks, so **about 8 m over
+  buffers**: Assumed, from general British practice, not an Argentine
+  source.
 
 Would confirm the rest: NEFA 254 (V-1529's general arrangement), NEFA
-32.000 (V-1530's), or a photo of a car's length stencil. Searched and not
+32.000 (V-1530's), FAT V-1548's drawings (60 m³ tank), an FA rolling-stock
+inventory by axles, or a dated photo of a car's length stencil or of a
+two-axle wagon side-on (scaled by its wheels). Searched and not
 found 2026-10-13: modern tender sheets, builders' pages and modelling
 sites give no broad-gauge length.
 
@@ -199,11 +246,11 @@ Unconfirmed and retunable.
 
 | Kind | Length over couplers | Tare | Load limit |
 |---|---|---|---|
-| Vagón cubierto | 15.5 m, estimated | 21 t, estimated | 50 t, Unconfirmed (above) |
+| Vagón cubierto | 15.5 m, estimated; **FA's is about 13.5 m** (NEFA 594, derived) | 21 t, estimated | 50 t, Unconfirmed (above) |
 | Tolva cerealera | 15 m; matches NEFA 24.381 (15.0 m, derived) | 21 t, estimated | 58 t, FAT V-1539 |
-| Borde alto | 14 m, estimated | 20 t, FAT V-1529 | 60 t, FAT V-1529 |
+| Borde alto | 14 m, estimated; not found, 13.5 m is the nearest analogy | 20 t, FAT V-1529 | 60 t, FAT V-1529 |
 | Plataforma | 19.5 m, estimated from three 6.06 m containers | 19 t, FAT V-1520 | 61 t, FAT V-1520 |
-| Vagón tanque | 14 m, estimated | 21 t, estimated | 50 t: 60 m³ of gasoil at about 0.84 t/m³, derived |
+| Vagón tanque | 14 m, estimated; **about 13.0 m** derived (weak) | 21 t, estimated | 50 t: 60 m³ of gasoil at about 0.84 t/m³, derived |
 
 - A loaded car carries its full load limit, so a loaded car weighs 71–80 t
   and an empty one 19–21 t. The game's earlier box cars were 60 t loaded
@@ -219,6 +266,9 @@ Unconfirmed and retunable.
 
 **Where the game and FA still differ:**
 
+- **The box car is 2 m long**: 15.5 m in the game, about 13.5 m on FA's
+  drawing. The tank is likely about 1 m long. Changing them is Tom's call.
+
 - **The code is cut short.** The card shows the type, sub-type and
   operating digit (for example **54 3** for a 60 t borde alto), not the
   mechanical class or the check digit, whose formula wasn't found.
@@ -230,6 +280,7 @@ Unconfirmed and retunable.
 - [FAT V-1519](https://www.argentina.gob.ar/sites/default/files/normas_fat/FAT_V_1519.pdf): buffer length range. Read 2026-10-13.
 - World Bank 1979, Table 2.5 (age of freight wagons): see [fa-freight-traffic.md](fa-freight-traffic.md).
 
+- Read 2026-11-24 (#98): [NEFA 594](https://www.argentina.gob.ar/sites/default/files/para_reemplazar-20181105t152627z-001/Para%20reemplazar/NEFA_594.pdf) (box car roof), [29.006](https://www.argentina.gob.ar/sites/default/files/subidos_tanda_6/NEFA_29006.pdf), [29.007](https://www.argentina.gob.ar/sites/default/files/subidos_tanda_6/NEFA_29007.pdf), [29.016](https://www.argentina.gob.ar/sites/default/files/subidos_tanda_6/NEFA_29016.pdf) (50 t box car, 1971), [25.024](https://www.argentina.gob.ar/sites/default/files/para_reemplazar-20181105t152627z-001/Para%20reemplazar/NEFA_25024.pdf) (monocoque tank barrel), [833](https://www.argentina.gob.ar/sites/default/files/subidos_tanda_4/NEFA_833.pdf) (1948 broad-gauge tank), [429](https://www.argentina.gob.ar/sites/default/files/subidos_tanda_2/NEFA_429.pdf) (draw gear and buffers, 1962), [544](https://www.argentina.gob.ar/sites/default/files/subidos_tanda_3/NEFA_544.pdf) (borde alto marking), [1037](https://www.argentina.gob.ar/sites/default/files/subidos_tanda_5/NEFA_1037.pdf) (rail wagon); World Bank 1979, Annex item 20 (wagon replacement).
 - [Especificaciones FAT, CNRT](https://www.argentina.gob.ar/cnrt/especificaciones-fat): the index of FA's technical specifications, with titles and capacities.
 - [FAT V-1520](https://www.argentina.gob.ar/sites/default/files/normas_fat/FAT_V_1520.pdf), [FAT V-1527](https://www.argentina.gob.ar/sites/default/files/normas_fat/FAT_V_1527.pdf), [FAT V-1529](https://www.argentina.gob.ar/sites/default/files/normas_fat/FAT_V_1529.pdf), [FAT V-1530](https://www.argentina.gob.ar/sites/default/files/normas_fat/FAT_V_1530.pdf), [FAT V-1545](https://www.argentina.gob.ar/sites/default/files/normas_fat/FAT_V_1545.pdf): read 2026-10-08.
 - [FAT MRe-2002, marcado unificado](https://www.argentina.gob.ar/sites/default/files/normas_fat/FAT_MRe_2002.pdf): read 2026-10-08.
