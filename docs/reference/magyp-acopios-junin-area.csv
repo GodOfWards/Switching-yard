@@ -1,0 +1,90 @@
+list,razon_social,establecimiento,localidad,partido,direccion,acceso_ffcc,uso_ffcc,sobre_terreno_ferroviario,celda_subterranea_t,celda_chapa_t,celda_semisubterranea_t,galpon_ferroviario_t,silo_material_t,otra_t,silo_chapa_t,total_t
+desvio_propio,CARGILL S.A.C.I.,406256,CHACABUCO,CHACABUCO,Calle: Elguea Roman Nro. 501.,Desvio Propio,No se utiliza hace 20 años,NO,0,0,0,0,62550,0,0,62550
+desvio_propio,AGROCEREALES RAWSON SA,405953,RAWSON,CHACABUCO,Calle: Acc. Guillermo Rawson Nro. 0. Piso: 0 - Dpto.: 0.,Desvio Propio,No se utiliza hace 20 años,SI,0,0,0,0,0,0,15000,15000
+desvio_propio,HUERGO CEREALES S.R.L.,403768,PALEMON HUERGO,CHACABUCO,Ruta ACCESO RUTA PROVINCIAL Nª 30 - Km 507.,Desvio Propio,No se utiliza hace 20 años,SI,0,0,0,0,0,0,5000,5000
+desvio_propio,MOLINOS TASSARA S.A.,401339,JUNIN,JUNIN,Calle: ALBERDI E/ URUGUAY Y VIAS FFCC CIRC.I SEC.F MZA 129 Nro. 0.,Desvio Propio,No se utiliza hace 20 años,NO,0,2000,12800,0,0,0,360,15160
+desvio_propio,MOLINOS TASSARA S.A.,401338,JUNIN,JUNIN,Calle: ALBERDI E/ MUÑIZ Y URUGUAY CIRC.I SEC.7 MZA 129 Nro. 0.,Desvio Propio,No se utiliza hace 20 años,NO,0,2100,0,0,0,0,0,2100
+desvio_propio,MOLINOS TASSARA S.A.,401337,JUNIN,JUNIN,Calle: Javier Muñiz Nro. 160.,Desvio Propio,No se utiliza hace 20 años,NO,0,0,0,0,100,0,1440,1540
+desvio_propio,COOPERATIVA DEFENSA DE AGRIC. LTDA,403909,MEMBRILLAR,CHACABUCO,Calle: ESTACION MEMBRILLAR Nro. S/N.,Desvio Propio,Nunca se utilizó,NO,0,0,0,1500,0,0,2100,3600
+desvio_propio,COOPERATIVA AGRICOLA GANADERA LIMITADA DE ASCENSION,12622,FORTIN TIBURCIO,JUNIN,Calle: ESTACION FORTIN TIBURCIO Nro. S/N.,Desvio Propio,Nunca se utilizó,SI,0,8000,0,350,0,0,2600,10950
+desvio_propio,ALEJANDRO LUIS PERMINGEAT S.A.,10208,FORTIN ACHA,LEANDRO N ALEM,Calle: Ruta Nro. 50.,Desvio Propio,Ramal sin servicio,SI,0,0,0,14040,0,0,960,15000
+desvio_propio,GREGORIO NUMO Y NOEL WERTHEIN S.A.,406973,VEDIA,LEANDRO N ALEM,Ruta PREDIO GENERAL BELGRANO - Km 0.,Desvio Propio,Ramal sin servicio,SI,0,10000,0,0,0,0,1400,11400
+desvio_propio,NIDERA S.A.,403166,SAFORCADA,JUNIN,Ruta 7 - Km 267.,Desvio Propio,Se utiliza Normalmente,NO,0,45000,0,0,221737,40000,2300,309037
+desvio_propio,CARGILL S.A.C.I.,406289,VEDIA,LEANDRO N ALEM,Calle: FFCC Gral San Martin Nro. S/N.,Desvio Propio,Se utiliza Normalmente,SI,0,0,0,0,0,0,5290,5290
+lote_lindero,COOPERATIVA DEFENSA DE AGRIC. LTDA,403914,CHACABUCO,CHACABUCO,Calle: ITUZAINGO Nro. 802.,Lote lindero a Vias,No se utiliza hace 10 años,NO,0,1400,0,0,0,0,43320,44720
+lote_lindero,COOPERATIVA DEFENSA DE AGRIC. LTDA,403907,O HIGGINS,CHACABUCO,Calle: ESTACION O'HIGGINS Nro. S/N.,Lote lindero a Vias,No se utiliza hace 10 años,NO,0,7000,0,0,800,0,33070,40870
+lote_lindero,CEREALERA ANGEL Y GUILLERMO GARCIA S.R.L.,403795,RAWSON,CHACABUCO,Calle: AV. VIEYTES Nro. 0. Piso: - - Dpto.: -.,Lote lindero a Vias,No se utiliza hace 10 años,SI,0,0,0,0,0,0,10000,10000
+lote_lindero,ESTABLECIMIENTO EL JACARANDA SA,403578,CHACABUCO,CHACABUCO,Calle: Avda Peron Nro. 630.,Lote lindero a Vias,No se utiliza hace 10 años,NO,0,4286,0,0,1800,120,1340,7546
+lote_lindero,AGRO COMERCIAL O HIGGINS S.A.,406386,O HIGGINS,CHACABUCO,Ruta Playa Est. FFCC - Km 0. Parcela: 0001B - Lote: 0.,Lote lindero a Vias,No se utiliza hace 2 años,SI,0,9900,0,0,0,0,13660,23560
+lote_lindero,COOPERATIVA AGROPECUARIA DE GRANJEROS UNIDOS DE CHACABUCO LTDA.,402385,CHACABUCO,CHACABUCO,Calle: Carlos Pellegrini Nro. 428.,Lote lindero a Vias,No se utiliza hace 2 años,SI,0,4004,0,0,0,0,0,4004
+lote_lindero,COOPERATIVA AGROPECUARIA DE GRANJEROS UNIDOS DE CHACABUCO LTDA.,402386,CHACABUCO,CHACABUCO,Calle: Mateu y Bernardo de Yrigoyen Nro. 400.,Lote lindero a Vias,No se utiliza hace 2 años,SI,0,0,0,0,0,0,1600,1600
+lote_lindero,COOPERATIVA DEFENSA DE AGRIC. LTDA,403910,CHACABUCO,CHACABUCO,Calle: AVDA PERON Y MARMOL Nro. S/N.,Lote lindero a Vias,No se utiliza hace 20 años,NO,0,12500,0,3500,0,0,3300,19300
+lote_lindero,CEREALES CASTILLA SRL,405142,CASTILLA,CHACABUCO,Calle: SIN NOMBRE Nro. S/N.,Lote lindero a Vias,No se utiliza hace 20 años,NO,0,5500,0,0,0,0,6500,12000
+lote_lindero,COOPERATIVA DEFENSA DE AGRIC. LTDA,403912,CUCHA CUCHA,CHACABUCO,Calle: ACCESO CUCHA CUCHA Nro. S/N.,Lote lindero a Vias,No se utiliza hace 20 años,SI,0,9400,0,0,0,0,2400,11800
+lote_lindero,LIGA AGRICOLA GANADERA COOPERATIVA LIMITADA,406680,AGUSTIN ROCA,JUNIN,Calle: AV. DEL PILAR Nro. 100.,Lote lindero a Vias,No se utiliza hace 20 años,NO,0,7500,0,4000,0,0,4340,15840
+lote_lindero,LIGA AGRICOLA GANADERA COOPERATIVA LIMITADA,406685,AGUSTINA,JUNIN,Calle: CALLE 4 Y 13 Nro. S/N.,Lote lindero a Vias,No se utiliza hace 20 años,NO,0,14200,0,0,0,0,1600,15800
+lote_lindero,LIGA AGRICOLA GANADERA COOPERATIVA LIMITADA,406684,JUNIN,JUNIN,Calle: ALBERDI Nro. 600.,Lote lindero a Vias,No se utiliza hace 20 años,NO,0,1200,0,0,12740,0,0,13940
+lote_lindero,LIGA AGRICOLA GANADERA COOPERATIVA LIMITADA,406681,JUNIN,JUNIN,Calle: AV REPUBLICA Nro. 400.,Lote lindero a Vias,No se utiliza hace 20 años,NO,0,4000,0,0,0,0,2750,6750
+lote_lindero,LIGA AGRICOLA GANADERA COOPERATIVA LIMITADA,406679,MORSE,JUNIN,Calle: MORSE Nro. S/N.,Lote lindero a Vias,No se utiliza hace 20 años,NO,0,0,0,0,5900,0,0,5900
+lote_lindero,LIGA AGRICOLA GANADERA COOPERATIVA LIMITADA,406682,MORSE,JUNIN,Calle: MORSE Nro. S/N.,Lote lindero a Vias,No se utiliza hace 20 años,NO,0,2800,0,0,0,0,360,3160
+lote_lindero,RODOLFO FERRARI E HIJO S.A.C.F.I. Y A.,406784,CHACABUCO,CHACABUCO,Calle: San Juan Nro. cont. Piso: 0 - Dpto.: 0.,Lote lindero a Vias,Nunca se utilizó,NO,0,75000,0,0,0,0,1600,76600
+lote_lindero,LIGA AGRICOLA GANADERA COOPERATIVA LIMITADA,406686,JUNIN,JUNIN,Calle: ALBERDI Nro. 600.,Lote lindero a Vias,Nunca se utilizó,NO,0,4500,0,0,0,0,390,4890
+lote_lindero,MUSCARIELLO HERMANOS S.A.,12894,JUNIN,JUNIN,Calle: AVENIDA REPUBLICA Nro. 400.,Lote lindero a Vias,Nunca se utilizó,SI,0,0,0,0,0,0,1400,1400
+lote_lindero,COOPERATIVA AGRICOLA GANADERA LIMITADA DE ASCENSION,405173,LEANDRO N ALEM,LEANDRO N ALEM,Calle: SECCION QUINTAS Nro. 1.,Lote lindero a Vias,Ramal sin servicio,SI,0,10500,0,1000,0,0,15400,26900
+lote_lindero,COOPERATIVA AGRICOLA GANADERA FEDERADA DE VILLA CAÑAS LIMITADA,402418,FORTIN ACHA,LEANDRO N ALEM,Calle: Estacion El Chingolo Nro. 0. Piso: 0 - Dpto.: 0.,Lote lindero a Vias,Ramal sin servicio,SI,0,8356,0,0,0,0,5780,14136
+lote_lindero,SARDI OSCAR O. Y VERGANI LUIS D.,402493,JUNIN,JUNIN,Calle: Camino del Resero Nro. 9988.,Lote lindero a Vias,Se utiliza Normalmente,NO,0,0,6000,0,0,0,0,6000
+lote_lindero,GROBOCOPATEL HERMANOS S.A.,404682,LAPLACETTE,JUNIN,Ruta 188 - Km 184.5.,Lote lindero a Vias,Se utiliza Normalmente,NO,0,0,0,0,0,0,0,0
+sin_acceso,BERVAL S.A.,406077,MORSE,JUNIN,Calle: FC. GSM. Nro. S/N.,No posee,No se utiliza hace 10 años,SI,0,10000,0,0,0,0,2100,12100
+sin_acceso,MILO SA,10697,AGUSTIN ROCA,JUNIN,Calle: RIVADAVIA Y JUNIN Nro. S/N. Piso: 0 - Dpto.: 0.,No posee,No se utiliza hace 20 años,NO,0,6500,0,1600,0,0,9300,17400
+sin_acceso,MOLINO CHACABUCO SA,402867,CHACABUCO,CHACABUCO,Calle: HIPOLITO YRIGOYEN Nro. 1386.,No posee,Nunca se utilizó,NO,4800,0,0,0,26000,0,20200,51000
+sin_acceso,F Y A BASILE S.A.I.C.I.,403184,CHACABUCO,CHACABUCO,Calle: Catamarca Nro. S/N.,No posee,Nunca se utilizó,NO,0,9000,0,0,60,0,33000,42060
+sin_acceso,RODOLFO FERRARI E HIJO S.A.C.F.I. Y A.,406785,CHACABUCO,CHACABUCO,Ruta 7 - Km 213.,No posee,Nunca se utilizó,NO,0,0,0,0,0,0,27260,27260
+sin_acceso,INCOMCER S.A.C.F Y A,402959,CHACABUCO,CHACABUCO,Calle: RUTA 7 KM 208.5 Nro. -. Piso: - - Dpto.: -.,No posee,Nunca se utilizó,NO,0,0,0,0,0,0,26000,26000
+sin_acceso,COOPERATIVA AGROPECUARIA DE GRANJEROS UNIDOS DE CHACABUCO LTDA.,402382,CHACABUCO,CHACABUCO,Calle: Av.Solis y Balcarce Nro. 301.,No posee,Nunca se utilizó,NO,0,0,0,0,0,1200,21666,22866
+sin_acceso,COOPERATIVA AGROPECUARIA DE GRANJEROS UNIDOS DE CHACABUCO LTDA.,402383,CHACABUCO,CHACABUCO,Calle: Carlos Pellegrini Nro. 699.,No posee,Nunca se utilizó,NO,0,0,0,0,0,0,21702,21702
+sin_acceso,COOPERATIVA AGROPECUARIA DE GRANJEROS UNIDOS DE CHACABUCO LTDA.,402387,CHACABUCO,CHACABUCO,Calle: Carlos Pellegrini Nro. 801.,No posee,Nunca se utilizó,NO,0,18140,0,0,0,0,0,18140
+sin_acceso,GOBAS SA,402195,CHACABUCO,CHACABUCO,Calle: Av. Elguea Roman Nro. 841. Piso: 0 - Dpto.: 0.,No posee,Nunca se utilizó,NO,0,0,0,0,0,90,16670,16760
+sin_acceso,MOLINO RAWSON S.A.,406574,RAWSON,CHACABUCO,Calle: Acc. virgen de la inmaculada concepcion Nro. 0.,No posee,Nunca se utilizó,NO,0,0,0,0,0,0,16000,16000
+sin_acceso,INGREDION ARGENTINA SA,406333,CHACABUCO,CHACABUCO,Calle: AV. ELGUEA ROMAN CONT. Nro. S/N.,No posee,Nunca se utilizó,NO,0,0,0,0,12705,0,0,12705
+sin_acceso,RODOLFO FERRARI E HIJO S.A.C.F.I. Y A.,406782,CHACABUCO,CHACABUCO,Calle: Av Elguea Roman Nro. 950. Piso: 0 - Dpto.: 0.,No posee,Nunca se utilizó,NO,0,3200,0,0,0,0,8300,11500
+sin_acceso,RODOLFO FERRARI E HIJO S.A.C.F.I. Y A.,406783,INGENIERO SILVEYRA,CHACABUCO,Ruta 7 - Km 179.50.,No posee,Nunca se utilizó,NO,0,0,0,0,0,0,8000,8000
+sin_acceso,FERGAR CEREALES SA,402801,CHACABUCO,CHACABUCO,Calle: Av. Juan XXII Nro. 900.,No posee,Nunca se utilizó,NO,0,800,0,0,0,0,6640,7440
+sin_acceso,MOLINO CHACABUCO SA,402869,CHACABUCO,CHACABUCO,Calle: AV ALSINA Nro. 134.,No posee,Nunca se utilizó,NO,0,0,0,0,7300,0,0,7300
+sin_acceso,KUMAGRO S.A.,12676,INGENIERO SILVEYRA,CHACABUCO,Ruta 7 - Km 177.,No posee,Nunca se utilizó,NO,0,0,0,0,0,0,6000,6000
+sin_acceso,MOLINO CHACABUCO SA,402868,CHACABUCO,CHACABUCO,Calle: AV ALSINA Nro. 134.,No posee,Nunca se utilizó,NO,0,0,0,0,2700,0,0,2700
+sin_acceso,ACEITERA DON FELIX S.A.,11340,CHACABUCO,CHACABUCO,Ruta Nacional Nº 7 - Km 202. Parcela: Circ. 11 - Sec. B - Ch. 91 - Parcelas 1 y 2 - Lote: Part. Inmobiliaria: 026-002080-3 y 026-011447-6.,No posee,Nunca se utilizó,NO,0,1400,0,0,0,0,520,1920
+sin_acceso,CUESTA COLORADA SA,402290,CHACABUCO,CHACABUCO,Ruta 7 - Km 212. Parcela: 0 - Lote: 0.,No posee,Nunca se utilizó,NO,0,0,0,0,0,0,1600,1600
+sin_acceso,COOPERATIVA DEFENSA DE AGRIC. LTDA,403915,CHACABUCO,CHACABUCO,Calle: ITUZAINGO Y RIZZI Nro. S/N.,No posee,Nunca se utilizó,NO,0,0,0,0,0,0,1440,1440
+sin_acceso,INDUMOL S.R.L.,14992,CHACABUCO,CHACABUCO,Calle: ACC. ELGUEA ROMAN Nro. 1012. Piso: - - Dpto.: -.,No posee,Nunca se utilizó,NO,0,0,0,0,0,0,280,280
+sin_acceso,ESTABLECIMIENTO LOS TALENTOS S.A.,13396,CHACABUCO,CHACABUCO,Ruta 30 - Km 33.6.,No posee,Nunca se utilizó,NO,0,0,0,0,0,0,200,200
+sin_acceso,"NICOLA, RUBEN VICTOR",402896,CHACABUCO,CHACABUCO,Calle: Av. SOLIS y VILLEGAS Nro. 0.,No posee,Nunca se utilizó,NO,0,0,0,0,0,0,0,0
+sin_acceso,CAROSELLA DIEGO HERNAN,12416,CHACABUCO,CHACABUCO,Ruta 30 - Km 0. Parcela: 1835 C.,No posee,Nunca se utilizó,NO,0,0,0,0,0,0,0,0
+sin_acceso,FEEDLOT CEFERINO S.A.,401667,CHACABUCO,CHACABUCO,Calle: CALLE 833 Nro. 480.,No posee,Nunca se utilizó,NO,0,0,0,0,0,0,0,0
+sin_acceso,ENERFEED S.A.,405163,CHACABUCO,CHACABUCO,Calle: Buenos Aires Nro. sin número.,No posee,Nunca se utilizó,NO,0,0,0,0,0,0,0,0
+sin_acceso,AGRICULTORES FEDERADOS ARGENTINOS SCL,10655,JUNIN,JUNIN,Ruta Ruta 65 entre Ruta 7 y Ruta 188 - Km 0.,No posee,Nunca se utilizó,NO,0,0,0,0,0,0,15000,15000
+sin_acceso,ASFA SRL,402427,JUNIN,JUNIN,Calle: RUTA PCIAL 65 Y ACC A BAIGORRITA Nro. 0.,No posee,Nunca se utilizó,NO,0,9000,0,0,0,0,3800,12800
+sin_acceso,CARGILL S.A.C.I.,406274,JUNIN,JUNIN,Ruta 65 - Km Entre 7 y 188.,No posee,Nunca se utilizó,NO,0,10000,0,0,0,0,1000,11000
+sin_acceso,COOPERATIVA AGRICOLA GANADERA LIMITADA DE ASCENSION,405172,FORTIN TIBURCIO,JUNIN,Calle: ACCESO FORTIN TIBURCIO Nro. 1.,No posee,Nunca se utilizó,NO,0,0,0,0,0,0,11000,11000
+sin_acceso,AGRO ACOPIOS JUNIN S.A.,402919,JUNIN,JUNIN,Ruta 7 - Km 258.,No posee,Nunca se utilizó,NO,0,6000,0,0,0,0,4600,10600
+sin_acceso,AGRO ACOPIOS JUNIN S.A.,402918,JUNIN,JUNIN,Ruta 7 - Km 261.,No posee,Nunca se utilizó,NO,0,0,0,0,0,0,10500,10500
+sin_acceso,BONZA AGROPECUARIA S.A.,403586,JUNIN,JUNIN,Ruta Pcial.65 y Vias FFCC Gral.San Martin - Km 93.,No posee,Nunca se utilizó,NO,0,0,0,0,0,0,9380,9380
+sin_acceso,MUSCARIELLO HERMANOS S.A.,10000,JUNIN,JUNIN,Calle: BRASIL Nro. 51.,No posee,Nunca se utilizó,NO,0,0,0,0,4159,384,0,4543
+sin_acceso,MOLINOS TASSARA S.A.,401336,JUNIN,JUNIN,Calle: JOSE AGUIAR S/N PARQUE INDUSTRIAL JUNIN Nro. 0.,No posee,Nunca se utilizó,NO,0,0,0,0,0,0,4440,4440
+sin_acceso,BULLMARK SRL,401629,JUNIN,JUNIN,Calle: Ruta 188 y Calle Chile Nro. Sin numero. Piso: 0 - Dpto.: 0.,No posee,Nunca se utilizó,NO,0,0,0,0,0,0,4184,4184
+sin_acceso,CEREALERA AGM JUNIN S.A.,404446,JUNIN,JUNIN,Calle: B. CISARO (PARQUE INDUSTRIAL) Nro. S/N.,No posee,Nunca se utilizó,NO,0,0,0,0,0,0,3600,3600
+sin_acceso,ELOSEGUI HNOS SA,404332,JUNIN,JUNIN,Ruta 188 - Km 0. Parcela: 3 - Lote: 2.,No posee,Nunca se utilizó,NO,0,1600,0,0,0,0,600,2200
+sin_acceso,CHANCHI HUE S.A.,13284,AGUSTINA,JUNIN,Ruta 65 - Km 7.,No posee,Nunca se utilizó,NO,0,0,0,0,0,0,2150,2150
+sin_acceso,LIGA AGRICOLA GANADERA COOPERATIVA LIMITADA,406678,JUNIN,JUNIN,Calle: SALTA Nro. 125.,No posee,Nunca se utilizó,NO,0,2000,0,0,0,0,0,2000
+sin_acceso,AVICOLA SANTA BARBARA S.R.L,10558,SAFORCADA,JUNIN,Ruta Ruta Nac Nº 7 - Km 270.,No posee,Nunca se utilizó,NO,0,0,0,0,0,0,2000,2000
+sin_acceso,GRALA S.A.,404069,JUNIN,JUNIN,Calle: RUTA Nº 65 Y NIÑAS DE AYOHUMA Nro. S/N.,No posee,Nunca se utilizó,NO,0,0,0,0,0,0,1244,1244
+sin_acceso,MUNDO PORCINO SA,195641,JUNIN,JUNIN,Ruta 65 - Km 1.,No posee,Nunca se utilizó,NO,0,0,0,0,0,0,355,355
+sin_acceso,INDUSTRIAS FRIGORIFICAS JUNCAR SA,12731,SAFORCADA,JUNIN,Ruta 7 - Km 273. Parcela: 1281 A - Lote: 054-000395-5.,No posee,Nunca se utilizó,NO,0,200,0,0,0,100,30,330
+sin_acceso,COMPAÑIA ARGENTINA DE GRANOS S.A.,401146,VEDIA,LEANDRO N ALEM,Ruta N° 7 - Km 312.,No posee,Nunca se utilizó,NO,0,31000,0,0,0,0,0,31000
+sin_acceso,CARGILL S.A.C.I.,406290,VEDIA,LEANDRO N ALEM,Ruta 7 - Km 315.5.,No posee,Nunca se utilizó,NO,0,5000,0,0,1120,4400,14380,24900
+sin_acceso,EL CHUCARO SA,405295,VEDIA,LEANDRO N ALEM,Calle: RUTA 7 Nro. KM 316.,No posee,Nunca se utilizó,NO,0,0,0,0,0,0,3240,3240
+sin_acceso,REPETTI HNOS S.A.,170574,LEANDRO N ALEM,LEANDRO N ALEM,Ruta 7 - Km 296.,No posee,Nunca se utilizó,NO,0,240,0,0,0,1440,180,1860
+sin_acceso,LA SUERTE RURAL SA,12648,EDMUNDO PERKINS,LEANDRO N ALEM,Ruta 7 - Km 328. Parcela: 059-013779-0 - Lote: 490v1.,No posee,Nunca se utilizó,NO,0,0,0,0,0,150,80,230
+sin_acceso,MOLIENDAS ARGENTINAS SRL,406536,CHACABUCO,CHACABUCO,Ruta 7 - Km 212. Parcela: 0 - Lote: 0.,No posee,Se utiliza Normalmente,NO,0,0,0,0,0,0,5530,5530
+sin_acceso,ACEITERA CHACABUCO SA,405287,CHACABUCO,CHACABUCO,Ruta 7 - Km 200.4.,No posee,Se utiliza Normalmente,NO,0,0,0,0,0,0,1250,1250
+sin_acceso,MAGIX S.A.,14332,CHACABUCO,CHACABUCO,"Ruta PROVINCIAL N° 7 - Km 185,5.",No posee,Se utiliza Normalmente,NO,0,0,0,0,0,0,0,0
+sin_acceso,F. D. AGRO S.R.L.,14988,JUNIN,JUNIN,Calle: AVENIDA LIBERTAD Nro. 170.,No posee,Se utiliza Normalmente,NO,0,0,0,0,0,0,4000,4000

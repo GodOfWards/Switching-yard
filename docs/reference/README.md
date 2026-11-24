@@ -41,9 +41,10 @@ game builds on them are in [../design/](../design/README.md).
 | [locomotives.md](locomotives.md) | Switcher candidates (Class 08, SW1500, GM G12, GAIA) and why the G12 |
 | [train-physics.md](train-physics.md) | Rolling and starting resistance (Davis), curve drag, brakes, air, hand brakes, slack, FA coupler types and which vehicles carried them |
 | [argentine-rolling-stock-naming.md](argentine-rolling-stock-naming.md) | Line initials, FA loco numbers, Spanish car type names, current operators |
-| [fa-freight-cars.md](fa-freight-cars.md) | FA freight cars: load limits and tares from FA's specifications, type codes, the marking panel, tare stencil, paint colours, couplers in brief, lengths of the grain hopper and box car, estimates for the rest |
+| [fa-freight-cars.md](fa-freight-cars.md) | FA freight cars: load limits and tares from FA's specifications, type codes, the marking panel, tare stencil, paint colours, couplers in brief, lengths of the grain hopper and box car, older broad-gauge cars from a 1910–1945 diagram book, two-axle cars |
 | [junin-yard.md](junin-yard.md) | Junín yard from OpenStreetMap, the depot fan section and how it became game track |
 | [rail-network-junin.md](rail-network-junin.md) | The lines out of Junín to their next junction, from OpenStreetMap, and how they were extracted (`tools/rail_network.py`) |
 | [fa-yard-operations.md](fa-yard-operations.md) | How an FA yard worked, from FA's rulebook (RITO): train formation order, switching rules, crews, the vehicle list and train weight, bad-order labels, authority to use the main line; Junín's inspection station and rail-served mill |
-| [fa-freight-traffic.md](fa-freight-traffic.md) | What FA carried, how much and how far (1977, World Bank), wine by rail from Mendoza, freight car turnaround (1977 actual and target) |
+| [fa-freight-traffic.md](fa-freight-traffic.md) | What FA carried, how much and how far (1977, World Bank), the San Martín's traffic through Junín, what Vedia, O'Higgins and Membrillar shipped, wine by rail (tank cars, barrels, bottling at origin), freight car turnaround (1977 actual and target) |
+| [fa-car-turnaround.md](fa-car-turnaround.md) | FA freight car turnaround by gauge 1977–1986, freight train speed, free time to load and unload, legal transit times, a cycle split by distance, how broad-gauge cars moved between lines |
 | [switch-indicators.md](switch-indicators.md) | How Argentine railways show a switch's position (RGF art. 100), and the track figures used to draw rails |
