@@ -3,7 +3,8 @@
   // ==================================================
   // The yard is saved as it stands, mid-move included: every vehicle with
   // its speed, the trains, couplings' slack and air, switches, hand brakes,
-  // the loco's controls, the clock, the cars' traffic, the jobs and the
+  // the loco's controls and its traction (load, slip, sand, motor heat and
+  // fuel; sand held on is let go), the clock, the cars' traffic, the jobs and the
   // road trains. That is all of STATE but the notice. A yard saved before
   // road trains isn't carried over: its cars stand where they didn't
   // expect them, and none are away. A save
@@ -19,7 +20,7 @@
   // The benchmark page (index.html?bench, CHECKS) saves under keys of its
   // own, never over the player's yard.
   const BENCH = new URLSearchParams(location.search).has("bench");
-  const SAVE_KEY = "switching-game.yard.12" + (BENCH ? ".bench" : "");
+  const SAVE_KEY = "switching-game.yard.13" + (BENCH ? ".bench" : "");
   const CARS_KEY = SAVE_KEY + ".cars";
   let saves = 0;
 
@@ -76,7 +77,8 @@
       if (c.away !== null && !(isObj(t) && DESTINATIONS[t.at] && DESTINATIONS[t.at].away
           && Number.isFinite(t.back) && typeof t.pool === "boolean")) return false;
     }
-    for (const j of st.jobs) if (!isObj(j) || !Array.isArray(j.cars) || !j.cars.every(id => st.cars[id]) || !Number.isFinite(j.due)) return false;
+    for (const j of st.jobs) if (!isObj(j) || !Array.isArray(j.cars) || !j.cars.every(id => st.cars[id]) || !Number.isFinite(j.due)
+        || !Array.isArray(j.overheats)) return false;
     for (const id in SWITCHES) if (!SWITCHES[id].legs.includes(st.switches[id].set)) return false;
     // Every loco, and every car not away, has a vehicle.
     const startIds = {};
@@ -90,6 +92,11 @@
       if (v.id !== id || v.type !== startIds[id] || !SEGMENTS[v.seg] || !st.trains[v.train] || (v.run || null) !== (runOf[id] || null)) return false;
       if (!(v.s >= 0 && v.s <= segmentLength(v.seg)) || !Number.isFinite(v.speed)) return false;
       if (Math.abs(v.dir) !== 1 || Math.abs(v.flip) !== 1 || !!type.loco !== isObj(v.controls)) return false;
+      const c = v.controls;
+      if (c && (!["load", "pull", "sand", "heat", "fuel"].every(k => Number.isFinite(c[k]) && c[k] >= 0)
+          || !Number.isInteger(c.throttle) || c.throttle < 0 || c.throttle > THROTTLE_NOTCHES
+          || typeof c.slip !== "boolean" || typeof c.tripped !== "boolean" || typeof c.sanding !== "boolean"
+          || (c.emptyAt !== null && !Number.isFinite(c.emptyAt)))) return false;
     }
     const placed = {};
     for (const tid in st.trains) {
@@ -115,7 +122,10 @@
       const saved = JSON.parse(localStorage.getItem(SAVE_KEY)), cars = JSON.parse(localStorage.getItem(CARS_KEY));
       if (!saved || !cars || saved.saved !== cars.saved) return false;
       const st = { ...saved.state, cars: cars.cars, pool: cars.pool };
-      if (fitsYard(st)) { state = st; saves = cars.saved; carsDirty = false; return true; }
+      if (fitsYard(st)) {
+        for (const id in st.vehicles) if (st.vehicles[id].controls) st.vehicles[id].controls.sanding = false;
+        state = st; saves = cars.saved; carsDirty = false; return true;
+      }
     } catch (e) { /* unreadable or blocked: start fresh */ }
     return false;
   }

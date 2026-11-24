@@ -362,7 +362,7 @@
   const MAP_EDGES = ["mainWestEnd", "mainEastEnd"];
 
   // Kinds of rolling stock. Lengths are over the couplers. FA-era cars run
-  // on plain bearings (Unconfirmed); the G12 on roller bearings.
+  // on plain bearings (Unconfirmed); the locos on roller bearings.
   // A freight car kind has its Spanish name, its FA type code (type and
   // sub-type, NEFA 958), its stencilled tare and load limit (`carga`) in
   // tonnes, and FA's paint for it (NEFA 560–562): a body colour, and a
@@ -377,9 +377,22 @@
   const MATERFER_COACH = { coach: true, length: 25, tare: 45, carga: 0, axles: 4, bearing: "roller",
                            colour: "#c9c5ca", stripe: "#c23b2e", stripeShare: 0.1, ends: "#1d3561" };
   const VEHICLE_TYPES = {
-    g12:       { loco: true, name: "GM G12", length: 14, mass: 109e3, axles: 4, bearing: "roller", colour: "#c0533a" }, // length approximate
-    // The Aconcagua's loco (#77): FA yellow-orange, its red lower band
-    // showing along the sides. docs/reference/locomotives.md.
+    // The yard engine (#117): an ALCo RSD-35, the San Martín's light
+    // branch-and-local loco, C-C with all six axles driven. Its figures are
+    // estimates from its weight and its sister, the Renfe 313
+    // (docs/reference/diesel-traction.md): `power` at the rail (W),
+    // `starting` and `continuous` pull (N), the share of its weight on
+    // `driven` axles, its fuel `tank` (L) and burn in the top notch and at
+    // idle (L/h). Its length is a placeholder; its paint is FA's, as on
+    // the RSD-16 (Unconfirmed for the RSD-35). `cab`: the cab's span in
+    // metres back from the cab end, behind its short hood (Assumed).
+    rsd35:     { loco: true, name: "ALCo RSD-35", length: 14, mass: 79e3, axles: 6, bearing: "roller", colour: "#e3a12a",
+                 stripe: "#c23b2e", stripeShare: 0.22, cab: [2.2, 4.6],
+                 traction: { power: 895e3 * 0.8, starting: 0.25 * 79e3 * G, continuous: 120e3, driven: 1, tank: 2500,
+                             topBurn: 1200 * 157.6 / 1000 / DIESEL_DENSITY, idleBurn: 8 } },
+    // The Aconcagua's loco (#77), and the through freights' (Tom,
+    // 2026-11-24): FA yellow-orange, its red lower band showing along the
+    // sides. docs/reference/locomotives.md. The game drives it.
     rsd16:     { loco: true, name: "ALCo RSD-16", length: 17.1, mass: 108e3, axles: 6, bearing: "roller", colour: "#e3a12a",
                  stripe: "#c23b2e", stripeShare: 0.22 },
     cubierto:  { name: "Vagón cubierto",  code: "26", length: 15.5, tare: 21, carga: 50, axles: 4, bearing: "plain", colour: "#a2a5a3" },
@@ -463,7 +476,7 @@
   // 3, starts empty for the first arrival. Cars not laid out here start
   // away, off the map, and come in on the arrivals.
   const START_TRAINS = [
-    { segment: "lead_3", s: 30, dir: -1, vehicles: [{ id: "loco1", type: "g12" }] },
+    { segment: "lead_3", s: 30, dir: -1, vehicles: [{ id: "loco1", type: "rsd35" }] },
     { segment: "yard1_2", s: 430, dir: 1, vehicles: [{ id: "car1" }, { id: "car2" }] },
     { segment: "yard2_2", s: 370, dir: 1, vehicles: [{ id: "car9" }, { id: "car12" }, { id: "car6" }] },
     { segment: "yard4_2", s: 290, dir: 1, vehicles: [{ id: "car3" }, { id: "car7" }, { id: "car8" }, { id: "car15" }, { id: "car13" }] },
@@ -471,6 +484,11 @@
     { segment: "yard6_2", s: 220, dir: 1, vehicles: [{ id: "car4" }, { id: "car5" }, { id: "car10" }] },
   ];
   const PLAYER_LOCO = "loco1";
+  // Where locos take fuel (#117): beside the turntable, where Junín's
+  // depot kept its oil reserve tanks (Secondary; diesels fuelling there is
+  // Unconfirmed). A loco fuels standing with its middle near this point,
+  // `s` metres along `segment`.
+  const FUEL_POINT = { segment: "turntableSpur_5", s: 4 };
 
   // Operations (docs/design/). The yard tracks, numbered from the main-line
   // side, each with its switch, its segments from the switch to the buffer,
@@ -630,11 +648,12 @@
       consist: "aconcagua", passenger: true },
     { id: "x2404", number: "2404", from: "Mendoza", to: "Retiro",  enters: "west", at: 2 * HOUR,     consist: "freight" },
   ];
-  // Each make-up: the loco at the head, then the cars from behind it. The
-  // Aconcagua's (#77, Tom 2026-11-24; retunable): an RSD-16, the van, two
+  // Each make-up: the loco at the head, then the cars from behind it. A
+  // freight's loco is an RSD-16, the San Martín's main-line power (Tom,
+  // 2026-11-24, #117). The Aconcagua's (#77, Tom 2026-11-24; retunable): an RSD-16, the van, two
   // tourist, two first, the restaurant and the pullman.
   const THROUGH_CONSISTS = {
-    freight: { loco: "g12", cars: ["tolva", "tolva", "tolva", "cubierto", "cubierto", "tolva", "bordeAlto", "tanque",
+    freight: { loco: "rsd16", cars: ["tolva", "tolva", "tolva", "cubierto", "cubierto", "tolva", "bordeAlto", "tanque",
       "tanque", "tolva", "tolva", "cubierto", "plataforma", "tolva", "tolva"] },
     aconcagua: { loco: "rsd16", cars: ["coachF", "coachCT", "coachCT", "coachP", "coachP", "coachR", "coachPA"] },
   };

@@ -14,7 +14,7 @@
   window.addEventListener("pagehide", () => saveYard(true));
 
   // Keyboard: +/− zoom, M the Map, P pause, Q/A reverser, W/S or ↑/↓ throttle, R/F loco brake,
-  // E/D train brake, Space emergency, X release.
+  // E/D train brake, Space emergency, X release, Z (held) sand.
   const KEYS = {
     q: () => moveReverser(1), a: () => moveReverser(-1),
     w: () => moveThrottle(1), ArrowUp: () => moveThrottle(1),
@@ -27,9 +27,11 @@
     if (e.repeat) return;
     if (VIEW_KEYS[e.key]) VIEW_KEYS[e.key]();
     else if (KEYS[e.key]) unlessPaused(KEYS[e.key])();
+    else if (e.key === "z") unlessPaused(setSand)(true);
     else return;
     e.preventDefault();
   });
+  window.addEventListener("keyup", e => { if (e.key === "z") setSand(false); });
 
   // pointerdown rather than click: it answers at once on touch screens.
   const onPress = (id, fn) => document.getElementById(id).addEventListener("pointerdown", e => {
@@ -45,6 +47,10 @@
   onPress("tbDown", () => moveTrainBrake(-1));
   onPress("releaseBtn", release);
   onPress("emergBtn", emergency);
+  // Sand goes on while the button is held, and off when it's let go, even
+  // paused, so it never sticks on.
+  onPress("sandBtn", () => setSand(true));
+  for (const ev of ["pointerup", "pointercancel", "pointerleave"]) document.getElementById("sandBtn").addEventListener(ev, () => setSand(false));
 
   // Zoom steps through ZOOM_LEVELS, then out past the widest into the
   // Map's steps; in from the Map's first step is play again.
@@ -279,6 +285,8 @@
       const text = tt ? (tt.arrives ? `${trainName(tt)} arrives<small>Onto Track ${YARD_TRACKS[ARRIVAL_TRACK].number}</small>`
           : `${trainName(tt)} leaves${j ? (j.taken ? "<small>It waits for your build</small>" : crew) : ""}`)
         : j ? `${j.title} falls due${crew}` : e.industry ? `Work done at ${INDUSTRIES[e.industry].name}<small>A pull job opens</small>`
+        : e.kind === "fuelled" ? `Loco fuelled<small>A full tank, and sand</small>`
+        : e.kind === "fuel" ? `Fuel brought out<small>The engine runs again</small>`
         : `Shift change<small>The next jobs open</small>`;
       html += `<button class="event" data-at="${e.at}"><b>${clockText(e.at)}</b><span>${text}</span>${dayNote(e.at)}</button>`;
     }
@@ -343,7 +351,7 @@
     jobChip.classList.toggle("open", !!worked);
     const label = taken.length ? `Jobs · ${taken.length} taken` : fresh.length ? `Jobs · ${fresh.length} new` : "Jobs";
     if (jobsBtn.textContent !== label) jobsBtn.textContent = label;
-    jobsBtn.classList.toggle("on", !!open.length);
+    jobsBtn.classList.toggle("on", !!open.length || !!fuelTask());
     if (sheet && sheet.job && !jobById(sheet.job)) sheet = {};
     if (sheet) {
       const html = sheet.register ? registerHtml() : sheet.consist ? consistHtml(jobById(sheet.job)) : sheet.job ? jobSheetHtml(jobById(sheet.job)) : boardHtml();
@@ -360,9 +368,24 @@
   const outcomeText = j => (j.result.by === "crew" ? `Done by another crew at ${shortTime(j.result.at)}`
     : `${headline(j.result)} · ${shortTime(j.result.at)}`) + trainText(j);
   const dueText = j => j.kind === "build" ? `leaves ${shortTime(j.due)}` : `due ${shortTime(j.due)}`;
+  // The "Fuel the loco" task (#117), while the tank is below FUEL_LOW or
+  // the loco is taking fuel: how full it is, and what's happening. Not a
+  // job: nobody else does it, and it isn't assessed.
+  function fuelTask() {
+    const v = playerLoco(), c = v.controls, tr = vehicleType(v).traction, share = c.fuel / tr.tank;
+    const filling = atFuelPoint(v) && share < 1;
+    if (!filling && share >= FUEL_LOW) return null;
+    const pc = `Fuel ${Math.round(share * 100)}%`;
+    return { share, text: c.emptyAt !== null ? `Out of fuel; fuel comes out at ${clockText(c.emptyAt + FUEL_RESCUE_SECONDS)}`
+      : filling ? `${pc}, taking fuel` : pc };
+  }
   function boardHtml() {
     let h = `<div class="grab"></div><header><h2>Jobs · ${YARD_NAME}</h2><button data-act="register">Register</button>` +
       `<button data-act="close">Close ✕&#xFE0E;</button></header>`;
+    const fuel = fuelTask();
+    if (fuel) h += `<div class="job"><div><b>Fuel the loco</b><small${fuel.share < FUEL_LOW ? ` class="warn"` : ""}>` +
+      `${fuel.text} · at the fuel point by the turntable</small></div>` +
+      `<button class="act" data-act="fuelpoint">Show</button></div>`;
     for (const j of openJobs()) {
       const late = j.due <= state.clock ? ` · <span class="warn">late</span>` : "";
       h += `<div class="job" data-job="${j.id}"><div><b>${j.title}</b><small>${j.cars.length} cars · ${dueText(j)}` +
@@ -462,7 +485,8 @@
     return `<div class="result"><b>${r.outcome} · ${r.late >= ON_TIME_SECONDS ? `<span class="warn">${lateness(r.late)}</span>` : lateness(r.late)}</b>${rows.map(t => `<small>${t}</small>`).join("")}${train}` +
       `${j.damaged.length ? `<small class="warn">Rough handling: ${j.damaged.map(carName).join(", ")} damaged, bad order</small>` : ""}` +
       `${j.trainsHeld.length ? `<small class="warn">Main line: ${j.trainsHeld.map(h => `${h.number} held ${lateText(h.delay)}`).join(", ")}</small>` : ""}` +
-      `${j.overruns.length ? `<small class="warn">Main kept past the time asked: ${j.overruns.map(lateText).join(", ")}</small>` : ""}</div>`;
+      `${j.overruns.length ? `<small class="warn">Main kept past the time asked: ${j.overruns.map(lateText).join(", ")}</small>` : ""}` +
+      `${j.overheats.length ? `<small class="warn">Rough handling: traction motors overheated at ${j.overheats.map(clockText).join(", ")}, power cut</small>` : ""}</div>`;
   }
   // Junín's train register (#62), reached from the board: the trains of
   // the last REGISTER_DAYS days by shift, newest first, each with its
@@ -527,6 +551,11 @@
       else if (act === "register") sheet = { register: true };
       else if (act === "open") sheet = { job: id };
       else if (act === "consist") sheet = { job: id, consist: true };
+      else if (act === "fuelpoint") {                 // show the fuel point
+        const p = pointOn(FUEL_POINT.segment, FUEL_POINT.s);
+        Object.assign(camera, { map: 0, follow: false, cx: p.x, cy: p.y, zoom: Math.max(camera.zoom, START_ZOOM) });
+        sheet = null;
+      }
       else if (act === "take") unlessPaused(() => { if (takeJob(id)) sheet = { job: id }; })();
       else if (act === "handback") unlessPaused(handBack)(id);
       else if (act === "done") unlessPaused(() => {

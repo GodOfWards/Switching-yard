@@ -150,6 +150,33 @@
   #sheet .consist td b { font-weight: 600; }
   #readout { font-variant-numeric: tabular-nums; display: flex; justify-content: space-between; }
   #readout small { color: var(--muted); font-size: 12px; align-self: center; }
+  #readout .fuel { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+  #readout .fuel.warn { color: var(--warn); }
+  #readout .fuel .meter { display: block; width: 36px; margin: 0; }
+  #readout .fuel.warn .meter i { background: var(--warn); }
+  /* The traction gauges (#117), a row over the levers: the load meter
+     (motor current, with a red mark at continuous and a tick for each
+     short-time band past it), the wheel slip light, and Sand, held while
+     it's needed, over Release. */
+  #loadMeter { grid-column: span 3; align-self: center; }
+  #loadMeter { min-width: 0; margin-bottom: 4px; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  #loadMeter .label { display: flex; justify-content: space-between; }
+  #loadMeter .label b { font-weight: 600; color: var(--warn); }
+  #loadMeter .dial { position: relative; height: 10px; margin-top: 3px; border-radius: 3px; background: var(--line); }
+  #loadMeter .dial i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; border-radius: 3px; background: var(--accent); }
+  #loadMeter.over .dial i { background: var(--warn); }
+  #loadMeter .dial s { position: absolute; top: -2px; bottom: -2px; width: 1px; background: var(--muted); }
+  #loadMeter .dial u { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; background: var(--danger); }
+  #slipLight { height: 40px; box-sizing: border-box; border-radius: 11px; border: 1px solid var(--line);
+    display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.1;
+    font-size: 11px; font-weight: 600; color: var(--line); }
+  #slipLight.on { background: var(--warn); border-color: var(--warn); color: #000; }
+  #slipLight.danger { background: var(--danger-bg); border-color: var(--danger-line); color: var(--danger); }
+  #slipLight { margin-bottom: 4px; }
+  #sandBtn { margin-bottom: 4px; min-height: 40px; border-radius: 11px; border: 1px solid var(--line); background: var(--button); color: var(--fg);
+    font: 600 12px system-ui, sans-serif; touch-action: none; -webkit-tap-highlight-color: transparent; }
+  #sandBtn small { color: var(--muted); font-weight: 500; }
+  #sandBtn.on { background: var(--button-down); color: var(--accent); border-color: var(--accent); }
   /* The reverser and three notched levers (throttle, loco brake, train
      brake), each an up and a down with its setting between them, then
      Release over Emergency. Buttons are 40 px tall, 10% under the usual
@@ -199,16 +226,26 @@
   #carCard button:active { background: var(--button-down); }
   #carCard button.on { color: var(--accent); border-color: var(--accent); }
   /* A phone on its side has little height to spare: the controls move to the
-     right-hand edge instead, in two columns to keep that edge narrow:
-     reverser and throttle, then the two brakes, then Emergency and Release. */
+     right-hand edge instead, in two columns to keep that edge narrow: the
+     load meter, reverser and throttle, then the two brakes, then
+     Emergency, Release, the wheel slip light and Sand. */
   @media (orientation: landscape) and (max-height: 520px) {
     body { flex-direction: row; padding-bottom: env(safe-area-inset-bottom); }
     #bar { border-top: 0; border-left: 1px solid var(--line); justify-content: center;
       padding: 8px calc(12px + env(safe-area-inset-right)) 8px 12px; width: 232px; box-sizing: border-box; }
-    #controls { grid-template-columns: 1fr 1fr; gap: 3px 8px;
-      grid-template-areas: "revUp thrUp" "revL thrL" "revDown thrDown" "lbUp tbUp" "lbL tbL" "lbDown tbDown"
-        "emerg release"; }
+    #controls { grid-template-columns: repeat(4, 1fr); gap: 3px 6px;
+      grid-template-areas: "load load load load" "revUp revUp thrUp thrUp" "revL revL thrL thrL" "revDown revDown thrDown thrDown"
+        "lbUp lbUp tbUp tbUp" "lbL lbL tbL tbL" "lbDown lbDown tbDown tbDown" "emerg release slip sand"; }
     #controls .spacer { display: none; }
+    #bar { gap: 6px; }
+    #readout { flex-wrap: wrap; gap: 0 8px; font-size: 13px; }
+    #loadMeter { grid-area: load; display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
+    #loadMeter .label { flex: none; display: block; }
+    #loadMeter .label b { margin-left: 4px; }
+    #loadMeter .dial { flex: 1; margin-top: 0; }
+    #slipLight { grid-area: slip; } #sandBtn { grid-area: sand; }
+    #slipLight, #sandBtn { margin: 6px 0 0; height: auto; min-height: 40px; font-size: 10px; }
+    #sandBtn small { display: block; }
     #lbUp, #tbUp, #emergBtn, #releaseBtn { margin-top: 6px; }
     #revUp { grid-area: revUp; } #thrUp { grid-area: thrUp; } #lbUp { grid-area: lbUp; } #tbUp { grid-area: tbUp; }
     #revLever { grid-area: revL; } #thrLever { grid-area: thrL; } #lbLever { grid-area: lbL; } #tbLever { grid-area: tbL; }
@@ -247,6 +284,9 @@
 <div id="bar">
   <div id="readout"></div>
   <div id="controls">
+    <div id="loadMeter"></div>
+    <div id="slipLight">Wheel slip</div>
+    <button id="sandBtn" class="word">Sand</button>
     <button id="revUp" aria-label="Reverser toward forward">▲&#xFE0E;</button>
     <button id="thrUp" aria-label="Throttle up">+</button>
     <button id="lbUp" aria-label="Loco brake on">+</button>
@@ -281,7 +321,8 @@
   //   WORLD DATA   the yard: track nodes, straight or curved segments between
   //                them, switches, the running tracks, and where track runs
   //                on beyond the map;
-  //                the kinds of rolling stock, the cars with their
+  //                the kinds of rolling stock (a loco's with its traction
+  //                figures), the fuel point, the cars with their
   //                markings and loads, and where it all starts; the yard
   //                tracks' blocks, the industries at Junín, the
   //                destinations waybills name, the cars' traffic at the
@@ -292,7 +333,8 @@
   //   STATE        what changes while playing: the time of day, switch
   //                positions, vehicles, the trains they are coupled into,
   //                the shunter's work under way at couplings,
-  //                the loco's controls, the cars' traffic (away off the
+  //                the loco's controls and its traction (load, slip, sand,
+  //                motor heat, fuel), the cars' traffic (away off the
   //                map included) and the pool of cars elsewhere on the
   //                line, the industries' work, the jobs, the arrivals held
   //                outside, the through trains offered, refused line clear
@@ -300,7 +342,9 @@
   //                Built from WORLD DATA by makeState(); never edits WORLD DATA.
   //   UTILITIES    small geometry, track-walking and lookup helpers.
   //   SIMULATION   advances STATE by one fixed step, step(dt): the clock, and
-  //                all movement rules: forces, brakes, slack, contact
+  //                all movement rules: traction (the load, wheel slip,
+  //                motor heat and fuel, and over a skip the locos at
+  //                rest), forces, brakes, slack, contact
   //                buffer to buffer, and the shunter's hooking up and
   //                uncoupling coming due. The events ahead (a job due, a shift change)
   //                come from here too. The
@@ -316,7 +360,7 @@
   //                offered, held or run past on the main; and the train
   //                register of every train run and how late.
   //   ACTIONS      what the player can do (reverser, levers, Emergency,
-  //                Release, throw a switch, connect or part the air,
+  //                Release, sand, throw a switch, connect or part the air,
   //                hook up or uncouple, set a hand brake, skip ahead, take, hand back
   //                or report a job, ask for the main or report it clear),
   //                and the rules on
@@ -373,15 +417,57 @@
   const SWITCH_DIM_STEPS = 5;           // steps the fade is drawn in
   const G = 9.81;                       // m/s²
 
-  // Locomotive pull, modelled on a GM G12 as run in Argentina. The reverser
-  // sets its direction (cab end first is forward); each throttle notch gives
-  // an equal share of the pull; above LOCO_POWER / LOCO_MAX_FORCE (about
-  // 4.3 m/s) the engine's power limits it.
-  const THROTTLE_NOTCHES = 4;           // retunable
-  const LOCO_MAX_FORCE = 187e3;         // N at full notch; the G12's rated tractive effort
-  const LOCO_POWER = 977e3 * 0.8;       // W at the rail: the G12's 977 kW engine less an estimated fifth lost on the way; retunable
-  const LOCO_MAX_SPEED = 8;             // m/s (29 km/h); a yard limit, not the G12's own; pull fades to nothing over the last GOVERNOR_BAND
+  // Diesel-electric traction (#117; docs/design/traction.md, figures in
+  // docs/reference/diesel-traction.md). A loco's own figures (power at the
+  // rail, starting and continuous pull, fuel) are its kind's `traction` in
+  // WORLD DATA; these are the rules every loco follows. The reverser sets
+  // the pull's direction (cab end first is forward). The throttle has
+  // THROTTLE_NOTCHES notches above idle, each a share of full power; the
+  // load, a share of full, builds toward the notch's over about
+  // LOAD_UP_SECONDS and falls over about LOAD_DOWN_SECONDS. At load `l`
+  // the loco asks for the lesser of the notch's cap, starting pull × √l,
+  // and its power, l × power at the rail / speed. Asking for more than the
+  // rail's grip, ADHESION × the weight on the driven axles, slips the
+  // wheels: the load drops until it asks for SLIP_SHARE of the grip, and
+  // holds there until the throttle is notched down or sand goes on.
+  const THROTTLE_NOTCHES = 8;
+  const NOTCH_POWER = [0.07, 0.13, 0.27, 0.38, 0.48, 0.64, 0.87, 1];  // N1–N8, an EMD 16-645 on test (NSW EPA); Assumed for the ALCO 251
+  const LOAD_UP_SECONDS = 4;            // within 5 % of the new notch's load; Assumed, retunable
+  const LOAD_DOWN_SECONDS = 1;          // Assumed, retunable
+  const LOCO_MAX_SPEED = 8;             // m/s (29 km/h); a yard limit, not the loco's own; pull fades to nothing over the last GOVERNOR_BAND
   const GOVERNOR_BAND = 1;              // m/s
+  const ADHESION = { dry: 0.25, sanded: 0.35 };  // usable share of the weight on drivers (EMD); the rail is always dry for now (Tom)
+  const SLIP_SHARE = 0.6;               // a slipping loco's pull, as a share of the grip; Assumed, retunable
+  const SAND_BOX_SECONDS = 20 * 60;     // s of sanding a full box holds; Assumed, retunable
+  // Traction motor heat, `heat` per loco, 1 at the trip: it moves by
+  // (r² − b·heat) / MOTOR_HEAT_SECONDS a second, r the motor current as a
+  // share of continuous (taken as pull / continuous pull) and b the
+  // blowers' cooling, BLOWER_IDLE at idle up to 1 in the top notch. At 1
+  // the motors trip: no power until the heat falls to MOTOR_RESET_HEAT.
+  // The time constant is fitted to an EMD D37's plate (5 min at 1.42×, 15
+  // min at 1.18×); no GE 761 plate was found. The load meter marks, past
+  // continuous, how long from cold each current is allowed:
+  // r = 1 / √(1 − e^(−t / MOTOR_HEAT_SECONDS)).
+  const MOTOR_HEAT_SECONDS = 10 * 60;   // Assumed, retunable
+  const BLOWER_IDLE = 0.5;              // Assumed, retunable
+  const MOTOR_RESET_HEAT = 0.8;         // Tom, 2026-11-24
+  const LOAD_METER_MINUTES = [60, 30, 15, 10, 5];
+  const LOAD_METER_BANDS = LOAD_METER_MINUTES.map(m => ({ minutes: m, r: 1 / Math.sqrt(1 - Math.exp(-m * 60 / MOTOR_HEAT_SECONDS)) }));
+  const LOAD_METER_MAX = 1.8;           // the meter's full scale, as a share of continuous
+  // Fuel, in litres, burned by the notch in use: a share of the top
+  // notch's burn, from the same EMD test's litres an hour (N1 55 … N8
+  // 618), Assumed for the ALCO 251; idle has its own rate. The engine
+  // idles all shift (Assumed). Below FUEL_LOW of the tank a "Fuel the
+  // loco" task appears; the loco fills, and its sand box with it, standing
+  // with its middle within FUEL_REACH of the fuel point (WORLD DATA), at
+  // FUEL_FILL_RATE. Run dry, its engine stops, and the depot brings fuel
+  // out to it FUEL_RESCUE_SECONDS later. All Assumed, retunable.
+  const NOTCH_FUEL = [55, 90, 179, 245, 309, 400, 538, 618].map(l => l / 618);
+  const DIESEL_DENSITY = 0.84;          // kg/L
+  const FUEL_LOW = 0.25;                // share of the tank
+  const FUEL_FILL_RATE = 150 / 60;      // L/s; a quarter tank filled in about 12 min
+  const FUEL_REACH = 6;                 // m
+  const FUEL_RESCUE_SECONDS = 3600;     // s
 
   // Rolling resistance, from the constant part of the Davis equation:
   // 1.3 lb per short ton of weight plus a fixed drag per axle that depends
@@ -906,7 +992,7 @@
   const MAP_EDGES = ["mainWestEnd", "mainEastEnd"];
 
   // Kinds of rolling stock. Lengths are over the couplers. FA-era cars run
-  // on plain bearings (Unconfirmed); the G12 on roller bearings.
+  // on plain bearings (Unconfirmed); the locos on roller bearings.
   // A freight car kind has its Spanish name, its FA type code (type and
   // sub-type, NEFA 958), its stencilled tare and load limit (`carga`) in
   // tonnes, and FA's paint for it (NEFA 560–562): a body colour, and a
@@ -921,9 +1007,22 @@
   const MATERFER_COACH = { coach: true, length: 25, tare: 45, carga: 0, axles: 4, bearing: "roller",
                            colour: "#c9c5ca", stripe: "#c23b2e", stripeShare: 0.1, ends: "#1d3561" };
   const VEHICLE_TYPES = {
-    g12:       { loco: true, name: "GM G12", length: 14, mass: 109e3, axles: 4, bearing: "roller", colour: "#c0533a" }, // length approximate
-    // The Aconcagua's loco (#77): FA yellow-orange, its red lower band
-    // showing along the sides. docs/reference/locomotives.md.
+    // The yard engine (#117): an ALCo RSD-35, the San Martín's light
+    // branch-and-local loco, C-C with all six axles driven. Its figures are
+    // estimates from its weight and its sister, the Renfe 313
+    // (docs/reference/diesel-traction.md): `power` at the rail (W),
+    // `starting` and `continuous` pull (N), the share of its weight on
+    // `driven` axles, its fuel `tank` (L) and burn in the top notch and at
+    // idle (L/h). Its length is a placeholder; its paint is FA's, as on
+    // the RSD-16 (Unconfirmed for the RSD-35). `cab`: the cab's span in
+    // metres back from the cab end, behind its short hood (Assumed).
+    rsd35:     { loco: true, name: "ALCo RSD-35", length: 14, mass: 79e3, axles: 6, bearing: "roller", colour: "#e3a12a",
+                 stripe: "#c23b2e", stripeShare: 0.22, cab: [2.2, 4.6],
+                 traction: { power: 895e3 * 0.8, starting: 0.25 * 79e3 * G, continuous: 120e3, driven: 1, tank: 2500,
+                             topBurn: 1200 * 157.6 / 1000 / DIESEL_DENSITY, idleBurn: 8 } },
+    // The Aconcagua's loco (#77), and the through freights' (Tom,
+    // 2026-11-24): FA yellow-orange, its red lower band showing along the
+    // sides. docs/reference/locomotives.md. The game drives it.
     rsd16:     { loco: true, name: "ALCo RSD-16", length: 17.1, mass: 108e3, axles: 6, bearing: "roller", colour: "#e3a12a",
                  stripe: "#c23b2e", stripeShare: 0.22 },
     cubierto:  { name: "Vagón cubierto",  code: "26", length: 15.5, tare: 21, carga: 50, axles: 4, bearing: "plain", colour: "#a2a5a3" },
@@ -1007,7 +1106,7 @@
   // 3, starts empty for the first arrival. Cars not laid out here start
   // away, off the map, and come in on the arrivals.
   const START_TRAINS = [
-    { segment: "lead_3", s: 30, dir: -1, vehicles: [{ id: "loco1", type: "g12" }] },
+    { segment: "lead_3", s: 30, dir: -1, vehicles: [{ id: "loco1", type: "rsd35" }] },
     { segment: "yard1_2", s: 430, dir: 1, vehicles: [{ id: "car1" }, { id: "car2" }] },
     { segment: "yard2_2", s: 370, dir: 1, vehicles: [{ id: "car9" }, { id: "car12" }, { id: "car6" }] },
     { segment: "yard4_2", s: 290, dir: 1, vehicles: [{ id: "car3" }, { id: "car7" }, { id: "car8" }, { id: "car15" }, { id: "car13" }] },
@@ -1015,6 +1114,11 @@
     { segment: "yard6_2", s: 220, dir: 1, vehicles: [{ id: "car4" }, { id: "car5" }, { id: "car10" }] },
   ];
   const PLAYER_LOCO = "loco1";
+  // Where locos take fuel (#117): beside the turntable, where Junín's
+  // depot kept its oil reserve tanks (Secondary; diesels fuelling there is
+  // Unconfirmed). A loco fuels standing with its middle near this point,
+  // `s` metres along `segment`.
+  const FUEL_POINT = { segment: "turntableSpur_5", s: 4 };
 
   // Operations (docs/design/). The yard tracks, numbered from the main-line
   // side, each with its switch, its segments from the switch to the buffer,
@@ -1174,11 +1278,12 @@
       consist: "aconcagua", passenger: true },
     { id: "x2404", number: "2404", from: "Mendoza", to: "Retiro",  enters: "west", at: 2 * HOUR,     consist: "freight" },
   ];
-  // Each make-up: the loco at the head, then the cars from behind it. The
-  // Aconcagua's (#77, Tom 2026-11-24; retunable): an RSD-16, the van, two
+  // Each make-up: the loco at the head, then the cars from behind it. A
+  // freight's loco is an RSD-16, the San Martín's main-line power (Tom,
+  // 2026-11-24, #117). The Aconcagua's (#77, Tom 2026-11-24; retunable): an RSD-16, the van, two
   // tourist, two first, the restaurant and the pullman.
   const THROUGH_CONSISTS = {
-    freight: { loco: "g12", cars: ["tolva", "tolva", "tolva", "cubierto", "cubierto", "tolva", "bordeAlto", "tanque",
+    freight: { loco: "rsd16", cars: ["tolva", "tolva", "tolva", "cubierto", "cubierto", "tolva", "bordeAlto", "tanque",
       "tanque", "tolva", "tolva", "cubierto", "plataforma", "tolva", "tolva"] },
     aconcagua: { loco: "rsd16", cars: ["coachF", "coachCT", "coachCT", "coachP", "coachP", "coachR", "coachPA"] },
   };
@@ -1279,8 +1384,16 @@
   // Puts vehicle `id` of kind `type` into STATE, standing and in no train.
   function addVehicle(id, type, flip = 1) {
     state.vehicles[id] = { id, type, flip, speed: 0, handBrake: false };
+    // A loco's controls, and its traction (#117): the `load` built up (a
+    // share of full), the `pull` it gives this step (N), whether its wheels
+    // `slip`, whether sand is going on (`sanding`) and how much is left in
+    // the box (`sand`, a share), its motors' `heat` (1 trips them) and
+    // whether they are `tripped`, its `fuel` in litres, and when it ran
+    // dry (`emptyAt`, or null). A loco starts with a full tank and box.
+    const tr = VEHICLE_TYPES[type].traction;
     if (VEHICLE_TYPES[type].loco) state.vehicles[id].controls = { reverser: 0, throttle: 0, locoBrake: 0, trainBrake: 0,
-      locoApplied: 0, trainApplied: 0, emergency: false };
+      locoApplied: 0, trainApplied: 0, emergency: false,
+      load: 0, pull: 0, slip: false, sanding: false, sand: 1, heat: 0, tripped: false, fuel: tr ? tr.tank : 0, emptyAt: null };
   }
   // Lays vehicles `ids` out as one train, coupled and bunched, back from
   // its head end, which stands `s` metres along `segment` facing `dir` (+1
@@ -1541,6 +1654,131 @@
     return reach;
   }
 
+  // Diesel-electric traction (#117; docs/design/traction.md). Each step,
+  // a loco's load moves toward its notch's, its pull is worked out from
+  // the load, its speed and the rail's grip, and its motors heat or cool
+  // and its engine burns fuel by what it does. A loco whose kind has no
+  // `traction` (the game drives it) gives no pull.
+  const tractionOf = v => vehicleType(v).traction;
+  // The pull loco `v` asks for at load share `load`, before the rail's
+  // grip: the notch's cap or its power at this speed, whichever is less,
+  // fading out near the yard's speed limit.
+  function askedPull(v, tr, load) {
+    const along = v.speed * v.controls.reverser * v.flip;        // speed in the direction of pull
+    const governor = Math.max(0, Math.min(1, (LOCO_MAX_SPEED - along) / GOVERNOR_BAND));
+    return Math.min(tr.starting * Math.sqrt(load), load * tr.power / Math.max(Math.abs(along), EPS)) * governor;
+  }
+  // The rail's grip under loco `v`: the adhesion, sanded while sand goes
+  // on and the box has some, times the weight on its driven axles.
+  const sanding = c => c.sanding && c.sand > 0;
+  const gripOf = (v, tr) => (sanding(v.controls) ? ADHESION.sanded : ADHESION.dry) * tr.driven * vehicleMass(v) * G;
+  // Whether loco `v` stands at the fuel point.
+  function atFuelPoint(v) {
+    const p = pointOn(v.seg, v.s), f = pointOn(FUEL_POINT.segment, FUEL_POINT.s);
+    return v.speed === 0 && Math.hypot(p.x - f.x, p.y - f.y) <= FUEL_REACH;
+  }
+  // The share of full fuel burn at the throttle's notch: idle when the
+  // throttle is shut or the motors are tripped, as the load is off.
+  function burnRate(c, tr) {
+    if (c.fuel <= 0) return 0;
+    return c.throttle && !c.tripped ? tr.topBurn * NOTCH_FUEL[c.throttle - 1] : tr.idleBurn;
+  }
+  // Burns `litres` from loco `v`'s tank, with the notice when it falls
+  // low, and stops its engine when it runs dry at `at`.
+  function burnFuel(v, tr, litres, at) {
+    const c = v.controls, before = c.fuel;
+    c.fuel = Math.max(0, c.fuel - litres);
+    if (before >= FUEL_LOW * tr.tank && c.fuel < FUEL_LOW * tr.tank && c.fuel > 0) setNotice("Fuel low: fuel the loco by the turntable");
+    if (before > 0 && c.fuel === 0) {
+      Object.assign(c, { emptyAt: at, load: 0, pull: 0, slip: false });
+      setNotice(`Out of fuel: the engine stopped. Fuel comes out at ${clockText(at + FUEL_RESCUE_SECONDS)}`);
+    }
+  }
+  // The depot brings fuel out to a loco run dry, FUEL_RESCUE_SECONDS after.
+  function rescueDue(v, tr, at) {
+    const c = v.controls;
+    if (c.emptyAt === null || at < c.emptyAt + FUEL_RESCUE_SECONDS) return;
+    Object.assign(c, { fuel: tr.tank, emptyAt: null });
+    setNotice("Fuel brought out: the engine runs again");
+  }
+  // Fills loco `v`'s tank, and its sand box, at the fuel point for `dt`.
+  function fillAt(v, tr, dt) {
+    const c = v.controls;
+    c.fuel = Math.min(tr.tank, c.fuel + FUEL_FILL_RATE * dt);
+    if (tr.tank - c.fuel < 0.01) c.fuel = tr.tank;
+    if (c.fuel > 0) c.emptyAt = null;
+    c.sand = 1;
+  }
+  // The motors trip at full heat: power is cut until they cool. It counts
+  // as rough handling on the jobs being worked (Tom, 2026-11-24).
+  function checkTrip(c) {
+    if (!c.tripped && c.heat >= 1) {
+      Object.assign(c, { tripped: true, slip: false });
+      for (const j of openJobs()) if (j.taken) j.overheats.push(Math.round(state.clock));
+      setNotice("Traction motors overheated: power cut until they cool");
+    } else if (c.tripped && c.heat <= MOTOR_RESET_HEAT) {
+      c.tripped = false;
+      setNotice("Traction motors cooled: power back");
+    }
+  }
+  function stepTraction(v, dt) {
+    const c = v.controls, tr = tractionOf(v);
+    if (!tr) return;
+    const running = c.fuel > 0, notch = running && !c.tripped && c.reverser ? c.throttle : 0;
+    const target = notch ? NOTCH_POWER[notch - 1] : 0;
+    // The load builds or falls toward the notch's; slipping, it holds.
+    // Tripped or out of fuel, power is cut at once.
+    if (!running || c.tripped) c.load = 0;
+    else if (!c.slip || target < c.load) {
+      const tau = (target > c.load ? LOAD_UP_SECONDS : LOAD_DOWN_SECONDS) / 3;    // within 5 % in three time constants
+      c.load += (target - c.load) * Math.min(1, dt / tau);
+      if (target === 0 && c.load < 1e-4) c.load = 0;
+    }
+    const grip = gripOf(v, tr);
+    let ask = c.reverser && c.load ? askedPull(v, tr, c.load) : 0;
+    if (!c.slip && ask > grip * (1 + 1e-9)) {
+      // The wheels let go: the load drops until it asks for SLIP_SHARE of
+      // the grip, at this speed.
+      c.slip = true;
+      const want = SLIP_SHARE * grip, along = Math.abs(v.speed);
+      c.load = Math.min(c.load, Math.max((want / tr.starting) ** 2, want * along / tr.power));
+      ask = askedPull(v, tr, c.load);
+    }
+    c.pull = c.slip ? Math.min(ask, SLIP_SHARE * grip) : ask;
+    if (sanding(c)) c.sand = Math.max(0, c.sand - dt / SAND_BOX_SECONDS);
+    // Heat: the current share squared in, the blowers' cooling out.
+    const r = c.pull / tr.continuous, b = BLOWER_IDLE + (1 - BLOWER_IDLE) * (running ? c.throttle : 0) / THROTTLE_NOTCHES;
+    c.heat = Math.max(0, c.heat + (r * r - b * c.heat) / MOTOR_HEAT_SECONDS * dt);
+    checkTrip(c);
+    burnFuel(v, tr, burnRate(c, tr) * dt / HOUR, state.clock);
+    rescueDue(v, tr, state.clock);
+    if (atFuelPoint(v)) fillAt(v, tr, dt);
+  }
+  // A skip of `dt` seconds from the clock, everything standing and the
+  // throttle shut: no physics runs, so each loco's motors cool, its engine
+  // idles and it takes fuel at the fuel point, worked out at once.
+  function restLocos(dt) {
+    for (const id in state.vehicles) {
+      const v = state.vehicles[id], c = v.controls, tr = c && tractionOf(v);
+      if (!tr) continue;
+      Object.assign(c, { load: 0, pull: 0, slip: false });
+      c.heat *= Math.exp(-BLOWER_IDLE * dt / MOTOR_HEAT_SECONDS);
+      checkTrip(c);
+      if (atFuelPoint(v)) { fillAt(v, tr, (1 - tr.idleBurn / HOUR / FUEL_FILL_RATE) * dt); continue; }
+      let left = dt, at = state.clock;
+      if (c.fuel > 0) {
+        const lasts = c.fuel / tr.idleBurn * HOUR, t = Math.min(left, lasts);
+        burnFuel(v, tr, t >= lasts ? c.fuel : tr.idleBurn * t / HOUR, at + t);
+        left -= t; at += t;
+      }
+      if (left > 0 && c.emptyAt !== null && c.emptyAt + FUEL_RESCUE_SECONDS <= state.clock + dt) {
+        const from = c.emptyAt + FUEL_RESCUE_SECONDS;
+        rescueDue(v, tr, from);
+        burnFuel(v, tr, tr.idleBurn * (state.clock + dt - from) / HOUR, state.clock + dt);
+      }
+    }
+  }
+
   // The forces on each vehicle of a train this step, by id: `pull` (+
   // toward the head), `hold` from brakes, and the resistance to rolling
   // (`roll`) or to getting a standing vehicle moving (`start`). Curves add
@@ -1556,14 +1794,7 @@
     for (const id of t.vehicles) {
       const v = state.vehicles[id], type = vehicleType(v), c = v.controls, weight = vehicleMass(v) * G;
       let pull = 0, hold = 0;
-      if (c && c.throttle && c.reverser) {
-        const sense = c.reverser * v.flip;                        // toward the head, or not
-        const along = v.speed * sense;                            // speed in the direction of pull
-        const share = c.throttle / THROTTLE_NOTCHES;
-        const force = Math.min(LOCO_MAX_FORCE, LOCO_POWER / Math.max(Math.abs(along), EPS));
-        const governor = Math.max(0, Math.min(1, (LOCO_MAX_SPEED - along) / GOVERNOR_BAND));
-        pull = sense * share * force * governor;
-      }
+      if (c && c.pull) pull = c.reverser * v.flip * c.pull;       // toward the head, or not
       if (c) hold += c.locoApplied * LOCO_BRAKE_RATIO * weight;
       hold += trainApplied * TRAIN_BRAKE_RATIO * weight * reach[id];
       if (v.handBrake) hold += HAND_BRAKE_FORCE;
@@ -1785,7 +2016,10 @@
 
   function step(dt) {
     state.clock += dt;
-    for (const id in state.vehicles) if (state.vehicles[id].controls) stepBrakes(state.vehicles[id].controls, dt);
+    for (const id in state.vehicles) if (state.vehicles[id].controls) {
+      stepBrakes(state.vehicles[id].controls, dt);
+      stepTraction(state.vehicles[id], dt);
+    }
     for (const id in state.trains) stepAir(state.trains[id], dt);
     const forces = {};
     for (const id in state.trains) vehicleForces(state.trains[id], forces);
@@ -1806,7 +2040,8 @@
   // The events ahead of the clock, soonest first, up to and including the
   // end of this shift: jobs falling due, road trains arriving and leaving
   // (a departure with its build job), through trains offered, an
-  // industry's work done, and the shift change, when the next jobs open.
+  // industry's work done, the loco full at the fuel point or fuel brought
+  // out to it, and the shift change, when the next jobs open.
   function eventsAhead() {
     const end = shiftAt(state.clock).end, out = [];
     for (const j of state.jobs) if (!j.result && j.kind !== "build" && j.due > state.clock && j.due <= end) out.push({ at: j.due, kind: "due", job: j.id });
@@ -1820,6 +2055,15 @@
     for (const ind in INDUSTRIES) {
       const r = state.industries[ind].readyAt;
       if (r !== null && r > state.clock && r < end) out.push({ at: r, kind: "industry", industry: ind });
+    }
+    // A loco taking fuel is full, or one run dry gets fuel brought out.
+    for (const id in state.vehicles) {
+      const v = state.vehicles[id], tr = v.controls && tractionOf(v);
+      if (!tr) continue;
+      const c = v.controls, full = atFuelPoint(v) && tr.tank - c.fuel >= 0.01
+        ? state.clock + (tr.tank - c.fuel) / (FUEL_FILL_RATE - tr.idleBurn / HOUR) : null;
+      if (full !== null && full < end) out.push({ at: full, kind: "fuelled" });
+      else if (c.emptyAt !== null && c.emptyAt + FUEL_RESCUE_SECONDS < end) out.push({ at: c.emptyAt + FUEL_RESCUE_SECONDS, kind: "fuel" });
     }
     out.push({ at: end, kind: "shift" });
     return out.sort((a, b) => a.at - b.at);
@@ -2134,7 +2378,7 @@
     const blockOrder = Object.keys(BLOCKS);
     job.cars.sort((a, b) => blockOrder.indexOf(dispositionOf(a)) - blockOrder.indexOf(dispositionOf(b)));
     const j = { id: "job" + state.nextJob++, blocks: new Set(job.cars.map(dispositionOf)).size,
-                taken: false, movesAtTake: 0, damaged: [], trainsHeld: [], overruns: [], result: null, ...job };
+                taken: false, movesAtTake: 0, damaged: [], trainsHeld: [], overruns: [], overheats: [], result: null, ...job };
     state.jobs.push(j);
     return j;
   }
@@ -2622,10 +2866,20 @@
     return true;
   }
   // The throttle opens only with the reverser in forward or reverse.
+  // Notching down ends a wheel slip (#117).
   function moveThrottle(delta) {
     const c = playerLoco().controls;
     if (delta > 0 && !c.reverser) { setNotice("Reverser is in neutral"); return; }
-    c.throttle = clampNotch(c.throttle + delta, 0, THROTTLE_NOTCHES);
+    const next = clampNotch(c.throttle + delta, 0, THROTTLE_NOTCHES);
+    if (next < c.throttle) c.slip = false;
+    c.throttle = next;
+  }
+  // Sand goes on while the button is held (#117), from a box that empties
+  // as it's used; putting it on ends a wheel slip, if there's sand left.
+  function setSand(on) {
+    const c = playerLoco().controls;
+    c.sanding = on;
+    if (on && c.sand > 0) c.slip = false;
   }
   function moveLocoBrake(delta) {
     const c = playerLoco().controls;
@@ -2748,11 +3002,13 @@
   }
 
   // Skips the clock ahead to `at`, an event ahead or a SKIP_MARK_SECONDS
-  // mark, only while every vehicle stands still. Nothing else moves or
-  // changes: no physics runs during a skip.
+  // mark, only while every vehicle stands still and the throttle is shut.
+  // Nothing else moves or changes: no physics runs during a skip; the
+  // locos' heat and fuel are worked out at once (restLocos()).
   function skipTo(at) {
     if (!(at > state.clock) || !(at % SKIP_MARK_SECONDS === 0 || eventsAhead().some(e => e.at === at))) return false;
     if (playerLoco().speed !== 0) { setNotice("Stop the loco before skipping"); return false; }
+    if (playerLoco().controls.throttle) { setNotice("Shut the throttle before skipping"); return false; }
     for (const id in state.vehicles) {
       if (state.vehicles[id].speed !== 0 && !state.vehicles[id].run) { setNotice("Wait for the cars to stop"); return false; }
     }
@@ -2762,6 +3018,7 @@
       r.status = "gone";
       registerThrough(r);
     }
+    restLocos(at - state.clock);
     state.clock = at;
     stepWork();
     runEvents();
@@ -2774,7 +3031,7 @@
   function takeJob(jobId) {
     const j = jobById(jobId);
     if (!j || j.result || j.taken) return false;
-    Object.assign(j, { taken: true, movesAtTake: state.moves, damaged: [], trainsHeld: [], overruns: [] });
+    Object.assign(j, { taken: true, movesAtTake: state.moves, damaged: [], trainsHeld: [], overruns: [], overheats: [] });
     return true;
   }
   function handBack(jobId) {
@@ -2801,7 +3058,8 @@
   // ==================================================
   // The yard is saved as it stands, mid-move included: every vehicle with
   // its speed, the trains, couplings' slack and air, switches, hand brakes,
-  // the loco's controls, the clock, the cars' traffic, the jobs and the
+  // the loco's controls and its traction (load, slip, sand, motor heat and
+  // fuel; sand held on is let go), the clock, the cars' traffic, the jobs and the
   // road trains. That is all of STATE but the notice. A yard saved before
   // road trains isn't carried over: its cars stand where they didn't
   // expect them, and none are away. A save
@@ -2817,7 +3075,7 @@
   // The benchmark page (index.html?bench, CHECKS) saves under keys of its
   // own, never over the player's yard.
   const BENCH = new URLSearchParams(location.search).has("bench");
-  const SAVE_KEY = "switching-game.yard.12" + (BENCH ? ".bench" : "");
+  const SAVE_KEY = "switching-game.yard.13" + (BENCH ? ".bench" : "");
   const CARS_KEY = SAVE_KEY + ".cars";
   let saves = 0;
 
@@ -2874,7 +3132,8 @@
       if (c.away !== null && !(isObj(t) && DESTINATIONS[t.at] && DESTINATIONS[t.at].away
           && Number.isFinite(t.back) && typeof t.pool === "boolean")) return false;
     }
-    for (const j of st.jobs) if (!isObj(j) || !Array.isArray(j.cars) || !j.cars.every(id => st.cars[id]) || !Number.isFinite(j.due)) return false;
+    for (const j of st.jobs) if (!isObj(j) || !Array.isArray(j.cars) || !j.cars.every(id => st.cars[id]) || !Number.isFinite(j.due)
+        || !Array.isArray(j.overheats)) return false;
     for (const id in SWITCHES) if (!SWITCHES[id].legs.includes(st.switches[id].set)) return false;
     // Every loco, and every car not away, has a vehicle.
     const startIds = {};
@@ -2888,6 +3147,11 @@
       if (v.id !== id || v.type !== startIds[id] || !SEGMENTS[v.seg] || !st.trains[v.train] || (v.run || null) !== (runOf[id] || null)) return false;
       if (!(v.s >= 0 && v.s <= segmentLength(v.seg)) || !Number.isFinite(v.speed)) return false;
       if (Math.abs(v.dir) !== 1 || Math.abs(v.flip) !== 1 || !!type.loco !== isObj(v.controls)) return false;
+      const c = v.controls;
+      if (c && (!["load", "pull", "sand", "heat", "fuel"].every(k => Number.isFinite(c[k]) && c[k] >= 0)
+          || !Number.isInteger(c.throttle) || c.throttle < 0 || c.throttle > THROTTLE_NOTCHES
+          || typeof c.slip !== "boolean" || typeof c.tripped !== "boolean" || typeof c.sanding !== "boolean"
+          || (c.emptyAt !== null && !Number.isFinite(c.emptyAt)))) return false;
     }
     const placed = {};
     for (const tid in st.trains) {
@@ -2913,7 +3177,10 @@
       const saved = JSON.parse(localStorage.getItem(SAVE_KEY)), cars = JSON.parse(localStorage.getItem(CARS_KEY));
       if (!saved || !cars || saved.saved !== cars.saved) return false;
       const st = { ...saved.state, cars: cars.cars, pool: cars.pool };
-      if (fitsYard(st)) { state = st; saves = cars.saved; carsDirty = false; return true; }
+      if (fitsYard(st)) {
+        for (const id in st.vehicles) if (st.vehicles[id].controls) st.vehicles[id].controls.sanding = false;
+        state = st; saves = cars.saved; carsDirty = false; return true;
+      }
     } catch (e) { /* unreadable or blocked: start fresh */ }
     return false;
   }
@@ -2960,6 +3227,14 @@
   const pauseBtn = document.getElementById("pauseBtn");
   const levers = { rev: document.getElementById("revLever"), thr: document.getElementById("thrLever"), lb: document.getElementById("lbLever"),
                    tb: document.getElementById("tbLever") };
+  const loadMeter = document.getElementById("loadMeter"), slipLight = document.getElementById("slipLight");
+  const sandBtn = document.getElementById("sandBtn");
+  // The load meter's face (#117): its scale to LOAD_METER_MAX, a red mark
+  // at continuous and a tick for each of LOAD_METER_BANDS past it.
+  const meterAt = r => `${Math.min(1, r / LOAD_METER_MAX) * 100}%`;
+  loadMeter.innerHTML = `<span class="label">Load<b></b></span><div class="dial"><i></i>` +
+    LOAD_METER_BANDS.map(b => `<s style="left:${meterAt(b.r)}"></s>`).join("") + `<u style="left:${meterAt(1)}"></u></div>`;
+  const loadNeedle = loadMeter.querySelector("i"), loadText = loadMeter.querySelector("b");
 
   // Points every few metres along a stretch of a segment, from `s0` to `s1`,
   // for drawing it. A straight needs only its ends.
@@ -3146,9 +3421,26 @@
     const loco = playerLoco(), c = loco.controls, t = trainOf(loco);
     const cars = t.vehicles.length - 1, reach = brakeReach(t);
     const braked = t.vehicles.filter(id => !state.vehicles[id].controls && reach[id] >= 1).length;
+    const tr = vehicleType(loco).traction, fuelShare = c.fuel / tr.tank;
     readout.innerHTML = `<span>${(Math.abs(loco.speed) * 3.6).toFixed(1)} km/h · ` +
       `${cars} car${cars === 1 ? "" : "s"}${cars ? ` · air ${braked}/${cars}` : ""}</span>` +
+      `<span class="fuel${fuelShare < FUEL_LOW ? " warn" : ""}">Fuel ${Math.round(fuelShare * 100)}%` +
+      `<span class="meter"><i style="width:${fuelShare * 100}%"></i></span></span>` +
       `<small>v${GAME_CONFIG.VERSION}</small>`;
+    // The load meter: motor current as a share of continuous, and past it
+    // the band it's in, the minutes allowed from cold. The light shows a
+    // wheel slip, or else the power cut by hot motors or an empty tank.
+    const r = c.pull / tr.continuous, band = [...LOAD_METER_BANDS].reverse().find(b => r <= b.r);
+    loadNeedle.style.width = meterAt(r);
+    loadMeter.classList.toggle("over", r > 1);
+    loadText.textContent = c.tripped ? "power cut" : r > 1 ? (band ? `${band.minutes} min` : `< ${LOAD_METER_MINUTES[LOAD_METER_MINUTES.length - 1]} min`) : "";
+    const light = c.slip ? "Wheel slip" : c.tripped ? "Motors hot" : c.fuel <= 0 ? "No fuel" : "Wheel slip";
+    if (slipLight.textContent !== light) slipLight.textContent = light;
+    slipLight.classList.toggle("on", c.slip);
+    slipLight.classList.toggle("danger", !c.slip && (c.tripped || c.fuel <= 0));
+    sandBtn.classList.toggle("on", c.sanding && c.sand > 0);
+    const sandText = c.sand > 0 ? `Sand <small>${Math.round(c.sand * 100)}%</small>` : "No sand";
+    if (sandBtn.innerHTML !== sandText) sandBtn.innerHTML = sandText;
     renderClock();
     renderJobs();
     renderMainChip();
@@ -3158,7 +3450,8 @@
     pauseBtn.innerHTML = paused ? "▶&#xFE0E;" : "❚❚";
     pauseBtn.setAttribute("aria-label", paused ? "Resume" : "Pause");
     levers.rev.innerHTML = `Reverser<b>${c.reverser > 0 ? "Fwd" : c.reverser < 0 ? "Rev" : "N"}</b>`;
-    levers.thr.innerHTML = `Throttle<b>${c.throttle}/${THROTTLE_NOTCHES}</b>`;
+    levers.thr.innerHTML = `Throttle<b>${c.throttle}/${THROTTLE_NOTCHES}</b>` +
+      `<div class="meter"><i style="width:${c.load * 100}%"></i></div>`;
     levers.lb.innerHTML = `Loco brake<b>${c.locoBrake}/${LOCO_BRAKE_NOTCHES}</b>` +
       `<div class="meter"><i style="width:${c.locoApplied * 100}%"></i></div>`;
     levers.tb.innerHTML = `Train brake<b>${c.emergency ? "EMERG" : c.trainBrake + "/" + TRAIN_BRAKE_NOTCHES}</b>` +
@@ -3292,9 +3585,9 @@
         const f = toward(front, back, 1), b = toward(back, front, 1);
         line(b.x, b.y, f.x, f.y, PALETTE.bg, bodyWidth * 0.4);
       }
-      if (type.loco) {                                    // cab, at the end it faces
+      if (type.loco) {                                    // cab, at the end it faces (behind a short hood, for an RSD)
         const cabEnd = v.flip > 0 ? front : back, other = v.flip > 0 ? back : front;
-        const c1 = toward(cabEnd, other, 0.6), c2 = toward(cabEnd, other, 3);
+        const [from, to] = type.cab || [0.6, 3], c1 = toward(cabEnd, other, from), c2 = toward(cabEnd, other, to);
         line(c1.x, c1.y, c2.x, c2.y, PALETTE.light, bodyWidth * 0.6);
       }
       if (type.coach && k > 2.5) {                        // a coach's FA code, on its roof
@@ -3383,6 +3676,20 @@
       const c = view.toScreen(mid.x - mid.uy * 7 * side, mid.y + mid.ux * 7 * side);
       ctx.font = `600 ${Math.round(Math.max(10, Math.min(13, k * 2)))}px system-ui, sans-serif`;
       ctx.fillText(INDUSTRIES[ind].short, c.x, c.y);
+      ctx.textAlign = "start"; ctx.textBaseline = "alphabetic";
+    }
+    // The fuel point (#117): a tick across the track at either end of
+    // where a loco's middle may stand to fuel, and "Fuel" beside it.
+    {
+      const f = pointOn(FUEL_POINT.segment, FUEL_POINT.s), h = GAUGE * 0.9;
+      for (const d of [-FUEL_REACH, FUEL_REACH]) {
+        const x = f.x + f.ux * d, y = f.y + f.uy * d;
+        line(x - f.uy * h, y + f.ux * h, x + f.uy * h, y - f.ux * h, PALETTE.buffer, Math.max(1, k * 0.2));
+      }
+      const c = view.toScreen(f.x + f.uy * 6, f.y - f.ux * 6);
+      ctx.fillStyle = PALETTE.north; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.font = `600 ${Math.round(Math.max(10, Math.min(13, k * 2)))}px system-ui, sans-serif`;
+      ctx.fillText("Fuel", c.x, c.y);
       ctx.textAlign = "start"; ctx.textBaseline = "alphabetic";
     }
     // The cars of a job being worked that aren't yet where they belong: an
@@ -3513,7 +3820,7 @@
   window.addEventListener("pagehide", () => saveYard(true));
 
   // Keyboard: +/− zoom, M the Map, P pause, Q/A reverser, W/S or ↑/↓ throttle, R/F loco brake,
-  // E/D train brake, Space emergency, X release.
+  // E/D train brake, Space emergency, X release, Z (held) sand.
   const KEYS = {
     q: () => moveReverser(1), a: () => moveReverser(-1),
     w: () => moveThrottle(1), ArrowUp: () => moveThrottle(1),
@@ -3526,9 +3833,11 @@
     if (e.repeat) return;
     if (VIEW_KEYS[e.key]) VIEW_KEYS[e.key]();
     else if (KEYS[e.key]) unlessPaused(KEYS[e.key])();
+    else if (e.key === "z") unlessPaused(setSand)(true);
     else return;
     e.preventDefault();
   });
+  window.addEventListener("keyup", e => { if (e.key === "z") setSand(false); });
 
   // pointerdown rather than click: it answers at once on touch screens.
   const onPress = (id, fn) => document.getElementById(id).addEventListener("pointerdown", e => {
@@ -3544,6 +3853,10 @@
   onPress("tbDown", () => moveTrainBrake(-1));
   onPress("releaseBtn", release);
   onPress("emergBtn", emergency);
+  // Sand goes on while the button is held, and off when it's let go, even
+  // paused, so it never sticks on.
+  onPress("sandBtn", () => setSand(true));
+  for (const ev of ["pointerup", "pointercancel", "pointerleave"]) document.getElementById("sandBtn").addEventListener(ev, () => setSand(false));
 
   // Zoom steps through ZOOM_LEVELS, then out past the widest into the
   // Map's steps; in from the Map's first step is play again.
@@ -3778,6 +4091,8 @@
       const text = tt ? (tt.arrives ? `${trainName(tt)} arrives<small>Onto Track ${YARD_TRACKS[ARRIVAL_TRACK].number}</small>`
           : `${trainName(tt)} leaves${j ? (j.taken ? "<small>It waits for your build</small>" : crew) : ""}`)
         : j ? `${j.title} falls due${crew}` : e.industry ? `Work done at ${INDUSTRIES[e.industry].name}<small>A pull job opens</small>`
+        : e.kind === "fuelled" ? `Loco fuelled<small>A full tank, and sand</small>`
+        : e.kind === "fuel" ? `Fuel brought out<small>The engine runs again</small>`
         : `Shift change<small>The next jobs open</small>`;
       html += `<button class="event" data-at="${e.at}"><b>${clockText(e.at)}</b><span>${text}</span>${dayNote(e.at)}</button>`;
     }
@@ -3842,7 +4157,7 @@
     jobChip.classList.toggle("open", !!worked);
     const label = taken.length ? `Jobs · ${taken.length} taken` : fresh.length ? `Jobs · ${fresh.length} new` : "Jobs";
     if (jobsBtn.textContent !== label) jobsBtn.textContent = label;
-    jobsBtn.classList.toggle("on", !!open.length);
+    jobsBtn.classList.toggle("on", !!open.length || !!fuelTask());
     if (sheet && sheet.job && !jobById(sheet.job)) sheet = {};
     if (sheet) {
       const html = sheet.register ? registerHtml() : sheet.consist ? consistHtml(jobById(sheet.job)) : sheet.job ? jobSheetHtml(jobById(sheet.job)) : boardHtml();
@@ -3859,9 +4174,24 @@
   const outcomeText = j => (j.result.by === "crew" ? `Done by another crew at ${shortTime(j.result.at)}`
     : `${headline(j.result)} · ${shortTime(j.result.at)}`) + trainText(j);
   const dueText = j => j.kind === "build" ? `leaves ${shortTime(j.due)}` : `due ${shortTime(j.due)}`;
+  // The "Fuel the loco" task (#117), while the tank is below FUEL_LOW or
+  // the loco is taking fuel: how full it is, and what's happening. Not a
+  // job: nobody else does it, and it isn't assessed.
+  function fuelTask() {
+    const v = playerLoco(), c = v.controls, tr = vehicleType(v).traction, share = c.fuel / tr.tank;
+    const filling = atFuelPoint(v) && share < 1;
+    if (!filling && share >= FUEL_LOW) return null;
+    const pc = `Fuel ${Math.round(share * 100)}%`;
+    return { share, text: c.emptyAt !== null ? `Out of fuel; fuel comes out at ${clockText(c.emptyAt + FUEL_RESCUE_SECONDS)}`
+      : filling ? `${pc}, taking fuel` : pc };
+  }
   function boardHtml() {
     let h = `<div class="grab"></div><header><h2>Jobs · ${YARD_NAME}</h2><button data-act="register">Register</button>` +
       `<button data-act="close">Close ✕&#xFE0E;</button></header>`;
+    const fuel = fuelTask();
+    if (fuel) h += `<div class="job"><div><b>Fuel the loco</b><small${fuel.share < FUEL_LOW ? ` class="warn"` : ""}>` +
+      `${fuel.text} · at the fuel point by the turntable</small></div>` +
+      `<button class="act" data-act="fuelpoint">Show</button></div>`;
     for (const j of openJobs()) {
       const late = j.due <= state.clock ? ` · <span class="warn">late</span>` : "";
       h += `<div class="job" data-job="${j.id}"><div><b>${j.title}</b><small>${j.cars.length} cars · ${dueText(j)}` +
@@ -3961,7 +4291,8 @@
     return `<div class="result"><b>${r.outcome} · ${r.late >= ON_TIME_SECONDS ? `<span class="warn">${lateness(r.late)}</span>` : lateness(r.late)}</b>${rows.map(t => `<small>${t}</small>`).join("")}${train}` +
       `${j.damaged.length ? `<small class="warn">Rough handling: ${j.damaged.map(carName).join(", ")} damaged, bad order</small>` : ""}` +
       `${j.trainsHeld.length ? `<small class="warn">Main line: ${j.trainsHeld.map(h => `${h.number} held ${lateText(h.delay)}`).join(", ")}</small>` : ""}` +
-      `${j.overruns.length ? `<small class="warn">Main kept past the time asked: ${j.overruns.map(lateText).join(", ")}</small>` : ""}</div>`;
+      `${j.overruns.length ? `<small class="warn">Main kept past the time asked: ${j.overruns.map(lateText).join(", ")}</small>` : ""}` +
+      `${j.overheats.length ? `<small class="warn">Rough handling: traction motors overheated at ${j.overheats.map(clockText).join(", ")}, power cut</small>` : ""}</div>`;
   }
   // Junín's train register (#62), reached from the board: the trains of
   // the last REGISTER_DAYS days by shift, newest first, each with its
@@ -4026,6 +4357,11 @@
       else if (act === "register") sheet = { register: true };
       else if (act === "open") sheet = { job: id };
       else if (act === "consist") sheet = { job: id, consist: true };
+      else if (act === "fuelpoint") {                 // show the fuel point
+        const p = pointOn(FUEL_POINT.segment, FUEL_POINT.s);
+        Object.assign(camera, { map: 0, follow: false, cx: p.x, cy: p.y, zoom: Math.max(camera.zoom, START_ZOOM) });
+        sheet = null;
+      }
       else if (act === "take") unlessPaused(() => { if (takeJob(id)) sheet = { job: id }; })();
       else if (act === "handback") unlessPaused(handBack)(id);
       else if (act === "done") unlessPaused(() => {
@@ -4102,6 +4438,10 @@
       }
     }
     need(laid.has(PLAYER_LOCO), `player loco ${PLAYER_LOCO} isn't laid out`);
+    const playerType = START_TRAINS.flatMap(t => t.vehicles).find(v => v.id === PLAYER_LOCO);
+    need(!playerType || (has(VEHICLE_TYPES, playerType.type) && !!VEHICLE_TYPES[playerType.type].traction), `player loco ${PLAYER_LOCO}: its kind has no traction figures`);
+    need(has(SEGMENTS, FUEL_POINT.segment) && FUEL_POINT.s >= 0 && FUEL_POINT.s <= segmentLength(FUEL_POINT.segment),
+      `fuel point: ${FUEL_POINT.s} m along ${FUEL_POINT.segment} isn't on track`);
     for (const id in YARD_TRACKS) {
       const t = YARD_TRACKS[id];
       need(has(SWITCHES, t.switch), `${t.name}: switch ${t.switch} doesn't exist`);
@@ -4241,7 +4581,8 @@
   window.switching = { get state() { return state; }, step, traffic, throwSwitch, uncouple, hookUp, meetings, moveReverser, moveThrottle,
     moveLocoBrake, moveTrainBrake, emergency, release, trainEnds, toggleAir, toggleHandBrake, brakeReach, skipTo, eventsAhead,
     takeJob, handBack, reportDone, jobStatus, dispositionOf, dispositionMet, blockInOrder, damageCar, TRACK_GEOM,
-    get paused() { return paused; }, togglePause, askForMain, reportClear, homeSignal, NODES, get view() { return view; }, saveYard, loadYard, newYard, fitsYard, SAVE_KEY, worldProblems, stateProblems };
+    get paused() { return paused; }, togglePause, askForMain, reportClear, homeSignal, NODES, get view() { return view; }, saveYard, loadYard, newYard, fitsYard, SAVE_KEY, worldProblems, stateProblems,
+    setSand, atFuelPoint, restLocos, FUEL_POINT, ADHESION };
 })();
 </script>
 </body>

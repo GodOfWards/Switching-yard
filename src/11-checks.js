@@ -38,6 +38,10 @@
       }
     }
     need(laid.has(PLAYER_LOCO), `player loco ${PLAYER_LOCO} isn't laid out`);
+    const playerType = START_TRAINS.flatMap(t => t.vehicles).find(v => v.id === PLAYER_LOCO);
+    need(!playerType || (has(VEHICLE_TYPES, playerType.type) && !!VEHICLE_TYPES[playerType.type].traction), `player loco ${PLAYER_LOCO}: its kind has no traction figures`);
+    need(has(SEGMENTS, FUEL_POINT.segment) && FUEL_POINT.s >= 0 && FUEL_POINT.s <= segmentLength(FUEL_POINT.segment),
+      `fuel point: ${FUEL_POINT.s} m along ${FUEL_POINT.segment} isn't on track`);
     for (const id in YARD_TRACKS) {
       const t = YARD_TRACKS[id];
       need(has(SWITCHES, t.switch), `${t.name}: switch ${t.switch} doesn't exist`);
@@ -177,4 +181,5 @@
   window.switching = { get state() { return state; }, step, traffic, throwSwitch, uncouple, hookUp, meetings, moveReverser, moveThrottle,
     moveLocoBrake, moveTrainBrake, emergency, release, trainEnds, toggleAir, toggleHandBrake, brakeReach, skipTo, eventsAhead,
     takeJob, handBack, reportDone, jobStatus, dispositionOf, dispositionMet, blockInOrder, damageCar, TRACK_GEOM,
-    get paused() { return paused; }, togglePause, askForMain, reportClear, homeSignal, NODES, get view() { return view; }, saveYard, loadYard, newYard, fitsYard, SAVE_KEY, worldProblems, stateProblems };
+    get paused() { return paused; }, togglePause, askForMain, reportClear, homeSignal, NODES, get view() { return view; }, saveYard, loadYard, newYard, fitsYard, SAVE_KEY, worldProblems, stateProblems,
+    setSand, atFuelPoint, restLocos, FUEL_POINT, ADHESION };

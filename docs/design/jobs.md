@@ -32,7 +32,9 @@ can span the yard and the industries near it.
   and every hand brake off; with every car placed, missing either reads
   as an invalid formation (implementation choice, retunable). A sort or a
   set-out asks for neither.
-- **The job board** lists open jobs with due times. The player takes as
+- **The job board** lists open jobs with due times, and above them the
+  "Fuel the loco" task while the tank is low ([traction.md](traction.md)),
+  which isn't a job. The player takes as
   many as they like and can hand one back. Work not taken is done
   off-screen when due.
 - **The job sheet** reads as a list: a header (job, place, loco, shift,

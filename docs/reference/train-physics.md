@@ -31,7 +31,7 @@ Updated 2026-10-08.
   0.0015 of its weight**, rolling about **255 m** from 10 km/h; an **empty
   25 t one about 0.0028**, about **145 m**. Empties stop sooner.
 - FA-era freight cars were likely mostly on plain bearings. **Unconfirmed**.
-- The G12 is taken as roller bearings. **Unconfirmed**.
+- The locos are taken as roller bearings. **Unconfirmed**.
 
 ## Starting resistance
 
@@ -83,7 +83,7 @@ Researched 2026-10-08.
   it. **Secondary** (US patents). The game treats it as a linear spring of
   2.2 MN over 7.5 cm, about 30 MN/m, damped at half of critical (an
   estimate; friction draft gears soak up much of an impact).
-- At the game's forces (up to the G12's 187 kN) the draft gear gives only
+- At the game's forces (up to the RSD-35's 194 kN) the draft gear gives only
   millimetres, so the free play is what the player feels: a loco moves
   about 5 cm per car before each car starts, and a cut runs in by as much
   when the loco brakes alone.

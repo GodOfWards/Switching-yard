@@ -32,6 +32,14 @@
   const pauseBtn = document.getElementById("pauseBtn");
   const levers = { rev: document.getElementById("revLever"), thr: document.getElementById("thrLever"), lb: document.getElementById("lbLever"),
                    tb: document.getElementById("tbLever") };
+  const loadMeter = document.getElementById("loadMeter"), slipLight = document.getElementById("slipLight");
+  const sandBtn = document.getElementById("sandBtn");
+  // The load meter's face (#117): its scale to LOAD_METER_MAX, a red mark
+  // at continuous and a tick for each of LOAD_METER_BANDS past it.
+  const meterAt = r => `${Math.min(1, r / LOAD_METER_MAX) * 100}%`;
+  loadMeter.innerHTML = `<span class="label">Load<b></b></span><div class="dial"><i></i>` +
+    LOAD_METER_BANDS.map(b => `<s style="left:${meterAt(b.r)}"></s>`).join("") + `<u style="left:${meterAt(1)}"></u></div>`;
+  const loadNeedle = loadMeter.querySelector("i"), loadText = loadMeter.querySelector("b");
 
   // Points every few metres along a stretch of a segment, from `s0` to `s1`,
   // for drawing it. A straight needs only its ends.
@@ -218,9 +226,26 @@
     const loco = playerLoco(), c = loco.controls, t = trainOf(loco);
     const cars = t.vehicles.length - 1, reach = brakeReach(t);
     const braked = t.vehicles.filter(id => !state.vehicles[id].controls && reach[id] >= 1).length;
+    const tr = vehicleType(loco).traction, fuelShare = c.fuel / tr.tank;
     readout.innerHTML = `<span>${(Math.abs(loco.speed) * 3.6).toFixed(1)} km/h · ` +
       `${cars} car${cars === 1 ? "" : "s"}${cars ? ` · air ${braked}/${cars}` : ""}</span>` +
+      `<span class="fuel${fuelShare < FUEL_LOW ? " warn" : ""}">Fuel ${Math.round(fuelShare * 100)}%` +
+      `<span class="meter"><i style="width:${fuelShare * 100}%"></i></span></span>` +
       `<small>v${GAME_CONFIG.VERSION}</small>`;
+    // The load meter: motor current as a share of continuous, and past it
+    // the band it's in, the minutes allowed from cold. The light shows a
+    // wheel slip, or else the power cut by hot motors or an empty tank.
+    const r = c.pull / tr.continuous, band = [...LOAD_METER_BANDS].reverse().find(b => r <= b.r);
+    loadNeedle.style.width = meterAt(r);
+    loadMeter.classList.toggle("over", r > 1);
+    loadText.textContent = c.tripped ? "power cut" : r > 1 ? (band ? `${band.minutes} min` : `< ${LOAD_METER_MINUTES[LOAD_METER_MINUTES.length - 1]} min`) : "";
+    const light = c.slip ? "Wheel slip" : c.tripped ? "Motors hot" : c.fuel <= 0 ? "No fuel" : "Wheel slip";
+    if (slipLight.textContent !== light) slipLight.textContent = light;
+    slipLight.classList.toggle("on", c.slip);
+    slipLight.classList.toggle("danger", !c.slip && (c.tripped || c.fuel <= 0));
+    sandBtn.classList.toggle("on", c.sanding && c.sand > 0);
+    const sandText = c.sand > 0 ? `Sand <small>${Math.round(c.sand * 100)}%</small>` : "No sand";
+    if (sandBtn.innerHTML !== sandText) sandBtn.innerHTML = sandText;
     renderClock();
     renderJobs();
     renderMainChip();
@@ -230,7 +255,8 @@
     pauseBtn.innerHTML = paused ? "▶&#xFE0E;" : "❚❚";
     pauseBtn.setAttribute("aria-label", paused ? "Resume" : "Pause");
     levers.rev.innerHTML = `Reverser<b>${c.reverser > 0 ? "Fwd" : c.reverser < 0 ? "Rev" : "N"}</b>`;
-    levers.thr.innerHTML = `Throttle<b>${c.throttle}/${THROTTLE_NOTCHES}</b>`;
+    levers.thr.innerHTML = `Throttle<b>${c.throttle}/${THROTTLE_NOTCHES}</b>` +
+      `<div class="meter"><i style="width:${c.load * 100}%"></i></div>`;
     levers.lb.innerHTML = `Loco brake<b>${c.locoBrake}/${LOCO_BRAKE_NOTCHES}</b>` +
       `<div class="meter"><i style="width:${c.locoApplied * 100}%"></i></div>`;
     levers.tb.innerHTML = `Train brake<b>${c.emergency ? "EMERG" : c.trainBrake + "/" + TRAIN_BRAKE_NOTCHES}</b>` +
@@ -364,9 +390,9 @@
         const f = toward(front, back, 1), b = toward(back, front, 1);
         line(b.x, b.y, f.x, f.y, PALETTE.bg, bodyWidth * 0.4);
       }
-      if (type.loco) {                                    // cab, at the end it faces
+      if (type.loco) {                                    // cab, at the end it faces (behind a short hood, for an RSD)
         const cabEnd = v.flip > 0 ? front : back, other = v.flip > 0 ? back : front;
-        const c1 = toward(cabEnd, other, 0.6), c2 = toward(cabEnd, other, 3);
+        const [from, to] = type.cab || [0.6, 3], c1 = toward(cabEnd, other, from), c2 = toward(cabEnd, other, to);
         line(c1.x, c1.y, c2.x, c2.y, PALETTE.light, bodyWidth * 0.6);
       }
       if (type.coach && k > 2.5) {                        // a coach's FA code, on its roof
@@ -455,6 +481,20 @@
       const c = view.toScreen(mid.x - mid.uy * 7 * side, mid.y + mid.ux * 7 * side);
       ctx.font = `600 ${Math.round(Math.max(10, Math.min(13, k * 2)))}px system-ui, sans-serif`;
       ctx.fillText(INDUSTRIES[ind].short, c.x, c.y);
+      ctx.textAlign = "start"; ctx.textBaseline = "alphabetic";
+    }
+    // The fuel point (#117): a tick across the track at either end of
+    // where a loco's middle may stand to fuel, and "Fuel" beside it.
+    {
+      const f = pointOn(FUEL_POINT.segment, FUEL_POINT.s), h = GAUGE * 0.9;
+      for (const d of [-FUEL_REACH, FUEL_REACH]) {
+        const x = f.x + f.ux * d, y = f.y + f.uy * d;
+        line(x - f.uy * h, y + f.ux * h, x + f.uy * h, y - f.ux * h, PALETTE.buffer, Math.max(1, k * 0.2));
+      }
+      const c = view.toScreen(f.x + f.uy * 6, f.y - f.ux * 6);
+      ctx.fillStyle = PALETTE.north; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.font = `600 ${Math.round(Math.max(10, Math.min(13, k * 2)))}px system-ui, sans-serif`;
+      ctx.fillText("Fuel", c.x, c.y);
       ctx.textAlign = "start"; ctx.textBaseline = "alphabetic";
     }
     // The cars of a job being worked that aren't yet where they belong: an

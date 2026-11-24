@@ -12,7 +12,8 @@
   //   WORLD DATA   the yard: track nodes, straight or curved segments between
   //                them, switches, the running tracks, and where track runs
   //                on beyond the map;
-  //                the kinds of rolling stock, the cars with their
+  //                the kinds of rolling stock (a loco's with its traction
+  //                figures), the fuel point, the cars with their
   //                markings and loads, and where it all starts; the yard
   //                tracks' blocks, the industries at Junín, the
   //                destinations waybills name, the cars' traffic at the
@@ -23,7 +24,8 @@
   //   STATE        what changes while playing: the time of day, switch
   //                positions, vehicles, the trains they are coupled into,
   //                the shunter's work under way at couplings,
-  //                the loco's controls, the cars' traffic (away off the
+  //                the loco's controls and its traction (load, slip, sand,
+  //                motor heat, fuel), the cars' traffic (away off the
   //                map included) and the pool of cars elsewhere on the
   //                line, the industries' work, the jobs, the arrivals held
   //                outside, the through trains offered, refused line clear
@@ -31,7 +33,9 @@
   //                Built from WORLD DATA by makeState(); never edits WORLD DATA.
   //   UTILITIES    small geometry, track-walking and lookup helpers.
   //   SIMULATION   advances STATE by one fixed step, step(dt): the clock, and
-  //                all movement rules: forces, brakes, slack, contact
+  //                all movement rules: traction (the load, wheel slip,
+  //                motor heat and fuel, and over a skip the locos at
+  //                rest), forces, brakes, slack, contact
   //                buffer to buffer, and the shunter's hooking up and
   //                uncoupling coming due. The events ahead (a job due, a shift change)
   //                come from here too. The
@@ -47,7 +51,7 @@
   //                offered, held or run past on the main; and the train
   //                register of every train run and how late.
   //   ACTIONS      what the player can do (reverser, levers, Emergency,
-  //                Release, throw a switch, connect or part the air,
+  //                Release, sand, throw a switch, connect or part the air,
   //                hook up or uncouple, set a hand brake, skip ahead, take, hand back
   //                or report a job, ask for the main or report it clear),
   //                and the rules on
