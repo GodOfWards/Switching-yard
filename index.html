@@ -353,7 +353,8 @@
   //                destinations waybills name, the cars' traffic at the
   //                start, the traffic plan's flows and the numbers of cars
   //                that join, and the road trains' and through trains'
-  //                timetables; the lines out of Junín, for the Map.
+  //                timetables, and the routes Retiro's road trains run;
+  //                the lines out of Junín, for the Map.
   //                Content passes (a new siding, a new yard) touch only this.
   //   STATE        what changes while playing: the time of day, switch
   //                positions, vehicles, the trains they are coupled into,
@@ -362,7 +363,8 @@
   //                motor heat, fuel), the cars' traffic (away off the
   //                map included) and the pool of cars elsewhere on the
   //                line, the industries' work, the jobs, the arrivals held
-  //                outside, the through trains offered, refused line clear
+  //                outside, Retiro's road trains under way,
+  //                the through trains offered, refused line clear
   //                or running, who holds the main, and the train register.
   //                Built from WORLD DATA by makeState(); never edits WORLD DATA.
   //   UTILITIES    small geometry, track-walking and lookup helpers.
@@ -382,7 +384,9 @@
   //                leaving, jobs opening with them and at shift changes,
   //                their lines checked against the yard, work done
   //                off-screen, rough handling, and results; through trains
-  //                offered, held or run past on the main; and the train
+  //                offered, held or run past on the main; Retiro's road
+  //                trains offered, accepted on their locked routes and
+  //                driven on sight over the crossover; and the train
   //                register of every train run and how late.
   //   ACTIONS      what the player can do (reverser, levers, Emergency,
   //                Release, sand, throw a switch, connect or part the air,
@@ -428,7 +432,7 @@
   // ==================================================
   // CONFIG
   // ==================================================
-  const GAME_CONFIG = { VERSION: "0.19.2" };
+  const GAME_CONFIG = { VERSION: "0.21.0" };
   const STEP_SECONDS = 1 / 60;          // fixed simulation step
   const MAX_STEPS_PER_FRAME = 5;        // drop time rather than spiral after a stall
   const VIEW_MARGIN = 8;                // metres of ground kept around the yard
@@ -647,6 +651,22 @@
   const DAYLIGHT_FROM = 6 * HOUR;
   const DAYLIGHT_TO = 20 * HOUR;
   const MAIN_ASK_MINUTES = [10, 20, 30];  // retunable
+  // Retiro road trains over the crossover (#78; docs/design/living-railway.md).
+  // The game drives them, at THROUGH_SPEED while the whole train is on the
+  // main and YARD_SPEED off it, on sight: braking at ROAD_DECEL, each stops
+  // ROAD_SIGHT_MARGIN short of anything in its way, and stands
+  // ROAD_STAND_CLEAR past a switch or fouling point it clears to reverse. A
+  // departure's road loco comes off the depot fan LOCO_OFF_SHED before the
+  // train leaves; once it is coupled, the station checks the train
+  // (RITO art. 207) for DEPARTURE_CHECK. A road train waiting for its
+  // route has it checked every ROAD_CHECK_SECONDS.
+  const YARD_SPEED = 15 / 3.6;          // m/s; Assumed: no FA switching speed found; retunable
+  const ROAD_DECEL = 0.3;               // m/s²; estimated, retunable
+  const ROAD_SIGHT_MARGIN = 10;         // m; retunable
+  const ROAD_STAND_CLEAR = 5;           // m; retunable
+  const LOCO_OFF_SHED = 20 * 60;        // s; retunable
+  const DEPARTURE_CHECK = 10 * 60;      // s, brake test and paperwork; Assumed, retunable
+  const ROAD_CHECK_SECONDS = 1;
   // A job is inefficient when its moves pass this many per car handled
   // and per block. A move is each change of direction of the player's
   // loco (#62), so stopping to throw a switch or uncouple isn't one.
@@ -1285,23 +1305,52 @@
     car14: { waybill: "stored" },    car16: { waybill: "stored" },     car11: { waybill: "stored" },
     car4:  { flow: "materials" },    car5:  { waybill: "stored" },     car10: { flow: "grainJunin" },
   };
-  // Road trains (#49), each day: an arrival comes onto ARRIVAL_TRACK at the
-  // buffer end, its road loco already gone, bringing cars back from away;
-  // a departure takes its block's cars from that block's track and goes.
-  // The buffer stands for the rest of the yard toward the station. `at` is
-  // the time of day; numbers are the game's. An arrival brings the cars
-  // coming back from the stations on its `side` (their block). Retiro has
-  // two departures a day: one 16-car train can't take Molinos Tassara's
-  // traffic on top of the rest (#105). Retunable.
+  // Road trains (#49), each day: an arrival comes onto ARRIVAL_TRACK,
+  // bringing cars back from away; a departure takes its block's cars from
+  // that block's track and goes. `at` is the time of day an arrival stands
+  // on its track or a departure leaves; numbers are the game's. An arrival
+  // brings the cars coming back from the stations on its `side` (their
+  // block). Retiro has two departures a day: one 16-car train can't take
+  // Molinos Tassara's traffic on top of the rest (#105). Retunable.
+  // Mendoza's trains appear at, and vanish from, the yard tracks' cut-off
+  // west end: an arrival stands at the buffer, its road loco gone. The
+  // buffer stands for the rest of the yard toward the station. Retiro's,
+  // `east`, run in and out over the crossover on ROAD_ROUTES (#78).
   const TIMETABLE = [
-    { id: "a1101", number: "1101", arrives: true, from: "Retiro",  side: "retiro",   at: 7 * HOUR },
-    { id: "d1102", number: "1102", arrives: false, to: "Retiro",  block: "retiro",   at: 9 * HOUR },
+    { id: "a1101", number: "1101", arrives: true, from: "Retiro",  side: "retiro",   at: 7 * HOUR, east: true },
+    { id: "d1102", number: "1102", arrives: false, to: "Retiro",  block: "retiro",   at: 9 * HOUR, east: true },
     { id: "d1202", number: "1202", arrives: false, to: "Mendoza", block: "mendoza",  at: 12.5 * HOUR },
     { id: "a1203", number: "1203", arrives: true, from: "Mendoza", side: "mendoza",  at: 15 * HOUR },
-    { id: "d1104", number: "1104", arrives: false, to: "Retiro",  block: "retiro",   at: 20.5 * HOUR },
-    { id: "a1105", number: "1105", arrives: true, from: "Retiro",  side: "retiro",   at: 23 * HOUR },
+    { id: "d1104", number: "1104", arrives: false, to: "Retiro",  block: "retiro",   at: 20.5 * HOUR, east: true },
+    { id: "a1105", number: "1105", arrives: true, from: "Retiro",  side: "retiro",   at: 23 * HOUR, east: true },
     { id: "d1206", number: "1206", arrives: false, to: "Mendoza", block: "mendoza",    at: 4.5 * HOUR },
   ];
+  // The routes the station sets and locks for a Retiro road train (#78),
+  // each as legs: a leg runs from end of track `from`, the switches lying as
+  // `set` says (trailing ones too, so they show it), to its `stop`: the
+  // buffer, off the map at the edge, on sight against the cut it takes, or
+  // standing clear of a switch or of a yard track's fouling point
+  // (`clearOf`), where it reverses for the next leg. An arrival runs in from
+  // the east edge to Track 3, loco first; a departure out from Track 1. Its
+  // road loco, ROAD_LOCO's kind, comes off fan track 8, the nearest the
+  // ladder: the fan leaves Track 7 beside the ladder, so the loco reverses
+  // on Track 7, and on the lead past J1, to reach Track 1 from the lead.
+  // The routes are the game's reading of the map; retunable. The road loco
+  // is an RSD-16, the San Martín's main-line power, as on the through
+  // freights (Tom, 2026-11-24, #117).
+  const ROAD_LOCO = "rsd16";
+  const ROAD_ROUTES = {
+    in: [{ from: "mainEastEnd", stop: "buffer",
+           set: { X2: "crossover_2", X1: "crossover_1", T1: "lead_3", J1: "J1J2_1", J2: "J2J3_1", J3: "J3J4_1", J4: "yard3_1" } }],
+    out: [{ from: "yard1End", stop: "edge",
+            set: { J2: "yard1_1", J1: "J1J2_1", T1: "lead_3", X1: "crossover_1", X2: "crossover_2" } }],
+    shed: [
+      { from: "fan8End", stop: { clearOf: "yard7" }, set: { J12: "fan8_1", J10: "J10J12_1", J11: "J10J11_2" } },
+      { from: "yard7End", stop: { clearOf: "J1" }, set: { J11: "J10J11_2", J10: "J7J10_2", J7: "J5J7_2", J5: "J1J5_6", J1: "J1J5_1" } },
+      { from: "leadEnd", stop: "cut", set: { J1: "J1J2_1", J2: "yard1_1" } },
+    ],
+  };
+
   // Through trains (#56, #77): they pass on the main without working the
   // yard. `enters` is the edge of the map they come in at: from Retiro the
   // east, from Mendoza the west, the station side. `at` is when the head
@@ -1384,7 +1433,11 @@
     // how late, and the yard's cause;
     // `nextShiftAt` is the next shift change to act on, and `timetableAt`
     // the time from which road trains are still to run; `held` lists the
-    // arrivals held outside, waiting for the arrival track. `throughAt` is
+    // arrivals held outside, waiting for the arrival track; `roadAt` the
+    // time from which Retiro's road trains (#78) are still to start, and
+    // `road` those started: offered, refused, coming in, a road loco off
+    // shed, standing for the station's check, or leaving, each with its
+    // vehicles on the map, its speed and its waits by cause. `throughAt` is
     // the time from which through trains are still to be offered;
     // `through` lists those offered, held or running, each with its
     // vehicles on the map and its speed. `main` says whether the player
@@ -1392,7 +1445,7 @@
     // traffic.
     const st = { clock: START_CLOCK, switches: {}, vehicles: {}, trains: {}, air: {}, gaps: {}, work: {}, nextTrain: 1,
                  cars: {}, jobs: [], nextJob: 1, moves: 0, locoSense: 0, register: [], nextShiftAt: START_CLOCK,
-                 timetableAt: START_CLOCK, held: [], throughAt: START_CLOCK, through: [], main: { held: false, until: null },
+                 timetableAt: START_CLOCK, held: [], roadAt: START_CLOCK, road: [], throughAt: START_CLOCK, through: [], main: { held: false, until: null },
                  pool: {}, nextCar: 1, poolCount: { joined: 0, left: 0 }, poolSince: START_CLOCK, industries: {},
                  seed: Math.floor(Math.random() * 2 ** 31), notice: null };
     for (const id in SWITCHES) st.switches[id] = { set: SWITCHES[id].normal };
@@ -2072,6 +2125,7 @@
     stepWork();
     countMoves();
     stepThrough(dt);
+    stepRoad(dt);
     runEvents();
     if (state.notice && (state.notice.time -= dt) <= 0) state.notice = null;
   }
@@ -2084,16 +2138,29 @@
   }
   // The events ahead of the clock, soonest first, up to and including the
   // end of this shift: jobs falling due, road trains arriving and leaving
-  // (a departure with its build job), through trains offered, an
-  // industry's work done, the loco full at the fuel point or fuel brought
-  // out to it, and the shift change, when the next jobs open.
+  // (a departure with its build job), a Retiro road train offered or its
+  // loco off shed (#78), through trains offered, an industry's work done,
+  // the loco full at the fuel point or fuel brought out to it, and the
+  // shift change, when the next jobs open.
   function eventsAhead() {
     const end = shiftAt(state.clock).end, out = [];
+    const train = (at, tt, run, kind = "train") => {
+      const j = state.jobs.find(j => j.run === run);
+      if (at > state.clock && at <= end) out.push({ at, kind, tt, job: j && !j.result ? j.id : null });
+    };
     for (const j of state.jobs) if (!j.result && j.kind !== "build" && j.due > state.clock && j.due <= end) out.push({ at: j.due, kind: "due", job: j.id });
-    for (const r of runsBetween(state.timetableAt, end)) {
-      if (r.at <= state.clock) continue;
-      const j = state.jobs.find(j => j.run === r.id);
-      out.push({ at: r.at, kind: "train", tt: r.tt, job: j && !j.result ? j.id : null });
+    for (const r of runsBetween(state.timetableAt, end)) if (!timetableEntry(r.tt).east) train(r.at, r.tt, r.id);
+    // Retiro's: those still to start, by when they start and their time;
+    // those started, by when an arrival accepted is in or a departure leaves.
+    for (const r of runsBetween(state.roadAt, end + ROAD_LEAD)) {
+      const tt = timetableEntry(r.tt);
+      if (!tt.east) continue;
+      train(roadStartAt(tt, r.at), r.tt, r.id, tt.arrives ? "offer" : "loco");
+      train(r.at, r.tt, r.id);
+    }
+    for (const r of state.road) {
+      const at = r.kind === "arrival" ? (r.status === "accepted" ? r.enters + ROAD_IN_TIME : null) : r.at;
+      if (at !== null) train(at, r.tt, r.id);
     }
     for (const r of runsBetween(Math.max(state.throughAt, state.clock + 1) + OFFER_LEAD_SECONDS, end + OFFER_LEAD_SECONDS, THROUGH_TIMETABLE))
       out.push({ at: r.at - OFFER_LEAD_SECONDS, kind: "offer", through: r.tt });
@@ -2158,6 +2225,9 @@
     if (h.length > HISTORY_KEPT) h.shift();
   }
   const jobById = id => state.jobs.find(j => j.id === id);
+  // When a job must be done: when due, or a Retiro build when its road
+  // loco comes off shed (#78). Another crew does one not taken then.
+  const readyBy = j => j.ready || j.due;
   const openJobs = () => state.jobs.filter(j => !j.result);
 
   // The block a car goes to next, or null when it stays where it is (or is
@@ -2259,28 +2329,44 @@
     return true;
   }
 
-  // Acts, in time order, on every industry's work done, shift change and
-  // road train the clock has reached, then lets in any arrival held
-  // outside whose track is clear.
-  function runEvents() {
+  // Acts, in time order, on every industry's work done, shift change,
+  // road train and Retiro road train's start the clock has reached, then
+  // lets in any arrival held outside whose track is clear, moves Retiro's
+  // road trains on (#78), and the main's through trains. `instant` while
+  // the clock skips: nothing moves then, so a Retiro road train's moves
+  // are done at once, each at its time, and it is checked again after
+  // every event in the skip.
+  function runEvents(instant = false) {
+    const woke = new Set();
     for (;;) {
-      const run = runsBetween(state.timetableAt, state.clock)[0], ind = industryDue();
-      if (ind && (state.nextShiftAt > state.clock || ind.at <= state.nextShiftAt) && (!run || ind.at <= run.at)) {
-        industryReady(ind.ind, ind.at);
-        continue;
-      }
-      if (state.nextShiftAt <= state.clock && (!run || state.nextShiftAt <= run.at)) {
+      const now = state.clock, next = [];
+      const ind = industryDue(), run = runsBetween(state.timetableAt, now)[0], road = nextRoadRun();
+      if (ind) next.push({ at: ind.at, go: () => industryReady(ind.ind, ind.at) });
+      if (state.nextShiftAt <= now) next.push({ at: state.nextShiftAt, go: () => {
         shiftChange(state.nextShiftAt);
         state.nextShiftAt += SHIFT_HOURS * HOUR;
-        continue;
+      } });
+      if (run) next.push({ at: run.at, go: () => {
+        state.timetableAt = run.at + 1;
+        const tt = timetableEntry(run.tt);
+        if (tt.east) return;                // Retiro's start ahead of their time: startRoad()
+        if (tt.arrives) state.held.push(run);
+        else departureDue(run);
+        letInArrivals(run.at);
+      } });
+      if (road && road.start <= now) next.push({ at: road.start, go: () => startRoad(road, road.start) });
+      if (instant) for (const r of state.road) {
+        const at = roadWake(r);
+        if (at !== null && at <= now && !woke.has(r.id + "@" + at)) next.push({ at, go: () => woke.add(r.id + "@" + at) });
       }
-      if (!run) break;
-      state.timetableAt = run.at + 1;
-      if (timetableEntry(run.tt).arrives) state.held.push(run);
-      else departureDue(run);
-      letInArrivals(run.at);
+      if (!next.length) break;
+      // The soonest; on a tie, in the order above.
+      const e = next.reduce((a, b) => b.at < a.at ? b : a);
+      e.go();
+      if (instant) for (const r of [...state.road]) advanceRoad(r, e.at, true);
     }
     letInArrivals(state.clock);
+    for (const r of [...state.road]) advanceRoad(r, state.clock, instant);
     mainEvents();
   }
   // The road trains (or the through trains of `table`) that run from
@@ -2320,7 +2406,7 @@
     const busy = new Set(openJobs().flatMap(j => j.cars));
     for (const id in state.cars) {
       const c = state.cars[id], v = state.vehicles[id], block = dispositionOf(id);
-      if (c.away !== null || busy.has(id) || v.speed !== 0 || !block || !dispositionMet(id)) continue;
+      if (c.away !== null || busy.has(id) || v.speed !== 0 || v.run || !block || !dispositionMet(id)) continue;
       if (c.badOrder) {
         c.badOrder = null;
         logCar(id, `Repaired on ${YARD_TRACKS[trackAt(v)].name}`, at);
@@ -2545,9 +2631,10 @@
   }
 
   // Lets in the arrivals held outside, first come first, while the arrival
-  // track stands clear.
+  // track stands clear and no Retiro arrival has its route set for it.
   function letInArrivals(at) {
-    while (state.held.length && trackClear(ARRIVAL_TRACK)) arrive(state.held.shift(), at);
+    while (state.held.length && trackClear(ARRIVAL_TRACK) && !state.road.some(r => r.kind === "arrival" && r.status !== "refused"))
+      arrive(state.held.shift(), at);
   }
   // Whether nothing stands on yard track `trackId`, not even an end.
   function trackClear(trackId) {
@@ -2558,32 +2645,42 @@
     }
     return true;
   }
-  // A road train arrives at `at`, onto the arrival track: the cars due
-  // back by then from the stations on its side, soonest due first, up to
-  // ARRIVAL_CARS_MAX, topped up from the pool toward ARRIVAL_CARS_MIN. Each is
-  // loaded or unloaded at its station by the plan, and billed on. A job
-  // opens to break it up, due at the shift change, and one to build each
-  // departure that follows it, up to the next arrival.
-  function arrive(run, at) {
-    const tt = timetableEntry(run.tt), late = at - run.at;
+  // The cars a road train from `tt`'s side brings at `at`: those due back
+  // by then from the stations on its side, soonest due first, up to
+  // ARRIVAL_CARS_MAX, topped up from the pool toward ARRIVAL_CARS_MIN; none
+  // already on a Retiro road train coming in.
+  function arrivalCars(tt, at) {
+    const coming = new Set(state.road.flatMap(r => r.cars));
     const ids = Object.keys(state.cars).filter(id => {
       const t = state.cars[id].trip;
-      return t && !t.pool && t.back <= at && (DESTINATIONS[t.at].westEnd || DESTINATIONS[t.at].block === tt.side);
+      return t && !t.pool && t.back <= at && !coming.has(id) && (DESTINATIONS[t.at].westEnd || DESTINATIONS[t.at].block === tt.side);
     }).sort((a, b) => state.cars[a].trip.back - state.cars[b].trip.back).slice(0, ARRIVAL_CARS_MAX);
     for (let id; ids.length < ARRIVAL_CARS_MIN && (id = joinFromPool(tt.side, at));) ids.push(id);
-    const note = late >= ON_TIME_SECONDS ? `, held outside ${lateText(late)}` : "";
-    registerTrain({ number: tt.number, name: trainName(tt), passenger: false, kind: "arrival", booked: run.at, late,
-                    cause: `Track ${YARD_TRACKS[ARRIVAL_TRACK].number} not clear` });
+    return ids;
+  }
+  // A road train arrives at `at`, onto the arrival track, with its cars
+  // (arrivalCars()). Each is loaded or unloaded at its station by the plan,
+  // and billed on. A job opens to break it up, due at the shift change, and
+  // one to build each departure that follows it, up to the next arrival.
+  // A Retiro road train, `road` (#78), brings the cars it ran in with,
+  // already standing on the track; or, done at once in a skip, its cars
+  // are laid there as any arrival's. Its lateness and cause are its own.
+  function arrive(run, at, road = null) {
+    const tt = timetableEntry(run.tt), late = Math.max(0, at - run.at), onMap = !!road && road.vehicles.length > 0;
+    const ids = onMap ? road.cars : arrivalCars(tt, at);
+    const note = late < ON_TIME_SECONDS ? "" : road ? `, ${lateText(late)} late` : `, held outside ${lateText(late)}`;
+    const delay = road ? roadDelay(road, late) : { cause: `Track ${YARD_TRACKS[ARRIVAL_TRACK].number} not clear`, yardLate: late };
+    registerTrain({ number: tt.number, name: trainName(tt), passenger: false, kind: "arrival", booked: run.at, late, ...delay });
     for (const id of ids) {
       resolveTrip(id);
-      addVehicle(id, state.cars[id].type);
+      if (!onMap) addVehicle(id, state.cars[id].type);
       logCar(id, `Arrived on ${trainName(tt)}${note}`, at);
       rebill(id, at);
     }
     if (ids.length) {
-      layOnTrack(ARRIVAL_TRACK, ids);
+      if (!onMap) layOnTrack(ARRIVAL_TRACK, ids);
       addJob({ kind: "breakup", title: `Break up ${trainName(tt)}`, short: `Break up ${tt.number}`, opens: at,
-               due: shiftAt(at).end, cars: ids, run: run.id, arrivedLate: late });
+               due: shiftAt(at).end, cars: ids, run: run.id, arrivedLate: late, ...(tt.east ? { east: true } : {}) });
     }
     for (const next of runsBetween(run.at + 1, run.at + DAY)) {
       if (timetableEntry(next.tt).arrives) break;
@@ -2598,8 +2695,9 @@
     const onTrack = id => trackAt(state.vehicles[id]) === track ? 0 : 1;
     const cars = Object.keys(state.cars).filter(id => state.cars[id].away === null && dispositionOf(id) === tt.block)
       .sort((a, b) => onTrack(a) - onTrack(b)).slice(0, DEPARTURE_MAX_CARS);
+    // A Retiro departure's build must be ready for its road loco off shed.
     return addJob({ kind: "build", title: `Build ${trainName(tt)}`, short: `Build ${tt.number}`, opens: at, due: run.at,
-                    cars, run: run.id, block: tt.block, departed: null });
+                    cars, run: run.id, block: tt.block, departed: null, ...(tt.east ? { ready: run.at - LOCO_OFF_SHED } : {}) });
   }
   // A departure's time has come. Built, or not taken (and so built now by
   // another crew), it leaves; taken and not reported done, it waits for
@@ -2616,18 +2714,23 @@
   // off the map, on a trip to their waybills' stations; the rest wait for
   // the next train. A car whose flow has more than FLOW_SLACK cars over
   // its share will stay out in the pool once its trip is over.
-  function depart(job, at) {
+  // A Retiro departure (#78) gives the cars its road loco took, `taken`,
+  // which leave on the map, and its own delay.
+  function depart(job, at, taken = null, delay = null) {
     const tt = timetableEntry(job.run.split(".")[0]), late = Math.max(0, at - job.due);
-    const going = job.cars.filter(id => state.cars[id].away === null && dispositionOf(id) === job.block && dispositionMet(id));
-    for (const id of going) sendAway(id, at, `Left on ${trainName(tt)}${late >= ON_TIME_SECONDS ? `, ${lateText(late)} late` : ""}`);
+    const going = taken || job.cars.filter(id => state.cars[id].away === null && dispositionOf(id) === job.block && dispositionMet(id));
+    for (const id of going) sendAway(id, at, `Left on ${trainName(tt)}${late >= ON_TIME_SECONDS ? `, ${lateText(late)} late` : ""}`, !!taken);
     job.departed = { at, cars: going.length, late };
     registerTrain({ number: tt.number, name: trainName(tt), passenger: false, kind: "departure", booked: job.due, late,
-                    cause: "Build not ready" });
+                    ...(delay || { cause: "Build not ready", yardLate: late }) });
   }
-  // Car `id` leaves the map at `at` on a trip to its waybill's station.
-  function sendAway(id, at, text) {
-    detach(id);
-    delete state.vehicles[id];
+  // Car `id` leaves at `at` on a trip to its waybill's station: off the
+  // map now, or, `onTrain`, as its train runs off it.
+  function sendAway(id, at, text, onTrain = false) {
+    if (!onTrain) {
+      detach(id);
+      delete state.vehicles[id];
+    }
     const c = state.cars[id], x = c.waybill;
     const pool = !c.flow || flowCars(c.flow) > flowShare(c.flow) + FLOW_SLACK;
     const back = at + DESTINATIONS[x].away * (1 + TRIP_SPREAD * (2 * random() - 1));
@@ -2656,7 +2759,7 @@
     for (const id of job.cars) {
       if (dispositionMet(id)) continue;
       const v = state.vehicles[id];
-      const track = v.speed === 0 && !inPlayerTrain(v) && blockTracks(dispositionOf(id)).find(t => setOnTrack(t, id));
+      const track = v.speed === 0 && !inPlayerTrain(v) && !v.run && blockTracks(dispositionOf(id)).find(t => setOnTrack(t, id));
       if (track) logCar(id, `Set on ${YARD_TRACKS[track].name} by another crew`, at);
       else left.push(id);
     }
@@ -2736,7 +2839,7 @@
     else outcome = st.met ? "Partially complete" : "Incomplete";
     for (const l of st.lines) if (l.met && l.block && !l.away) logCar(l.id, `Left on ${YARD_TRACKS[trackAt(state.vehicles[l.id])].name}, ${BLOCKS[l.block].name}`, at);
     job.result = { by: "player", at, outcome, met: st.met, total: st.lines.length, inOrder: st.inOrder, cut: st.cut,
-                   moves, par, late: Math.max(0, at - job.due) };
+                   moves, par, late: Math.max(0, at - readyBy(job)) };
     jobFinished(job, at);
   }
 
@@ -2758,10 +2861,11 @@
   const byDay = at => { const t = at % DAY; return t >= DAYLIGHT_FROM && t < DAYLIGHT_TO; };
   const waitsAt = tt => THROUGH_EDGES[tt.enters].station;
   const throughRun = id => state.through.find(r => r.id === id);
-  // The through train a train belongs to, if it is one: the game drives it.
+  // The through train or Retiro road train a train belongs to, if it is
+  // one: the game drives it.
   function drivenBy(t) {
     const v = t && state.vehicles[t.vehicles[0]];
-    return v && v.run ? throughRun(v.run) : null;
+    return v && v.run ? throughRun(v.run) || roadRun(v.run) : null;
   }
   // Where a train coming in at map edge `edge` stands `d` metres in from
   // it, facing in: the segment, how far along it, and the sense it faces.
@@ -2780,8 +2884,9 @@
   const throughLength = tt => throughKinds(tt).reduce((sum, type) => sum + VEHICLE_TYPES[type].length, 0);
   // The main is clear for a train when no one holds it: the player gives it
   // back only with the crossover lying for the main and nothing of theirs on
-  // the running tracks (reportClear).
-  const mainClear = () => !state.main.held;
+  // the running tracks (reportClear); a Retiro road train, once it is in
+  // clear on the yard's track or gone off the map.
+  const mainClear = () => !state.main.held && !roadOnMain();
 
   // Offers each through train whose time has come, gives line clear or holds
   // each one reaching the map, and lets go those held once the main is
@@ -2796,7 +2901,7 @@
         r.status = "refused";
         r.cause = `Held at ${waitsAt(tt)} by night`;
         setNotice(`${tt.number} held at ${waitsAt(tt)}: night`);
-      } else setNotice(`Clear the main for ${throughName(tt)}`);
+      } else setNotice(state.main.held ? `Clear the main for ${throughName(tt)}` : `${throughName(tt)} held for ${roadName(roadOnMain())}`);
     }
     for (const r of state.through) {
       const tt = throughEntry(r.tt);
@@ -2830,7 +2935,8 @@
   // it waits off the map.
   function holdThrough(r) {
     r.status = "held";
-    r.cause = state.clock > state.main.until ? "Main kept past its time" : "Held for the main";
+    const road = roadOnMain();
+    r.cause = road ? `Held for ${roadName(road)}` : state.clock > state.main.until ? "Main kept past its time" : "Held for the main";
     const tt = throughEntry(r.tt), sig = homeSignal(), sx = pointOn(sig.seg, sig.s).x;
     const inTheWay = Object.values(state.vehicles).some(v => RUNNING.has(v.seg) && pointOn(v.seg, v.s).x > sx - 20);
     if (tt.enters === "east" && !inTheWay) layThrough(r, sig);
@@ -2869,12 +2975,14 @@
   // Junín's train register (#62; RITO art. 41, 219): a line for each train
   // that runs, road trains as they arrive or leave and through trains as
   // they pass, with its booked time, the time it actually ran (booked plus
-  // how late), and, when late, the yard's cause. Lines older than
-  // REGISTER_DAYS days are dropped.
+  // how late), and, when the yard made it late, the cause. A line's
+  // `yardLate` is the part of its lateness the yard caused, when not all of
+  // it (#78). Lines older than REGISTER_DAYS days are dropped.
   function registerTrain(line) {
     const from = (Math.floor(state.clock / DAY) - (REGISTER_DAYS - 1)) * DAY;
     state.register = state.register.filter(l => l.actual >= from);
-    state.register.push({ ...line, actual: line.booked + line.late, cause: line.late >= ON_TIME_SECONDS ? line.cause : null });
+    const yardLate = line.yardLate === undefined ? line.late : line.yardLate;
+    state.register.push({ ...line, actual: line.booked + line.late, cause: yardLate >= ON_TIME_SECONDS ? line.cause || null : null });
   }
   // A through train has passed. Its lateness is when it leaves the map
   // against when it would have left running through unhindered: the time
@@ -2889,6 +2997,567 @@
   function nextOfferAt() {
     const run = runsBetween(state.throughAt + OFFER_LEAD_SECONDS, state.clock + DAY + OFFER_LEAD_SECONDS, THROUGH_TIMETABLE)[0];
     return run ? { at: run.at - OFFER_LEAD_SECONDS, tt: throughEntry(run.tt) } : null;
+  }
+
+  // Retiro's road trains (#78; docs/design/living-railway.md). An arrival
+  // is offered OFFER_LEAD_SECONDS before it reaches the map's east edge,
+  // ROAD_IN_TIME before it is due on Track 3. The station accepts it only
+  // with Track 3 and its route clear of vehicles and fouling, the main not
+  // held, and no through train due on the main during its run in; otherwise
+  // it is refused, waits at La Oriental, and is offered again once all of
+  // that holds, still OFFER_LEAD_SECONDS out. A player holding the main is
+  // called off. Accepted, its route is set and locked, and it runs in,
+  // driven by the game, on sight, to Track 3's buffer; there the route is
+  // unlocked, the crossover padlocked for the main, and its loco cuts off
+  // and goes on west, off the map. A departure's road loco comes off the
+  // fan LOCO_OFF_SHED before it leaves, once the build is ready (another
+  // crew builds it then if it isn't taken) and the loco's route is clear;
+  // it couples to the east end of the block's cut, the station checks the
+  // train for DEPARTURE_CHECK, and at its time, accepted as an arrival is,
+  // it pulls out over the crossover. Each run keeps how long it waited, by
+  // cause: a wait on a through train or another road train isn't the
+  // yard's.
+  const roadRun = id => state.road.find(r => r.id === id);
+  const roadName = r => trainName(timetableEntry(r.tt));
+  const ROAD_LOCO_LENGTH = VEHICLE_TYPES[ROAD_LOCO].length;
+  const trainLength = t => t.vehicles.reduce((sum, id) => sum + vehicleType(state.vehicles[id]).length, 0);
+  // Each route's legs, built once from WORLD DATA: the path from the leg's
+  // `from`, segment by segment (`pieces`, each with how far along it
+  // starts and the sense it is run in), with switches lying as it sets
+  // them, to the end of track or a facing switch it doesn't set; how far
+  // along it each node is; the stretches of it on the main; and, by
+  // segment off it, each metre within FOULING_CLEARANCE of it, with how
+  // far along the path it fouls. A leg after the first starts where its
+  // loco, reversed, stood at the last one's stop (`checkFrom`).
+  function buildLeg(spec) {
+    const leg = { ...spec, pieces: [], index: {}, nodes: { [spec.from]: 0 }, main: [], zone: {}, length: 0, checkFrom: 0 };
+    let node = spec.from, seg = SEGMENTS_AT[node] && SEGMENTS_AT[node].length === 1 ? SEGMENTS_AT[node][0] : null;
+    while (seg && !leg.index[seg]) {
+      const sense = SEGMENTS[seg].a === node ? 1 : -1, len = segmentLength(seg), piece = { seg, from: leg.length, sense };
+      leg.pieces.push(piece);
+      leg.index[seg] = piece;
+      if (ofTrack(seg, "main")) {
+        const last = leg.main[leg.main.length - 1];
+        if (last && last[1] === leg.length) last[1] += len; else leg.main.push([leg.length, leg.length + len]);
+      }
+      leg.length += len;
+      node = sense > 0 ? SEGMENTS[seg].b : SEGMENTS[seg].a;
+      leg.nodes[node] = leg.length;
+      const sw = SWITCHES[node];
+      seg = sw ? (seg === sw.trunk ? spec.set[node] || null : sw.trunk) : SEGMENTS_AT[node].find(id => id !== seg) || null;
+    }
+    leg.end = node;
+    const CELL = 8, grid = {};
+    for (const p of leg.pieces) for (let d = 0, len = segmentLength(p.seg); d <= len; d += 1) {
+      const q = pointOn(p.seg, p.sense > 0 ? d : len - d), k = `${Math.floor(q.x / CELL)},${Math.floor(q.y / CELL)}`;
+      (grid[k] = grid[k] || []).push({ x: q.x, y: q.y, along: p.from + d });
+    }
+    for (const seg in SEGMENTS) {
+      if (leg.index[seg]) continue;
+      for (let s = 0, len = segmentLength(seg); s <= len; s += 1) {
+        const q = pointOn(seg, s), cx = Math.floor(q.x / CELL), cy = Math.floor(q.y / CELL);
+        let best = null;
+        for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) for (const o of grid[`${cx + i},${cy + j}`] || [])
+          if (Math.hypot(o.x - q.x, o.y - q.y) < FOULING_CLEARANCE && (best === null || o.along < best)) best = o.along;
+        if (best !== null) (leg.zone[seg] = leg.zone[seg] || {})[Math.round(s)] = best;
+      }
+    }
+    return leg;
+  }
+  // How far along `leg` the point `s` on `seg` is (the segment on it), and
+  // the point `along` metres along it, with the sense it is run in there.
+  function alongOf(leg, seg, s) {
+    const p = leg.index[seg];
+    return p.from + (p.sense > 0 ? s : segmentLength(seg) - s);
+  }
+  function pointAt(leg, along) {
+    for (const p of leg.pieces) {
+      const len = segmentLength(p.seg);
+      if (along <= p.from + len + EPS) {
+        const d = Math.max(0, Math.min(len, along - p.from));
+        return { seg: p.seg, s: p.sense > 0 ? d : len - d, travel: p.sense };
+      }
+    }
+    return null;
+  }
+  // Where a road train `len` long stops on `leg`, as how far along it its
+  // head stands: SET_BACK off the buffer, or ROAD_STAND_CLEAR past the
+  // switch or the yard track's fouling point it clears. Off the map's edge,
+  // or against a cut, it has no fixed stop.
+  function legStop(leg, len) {
+    if (leg.stop === "buffer") return leg.length - SET_BACK;
+    if (leg.stop === "edge" || leg.stop === "cut") return Infinity;
+    const c = leg.stop.clearOf, track = YARD_TRACKS[c];
+    return leg.nodes[track ? track.switch : c] + (track ? TRACK_GEOM[c].fouling : 0) + len + ROAD_STAND_CLEAR;
+  }
+  const ROAD_LEGS = {};
+  for (const id in ROAD_ROUTES) ROAD_LEGS[id] = ROAD_ROUTES[id].map(buildLeg);
+  for (const id in ROAD_LEGS) ROAD_LEGS[id].forEach((leg, i, legs) => {
+    if (!i) return;
+    const prev = legs[i - 1], tail = pointAt(prev, legStop(prev, ROAD_LOCO_LENGTH) - ROAD_LOCO_LENGTH);
+    if (tail && leg.index[tail.seg]) leg.checkFrom = alongOf(leg, tail.seg, tail.s);
+  });
+  // The switches each route sets, and which a run has locked as each lies
+  // for the leg it is on (or the next that sets it).
+  const ROUTE_SWITCHES = {};
+  for (const id in ROAD_ROUTES) ROUTE_SWITCHES[id] = [...new Set(ROAD_ROUTES[id].flatMap(l => Object.keys(l.set)))];
+  function lockedFor(r, swId) {
+    const legs = ROAD_ROUTES[r.route];
+    for (let k = r.leg; k < legs.length; k++) if (legs[k].set[swId]) return legs[k].set[swId];
+    for (let k = r.leg - 1; k >= 0; k--) if (legs[k].set[swId]) return legs[k].set[swId];
+    return null;
+  }
+  // The Retiro road train holding switch `swId` locked, if one does.
+  const roadLock = swId => state.road.find(r => r.locks.includes(swId)) || null;
+
+  // The fastest a road train `len` long, its head `pos` along `leg`, may
+  // go to stop by `stopAt`: THROUGH_SPEED with all of it on the main,
+  // braking at ROAD_DECEL to YARD_SPEED where the main ends ahead (unless
+  // at the map's edge), and to a stand at `stopAt`.
+  function roadCap(leg, pos, len, stopAt) {
+    let cap = YARD_SPEED;
+    for (const [a, b] of leg.main) {
+      if (pos - len >= a - EPS && pos <= b + EPS) cap = THROUGH_SPEED;
+      if (pos >= a && pos < b && b < leg.length) cap = Math.min(cap, Math.sqrt(YARD_SPEED ** 2 + 2 * ROAD_DECEL * (b - pos)));
+    }
+    return Math.min(cap, Math.sqrt(2 * ROAD_DECEL * Math.max(0, stopAt - pos)));
+  }
+  // How long a road train `len` long takes over `legs` with nothing in its
+  // way, its head starting `from` along the first; a leg against a cut
+  // stops `cutAt` along it, and one off the map's edge runs until all of
+  // it is off. Worked out once, a step of a quarter second at a time.
+  function nominalTime(legs, len, from, cutAt = 0) {
+    const dt = 0.25;
+    let t = 0;
+    legs.forEach((leg, i) => {
+      const edge = leg.stop === "edge", stop = leg.stop === "cut" ? cutAt : legStop(leg, len), done = edge ? leg.length + len : stop - 0.02;
+      let pos = i ? leg.checkFrom : from, v = 0;
+      for (let n = 0; pos < done && n < 1e5; n++) {
+        const cap = roadCap(leg, Math.min(pos, leg.length), len, edge ? Infinity : stop);
+        v = v < cap ? Math.min(cap, v + THROUGH_ACCEL * dt) : cap;
+        pos += v * dt;
+        t += dt;
+      }
+    });
+    return t;
+  }
+  // The yard track a leg ends on (or, leaving the map, starts from), and how
+  // far along the leg its switch is.
+  const legTrack = leg => Object.keys(YARD_TRACKS).find(t => TRACK_GEOM[t].end === (MAP_EDGES.includes(leg.end) ? leg.from : leg.end));
+  const trackFrom = leg => leg.nodes[YARD_TRACKS[legTrack(leg)].switch];
+  // An arrival's run in, from the edge to Track 3's buffer; a departure's
+  // run out, the longest train from Track 1's switch until off the map; its
+  // loco's run off shed, to a cut halfway down Track 1. A skip does them at
+  // once, taking these times.
+  const ROAD_IN_TIME = nominalTime(ROAD_LEGS.in, 0, 0);
+  const LONGEST_DEPARTURE = ROAD_LOCO_LENGTH + DEPARTURE_MAX_CARS
+    * Math.max(...Object.values(VEHICLE_TYPES).filter(t => !t.loco && !t.coach).map(t => t.length));
+  const ROAD_OUT_TIME = nominalTime(ROAD_LEGS.out, LONGEST_DEPARTURE, trackFrom(ROAD_LEGS.out[0]));
+  const shedLast = ROAD_LEGS.shed[ROAD_LEGS.shed.length - 1];
+  const LOCO_RUN_TIME = nominalTime(ROAD_LEGS.shed, ROAD_LOCO_LENGTH, SET_BACK + ROAD_LOCO_LENGTH,
+                                    trackFrom(shedLast) + TRACK_GEOM[legTrack(shedLast)].length / 2);
+  // How far ahead of its time a Retiro road train starts: an arrival is
+  // offered, a departure's loco is due off shed.
+  const roadStartAt = (tt, at) => tt.arrives ? at - ROAD_IN_TIME - OFFER_LEAD_SECONDS : at - LOCO_OFF_SHED;
+  const ROAD_LEAD = Math.max(ROAD_IN_TIME + OFFER_LEAD_SECONDS, LOCO_OFF_SHED);
+  // The next Retiro road train still to start, with when it starts.
+  function nextRoadRun() {
+    const run = runsBetween(state.roadAt, state.clock + ROAD_LEAD).find(r => timetableEntry(r.tt).east);
+    return run ? { ...run, start: roadStartAt(timetableEntry(run.tt), run.at) } : null;
+  }
+  // Why a run waits, by cause: the yard's, and the rest (a through train or
+  // another road train due, which aren't). The register's cause for each.
+  const ROAD_CAUSES = { track: `Refused: Track ${YARD_TRACKS[ARRIVAL_TRACK].number} not clear`, route: "Route not clear",
+                        build: "Build not ready", main: "Main held" };
+  const WAIT_TEXT = { track: `Track ${YARD_TRACKS[ARRIVAL_TRACK].number} not clear`, route: "route not clear",
+                      build: "build not ready", main: "main held", through: "a through train is due", train: "another road train" };
+  // Whether a run holds the main: an arrival from acceptance until it
+  // stands in clear, a departure from pulling out until it is gone. The
+  // run that does, if one does.
+  const holdsMain = r => r.kind === "arrival" ? r.status === "accepted" || r.status === "running" : r.status === "running";
+  const roadOnMain = () => state.road.find(holdsMain) || null;
+
+  // A Retiro road train's time `run` has come, at `at`: an arrival is
+  // offered; a departure's build job, opened now if its arrival hasn't
+  // come, waits for its loco. advanceRoad() decides the rest.
+  function startRoad(run, at) {
+    state.roadAt = run.at + 1;
+    const tt = timetableEntry(run.tt);
+    const r = { id: run.id, tt: run.tt, at: run.at, kind: tt.arrives ? "arrival" : "departure", status: tt.arrives ? "refused" : "waiting",
+                route: tt.arrives ? "in" : "shed", leg: 0, legSet: false, locks: [], speed: 0, vehicles: [], cars: [], blocked: false,
+                enters: null, until: null, job: null, notional: false, light: false, why: null, wait: {}, checkedAt: at };
+    if (!tt.arrives) r.job = (state.jobs.find(j => j.run === run.id) || openBuild(run, at)).id;
+    state.road.push(r);
+    if (tt.arrives) setNotice(`${trainName(tt)} offered, for Track ${YARD_TRACKS[ARRIVAL_TRACK].number}`);
+  }
+  // The time a run moves on by itself, if it does, for a skip: an
+  // arrival accepted is in, a departure's check is done or its time comes.
+  function roadWake(r) {
+    if (r.kind === "arrival") return r.status === "accepted" ? r.enters + ROAD_IN_TIME : null;
+    return r.status === "check" ? r.until : r.status === "ready" ? r.at : null;
+  }
+  // Notes why run `r` is waiting at `now` (null: it isn't), adding the time
+  // since it was last checked to its last cause, and tells the player
+  // when the cause changes.
+  function noteWait(r, now, why) {
+    if (r.why) r.wait[r.why] = (r.wait[r.why] || 0) + Math.max(0, now - r.checkedAt);
+    if (why && why !== r.why) setNotice(why === "main" ? `Clear the main for ${roadName(r)}`
+      : `${roadName(r)}${r.kind === "arrival" ? " refused" : ""}: ${WAIT_TEXT[why]}`);
+    r.why = why;
+    r.checkedAt = now;
+  }
+  const checkDue = (r, now, instant) => instant || r.why === null || now - r.checkedAt >= ROAD_CHECK_SECONDS;
+  // Whether an earlier run the same way is still waiting, or a departure
+  // still standing: road trains go first come, first served.
+  const queued = r => state.road.some(o => o !== r && o.kind === r.kind && state.road.indexOf(o) < state.road.indexOf(r)
+    && (o.kind === "arrival" ? o.status === "refused" : o.status !== "running"));
+  // A run's lateness by cause: what it waited on that isn't the yard's
+  // (through trains, other road trains) is taken off; any lateness its
+  // waits don't account for was lost stopped on sight. The cause is the
+  // yard's longest wait.
+  function roadDelay(r, late) {
+    const wait = { ...r.wait }, waited = Object.values(wait).reduce((t, w) => t + w, 0);
+    if (late > waited) wait.route = (wait.route || 0) + late - waited;
+    const yardLate = Math.max(0, late - (wait.through || 0) - (wait.train || 0));
+    const worst = Object.keys(ROAD_CAUSES).filter(c => wait[c] > 0).sort((a, b) => wait[b] - wait[a])[0];
+    return { cause: worst ? ROAD_CAUSES[worst] : null, yardLate };
+  }
+
+  // Whether a through train is due on the main between `now` and
+  // `seconds` later: one offered whose run over the map falls in that time,
+  // or not yet offered and due in it, or one held, refused or running.
+  function throughDue(now, seconds) {
+    const runFor = tt => (MAIN_LENGTH + throughLength(tt)) / THROUGH_SPEED;
+    for (const r of state.through) {
+      if (r.status !== "offered") return true;
+      if (r.enters + runFor(throughEntry(r.tt)) > now && r.enters < now + seconds) return true;
+    }
+    return runsBetween(state.throughAt + OFFER_LEAD_SECONDS, now + seconds, THROUGH_TIMETABLE)
+      .some(x => x.at + runFor(throughEntry(x.tt)) > now);
+  }
+  // Whether another run has locked a switch that route `route` sets.
+  const roadBusy = (r, route) => state.road.some(o => o !== r && o.locks.some(id => ROUTE_SWITCHES[route].includes(id)));
+  // What stands in the way on `leg` from `from` to `to` metres along it:
+  // each point of a vehicle (not one of run `r`'s) on it, or fouling it,
+  // with how far along, nearest first. Points every 2 m or so along each
+  // vehicle are looked at.
+  function legHits(leg, from, to, r) {
+    const own = new Set(r ? r.vehicles : []), hits = [];
+    for (const id in state.vehicles) {
+      if (own.has(id)) continue;
+      const v = state.vehicles[id], half = vehicleType(v).length / 2, n = Math.ceil(half);
+      for (let i = 0; i <= n; i++) {
+        const d = -half + i * 2 * half / n, p = walk(v.seg, v.s, d >= 0 ? v.dir : -v.dir, Math.abs(d));
+        const on = !!leg.index[p.seg], z = leg.zone[p.seg];
+        const along = on ? alongOf(leg, p.seg, p.s) : z ? z[Math.round(p.s)] : undefined;
+        if (along !== undefined && along >= from && along <= to) hits.push({ along, id, foul: !on });
+      }
+    }
+    return hits.sort((a, b) => a.along - b.along);
+  }
+  // Whether car `id` is for departure `r`'s train: in its build, for its
+  // block (so sound), and on the map.
+  function forTrain(r, id) {
+    const j = jobById(r.job), c = state.cars[id];
+    return !!j && !!c && j.cars.includes(id) && c.away === null && dispositionOf(id) === j.block;
+  }
+  // Whether a train is a cut departure `r`'s loco takes from: a car for
+  // its train at the end the loco meets, no loco in it, and not driven.
+  function takesFrom(r, t, endId) {
+    return forTrain(r, endId) && !drivenBy(t) && !t.vehicles.some(id => state.vehicles[id].controls);
+  }
+  // On a leg against a cut, from `from`: how far along the cut's end is,
+  // null when nothing stands there (no cut to take), false when what is
+  // met first isn't one, or something fouls the way first.
+  function cutAhead(leg, from, r) {
+    const hit = legHits(leg, from, Infinity, r)[0];
+    if (!hit) return null;
+    const v = state.vehicles[hit.id];
+    return !hit.foul && takesFrom(r, trainOf(v), hit.id) ? hit.along : false;
+  }
+  // Why an arrival can't be accepted, or null: the main held, a through
+  // train due before it is in clear, another road train's route, Track 3
+  // not clear, its route not clear.
+  function arrivalBlock(r, now) {
+    if (state.main.held) return "main";
+    if (throughDue(now, OFFER_LEAD_SECONDS + ROAD_IN_TIME)) return "through";
+    if (roadBusy(r, "in")) return "train";
+    if (!trackClear(ARRIVAL_TRACK)) return "track";
+    if (legHits(ROAD_LEGS.in[0], 0, Infinity, r).length) return "route";
+    return null;
+  }
+  // Why a departure's loco can't come off shed, or null. With nothing on
+  // Track 1 for it to take, it doesn't come: the departure is `light`.
+  function shedBlock(r) {
+    if (roadBusy(r, "shed")) return "train";
+    const legs = ROAD_LEGS.shed, last = legs.length - 1;
+    for (let k = 0; k < last; k++)
+      if (legHits(legs[k], legs[k].checkFrom, legStop(legs[k], ROAD_LOCO_LENGTH) + ROAD_SIGHT_MARGIN, r).length) return "route";
+    const cut = cutAhead(legs[last], legs[last].checkFrom, r);
+    if (cut === false) return "route";
+    r.light = cut === null;
+    return null;
+  }
+  // Why a departure can't pull out at `now`, or null: as an arrival, with
+  // its route from its head (or Track 1's switch, before its loco is on).
+  function outBlock(r, now) {
+    if (state.main.held) return "main";
+    if (throughDue(now, ROAD_OUT_TIME)) return "through";
+    if (roadBusy(r, "out")) return "train";
+    const leg = ROAD_LEGS.out[0], head = r.vehicles.length && roadHead(r);
+    const from = head && leg.index[head.seg] ? alongOf(leg, head.seg, head.s) : trackFrom(leg);
+    return legHits(leg, from, Infinity, r).length ? "route" : null;
+  }
+  // The front end of a run's train, the way it is going.
+  function roadHead(r) {
+    const t = trainOf(state.vehicles[r.vehicles[0]]);
+    return vehicleEnds(state.vehicles[t.vehicles[0]]).head;
+  }
+
+  // Sets and locks route `route` for run `r`, from its first leg.
+  function lockRoute(r, route) {
+    Object.assign(r, { route, leg: 0, locks: [...ROUTE_SWITCHES[route]] });
+    r.legSet = setLeg(r);
+  }
+  // Sets the switches of the leg run `r` is on; false while one that must
+  // move has a vehicle on it.
+  function setLeg(r) {
+    const set = ROAD_ROUTES[r.route][r.leg].set;
+    for (const id in set) if (state.switches[id].set !== set[id]) {
+      if (nodeOccupied(id)) return false;
+      state.switches[id].set = set[id];
+    }
+    return true;
+  }
+  // The station unlocks a run's route and padlocks the crossover lying for
+  // the main again.
+  function unlockRoute(r) {
+    r.locks = [];
+    for (const id of MAIN_SWITCHES) if (!nodeOccupied(id)) state.switches[id].set = SWITCHES[id].normal;
+  }
+
+  // Moves run `r` on at `now`, as far as it can go without moving a
+  // vehicle (stepRoad() drives those); `instant` in a skip, which does its
+  // moves at once.
+  function advanceRoad(r, now, instant) {
+    if (r.kind === "arrival") {
+      if (r.status === "refused" && checkDue(r, now, instant)) {
+        const why = queued(r) ? "train" : arrivalBlock(r, now);
+        noteWait(r, now, why);
+        if (!why) acceptArrival(r, now);
+      }
+      if (r.status === "accepted") {
+        if (!instant) { if (now >= r.enters) enterArrival(r, now); }
+        else if (now >= r.enters + ROAD_IN_TIME && trackClear(ARRIVAL_TRACK)) {
+          unlockRoute(r);
+          arrive(r, r.enters + ROAD_IN_TIME, r);
+          r.status = "gone";
+        }
+      }
+      if (r.status === "cutting" && (instant || now >= r.until)) cutOff(r);
+    } else {
+      const job = jobById(r.job);
+      if (r.status === "waiting" && checkDue(r, now, instant)) {
+        if (job && !job.result && !job.taken) doOffScreen(job, now);
+        const why = !job || !job.result ? "build" : queued(r) ? "train" : shedBlock(r);
+        noteWait(r, now, why);
+        if (!why) offShed(r, now, instant);
+      }
+      if (r.status === "hooking" && (instant || now >= r.until)) hookOn(r, now);
+      if (r.notional && !instant) placeLoco(r, now);
+      if (r.status === "check" && now >= r.until) r.status = "ready";
+      if (r.status === "ready" && now >= r.at && checkDue(r, now, instant)) {
+        const why = r.light ? null : outBlock(r, now);
+        noteWait(r, now, why);
+        if (!why) pullOut(r, now, instant);
+      }
+    }
+    if (r.status === "gone") state.road = state.road.filter(o => o !== r);
+  }
+  // An arrival accepted at `now`: its route set and locked, it reaches the
+  // map OFFER_LEAD_SECONDS later.
+  function acceptArrival(r, now) {
+    lockRoute(r, "in");
+    Object.assign(r, { status: "accepted", enters: now + OFFER_LEAD_SECONDS });
+    if (r.wait.track || r.wait.route || r.wait.main || r.wait.through || r.wait.train)
+      setNotice(`${roadName(r)} leaves La Oriental, for Track ${YARD_TRACKS[ARRIVAL_TRACK].number}`);
+  }
+  // An arrival reaches the map's east edge at `now`, at line speed, loco
+  // first, with the cars due back by when it will stand on Track 3; with
+  // none, it is only registered. It waits off the map while anything is
+  // in the way at the edge.
+  function enterArrival(r, now) {
+    const tt = timetableEntry(r.tt), leg = ROAD_LEGS.in[0];
+    const ids = arrivalCars(tt, now + ROAD_IN_TIME);
+    if (!ids.length) {
+      unlockRoute(r);
+      arrive(r, now + ROAD_IN_TIME, r);
+      r.status = "gone";
+      return;
+    }
+    const len = ROAD_LOCO_LENGTH + ids.reduce((sum, id) => sum + VEHICLE_TYPES[state.cars[id].type].length, 0);
+    if (legHits(leg, 0, len + ROAD_SIGHT_MARGIN, r).length) return;
+    const loco = `${r.id}/loco`, head = pointAt(leg, len);
+    addVehicle(loco, ROAD_LOCO);
+    for (const id of ids) addVehicle(id, state.cars[id].type);
+    layTrain(head.seg, head.s, head.travel, [loco, ...ids]);
+    for (const id of [loco, ...ids]) state.vehicles[id].run = r.id;
+    Object.assign(r, { status: "running", vehicles: [loco, ...ids], cars: ids, speed: roadCap(leg, len, len, Infinity) });
+  }
+  // An arrival stands at Track 3's buffer at `now`: it has arrived; the
+  // route is unlocked, the crossover padlocked, and its loco cuts off.
+  function arrivedRoad(r, now) {
+    unlockRoute(r);
+    arrive(r, now, r);
+    Object.assign(r, { status: "cutting", until: now + HOOK_UP_SECONDS, speed: 0 });
+  }
+  // Its loco cut off, it goes on west, off the map toward the station; the
+  // cars stand secured, the hand brake set on the car at the buffer end.
+  function cutOff(r) {
+    const loco = `${r.id}/loco`;
+    if (state.vehicles[loco]) { detach(loco); delete state.vehicles[loco]; }
+    for (const id of r.cars) if (state.vehicles[id]) delete state.vehicles[id].run;
+    if (r.cars.length && state.vehicles[r.cars[0]]) state.vehicles[r.cars[0]].handBrake = true;
+    r.status = "gone";
+  }
+  // A departure's loco comes off shed at `now`, its route set and locked:
+  // onto fan track 8's end, light. In a skip it is coupled and checked by
+  // the time it would have been (`notional` until it is laid on). With
+  // nothing to take, none comes.
+  function offShed(r, now, instant) {
+    if (r.light) { r.status = "ready"; return; }
+    if (instant) { Object.assign(r, { status: "check", notional: true, until: now + LOCO_RUN_TIME + HOOK_UP_SECONDS + DEPARTURE_CHECK }); return; }
+    lockRoute(r, "shed");
+    const id = `${r.id}/loco`, head = pointAt(ROAD_LEGS.shed[0], SET_BACK + ROAD_LOCO_LENGTH);
+    addVehicle(id, ROAD_LOCO);
+    layTrain(head.seg, head.s, head.travel, [id]);
+    state.vehicles[id].run = r.id;
+    Object.assign(r, { status: "shed", vehicles: [id], speed: 0 });
+    setNotice(`Road loco off shed for ${roadName(r)}`);
+  }
+  // The road crew hooks the loco on (#33): to the cut it met, taking the
+  // cars for the train from that end and leaving the rest. The station
+  // checks the train for DEPARTURE_CHECK. If the cut has moved off, the
+  // loco goes on to it.
+  function hookOn(r, now) {
+    const loco = state.vehicles[`${r.id}/loco`], lt = trainOf(loco);
+    const hit = findObstacle(vehicleEnds(loco).head, HOOK_REACH, lt.id);
+    const cut = hit && hit.kind === "train" && state.trains[hit.train];
+    if (!cut || !takesFrom(r, cut, endVehicle(cut, hit.which).id)) { r.status = "shed"; return; }
+    coupleCut(r, lt, cut, hit.which, hit.gap);
+    unlockRoute(r);
+    Object.assign(r, { status: "check", until: now + DEPARTURE_CHECK });
+  }
+  function coupleCut(r, lt, cut, which, gap) {
+    const order = which === "head" ? cut.vehicles.slice() : cut.vehicles.slice().reverse();
+    let n = 1;
+    while (n < order.length && forTrain(r, order[n])) n++;
+    if (n < order.length) splitBehind(order[n - 1], order[n]);
+    const taken = trainOf(state.vehicles[order[0]]);
+    const end = taken.vehicles.length === 1 ? which : taken.vehicles[0] === order[0] ? "head" : "tail";
+    for (const id of taken.vehicles) moveVehicle(state.vehicles[id], (end === "head" ? 1 : -1) * gap);
+    const loco = lt.vehicles[0];        // its head end meets the cut
+    couple(lt, "head", taken, end);      // the loco leads, away from the cut
+    state.air[pairKey(loco, order[0])] = 1;   // its crew joins the hose to the train (#61)
+    for (const id of lt.vehicles) state.vehicles[id].run = r.id;
+    r.vehicles = lt.vehicles.slice();
+  }
+  // After a skip, a loco coupled and checked meanwhile is laid on against
+  // its cut on Track 1. Without its cut there, the train leaves as before
+  // #78, its cars going off the map at once.
+  function placeLoco(r) {
+    const leg = ROAD_LEGS.shed[ROAD_LEGS.shed.length - 1], start = pointAt(leg, trackFrom(leg));
+    const hit = findObstacle(start, TRACK_GEOM[legTrack(leg)].length, null);
+    r.notional = false;
+    const cut = hit && hit.kind === "train" && state.trains[hit.train];
+    if (!cut || !takesFrom(r, cut, endVehicle(cut, hit.which).id)) { r.light = true; return; }
+    const end = walk(start.seg, start.s, start.travel, hit.gap), head = walk(end.seg, end.s, -end.travel, ROAD_LOCO_LENGTH);
+    const id = `${r.id}/loco`;
+    addVehicle(id, ROAD_LOCO);
+    layTrain(head.seg, head.s, -head.travel, [id]);
+    state.vehicles[id].run = r.id;
+    reverseTrain(trainOf(state.vehicles[id]));
+    coupleCut(r, trainOf(state.vehicles[id]), cut, hit.which, 0);
+  }
+  // A departure pulls out at `now`, its route set and locked: its cars
+  // leave on it (depart()). In a skip, or with no loco on, they go off the
+  // map at once.
+  function pullOut(r, now, instant) {
+    const job = jobById(r.job), late = Math.max(0, now - r.at), delay = roadDelay(r, late);
+    const cars = r.vehicles.filter(id => state.cars[id]);
+    if (instant || !r.vehicles.length) {
+      if (r.vehicles.length) {
+        depart(job, now, cars, delay);
+        for (const id of r.vehicles) if (state.vehicles[id]) { detach(id); delete state.vehicles[id]; }
+      } else depart(job, now, null, delay);
+      unlockRoute(r);
+      r.status = "gone";
+      return;
+    }
+    lockRoute(r, "out");
+    depart(job, now, cars, delay);
+    Object.assign(r, { status: "running", speed: 0 });
+    setNotice(`${roadName(r)} leaves`);
+  }
+
+  // Each step: the station keeps each locked switch lying for its run (a
+  // spring switch trailed through lies back once clear), and each road
+  // train moving is driven on sight; a departure's vehicles leave the map
+  // one by one at the east edge, and gone, its route is unlocked.
+  function stepRoad(dt) {
+    for (const r of state.road) {
+      for (const id of r.locks) {
+        const want = lockedFor(r, id);
+        if (want && state.switches[id].set !== want && !nodeOccupied(id)) state.switches[id].set = want;
+      }
+      if (r.status !== "running" && r.status !== "shed") continue;
+      if (r.route === "out") {
+        for (;;) {
+          const t = r.vehicles.length && trainOf(state.vehicles[r.vehicles[0]]), v = t && state.vehicles[t.vehicles[0]];
+          if (!v) break;
+          const e = vehicleEnds(v).head;
+          if (walk(e.seg, e.s, e.travel, 1).short <= 0) break;
+          detach(v.id);
+          delete state.vehicles[v.id];
+          r.vehicles = r.vehicles.filter(id => id !== v.id);
+        }
+        if (!r.vehicles.length) { unlockRoute(r); r.status = "gone"; continue; }
+      }
+      if (!r.legSet && !(r.legSet = setLeg(r))) { r.speed = 0; continue; }
+      driveRoad(r, dt);
+    }
+    state.road = state.road.filter(r => r.status !== "gone");
+  }
+  // Drives run `r` one step on its leg: on sight, braking to stop
+  // ROAD_SIGHT_MARGIN short of anything in its way, or right up to the
+  // cut it takes, or at its stop; there the leg is done.
+  function driveRoad(r, dt) {
+    const leg = ROAD_LEGS[r.route][r.leg], t = trainOf(state.vehicles[r.vehicles[0]]), end = roadHead(r);
+    if (!leg.index[end.seg]) { r.speed = 0; r.blocked = true; return; }   // off its route: it stands
+    const pos = alongOf(leg, end.seg, end.s), len = trainLength(t);
+    let stopAt = legStop(leg, len), cut = false;
+    r.blocked = false;
+    const hit = findObstacle(end, r.speed ** 2 / (2 * ROAD_DECEL) + ROAD_SIGHT_MARGIN + 5, t.id);
+    if (hit && hit.kind === "train") {
+      const other = state.trains[hit.train];
+      if (leg.stop === "cut" && takesFrom(r, other, endVehicle(other, hit.which).id)) { stopAt = pos + hit.gap; cut = true; }
+      else if (pos + hit.gap - ROAD_SIGHT_MARGIN < stopAt) { stopAt = pos + hit.gap - ROAD_SIGHT_MARGIN; r.blocked = true; }
+    }
+    if (!r.blocked && stopAt - pos <= 0.02) { r.speed = 0; legDone(r, cut); return; }
+    const cap = roadCap(leg, leg.stop === "edge" ? Math.min(pos, leg.length) : pos, len, stopAt);
+    r.speed = r.speed < cap ? Math.min(cap, r.speed + THROUGH_ACCEL * dt) : cap;
+  }
+  // A leg done: an arrival stands at the buffer; a loco reaching its cut is
+  // hooked on; one clear of a switch or fouling point reverses for the
+  // next leg.
+  function legDone(r, cut) {
+    const now = state.clock;
+    if (r.kind === "arrival") return arrivedRoad(r, now);
+    if (cut) return Object.assign(r, { status: "hooking", until: now + HOOK_UP_SECONDS });
+    if (r.leg + 1 >= ROAD_ROUTES[r.route].length) return;
+    reverseTrain(trainOf(state.vehicles[r.vehicles[0]]));
+    r.leg++;
+    r.legSet = setLeg(r);
   }
 
   // WORLD DATA is checked first (CHECKS), so a broken id is named in the
@@ -2948,8 +3617,11 @@
     const c = playerLoco().controls;
     c.locoBrake = 0; c.trainBrake = 0; c.emergency = false;
   }
-  // A switch with a vehicle over it cannot be thrown.
+  // A switch with a vehicle over it cannot be thrown, nor one the station
+  // has locked for a Retiro road train (#78).
   function throwSwitch(swId) {
+    const lock = roadLock(swId);
+    if (lock) { setNotice(`Locked for ${roadName(lock)}`); return false; }
     if (MAIN_SWITCHES.includes(swId) && !state.main.held) { setNotice("Padlocked: ask the station for the main"); return false; }
     if (nodeOccupied(swId)) { setNotice("A train is on that switch"); return false; }
     const sw = SWITCHES[swId], cur = state.switches[swId];
@@ -3015,11 +3687,30 @@
   // The main (#57): the player asks the station for it for `minutes`. It's
   // granted, unlocking the crossover, when no through train is offered or
   // on the map and none will be offered in that time; otherwise refused,
-  // saying why.
+  // saying why. A Retiro road train (#78) is treated as a through train:
+  // one waiting to come in or to leave, or on the main, refuses it, as one
+  // offered or leaving in that time does.
   function askForMain(minutes) {
     if (state.main.held || !MAIN_ASK_MINUTES.includes(minutes)) return false;
     const r = state.through[0];
     if (r) { setNotice(`Refused: ${throughName(throughEntry(r.tt))} is ${r.status === "offered" ? "offered" : r.status === "refused" ? "waiting" : "on the main"}`); return false; }
+    const until = state.clock + minutes * 60;
+    const road = state.road.find(o => holdsMain(o) || (o.kind === "arrival" && o.status === "refused") || (o.kind === "departure" && o.at < until));
+    if (road) {
+      const leaving = road.kind === "departure" && road.status !== "running";
+      setNotice(`Refused: ${roadName(road)} ${leaving ? (road.at > state.clock ? `leaves at ${clockText(road.at)}` : "is due to leave")
+        : road.status === "refused" ? "is waiting" : road.kind === "arrival" ? "is coming in" : "is leaving"}`);
+      return false;
+    }
+    const comes = runsBetween(state.roadAt, until + ROAD_LEAD).find(x => {
+      const tt = timetableEntry(x.tt);
+      return tt.east && (tt.arrives ? roadStartAt(tt, x.at) : x.at) < until;
+    });
+    if (comes) {
+      const tt = timetableEntry(comes.tt);
+      setNotice(`Refused: ${trainName(tt)} ${tt.arrives ? "is due at" : "leaves at"} ${clockText(comes.at)}`);
+      return false;
+    }
     const next = nextOfferAt();
     if (next && next.at < state.clock + minutes * 60) {
       setNotice(`Refused: ${throughName(next.tt)} is due at ${clockText(next.at + OFFER_LEAD_SECONDS)}`);
@@ -3057,6 +3748,8 @@
     if (!(at > state.clock) || !(at % SKIP_MARK_SECONDS === 0 || eventsAhead().some(e => e.at === at))) return false;
     if (playerLoco().speed !== 0) { setNotice("Stop the loco before skipping"); return false; }
     if (playerLoco().controls.throttle) { setNotice("Shut the throttle before skipping"); return false; }
+    const moving = state.road.find(r => r.status === "running" || r.status === "shed");
+    if (moving) { setNotice(`Wait for ${moving.status === "shed" ? "the road loco" : roadName(moving)} to stand`); return false; }
     for (const id in state.vehicles) {
       if (state.vehicles[id].speed !== 0 && !state.vehicles[id].run) { setNotice("Wait for the cars to stop"); return false; }
     }
@@ -3069,7 +3762,7 @@
     restLocos(at - state.clock);
     state.clock = at;
     stepWork();
-    runEvents();
+    runEvents(true);
     return true;
   }
 
@@ -3086,9 +3779,9 @@
     const j = jobById(jobId);
     if (!j || j.result || !j.taken) return false;
     j.taken = false;
-    if (j.due <= state.clock) {
+    if (readyBy(j) <= state.clock) {
       doOffScreen(j, state.clock);
-      if (j.kind === "build") depart(j, state.clock);
+      if (j.kind === "build" && !j.ready) depart(j, state.clock);   // a Retiro build's loco comes for it (#78)
     }
     return true;
   }
@@ -3097,7 +3790,7 @@
     const j = jobById(jobId);
     if (!j || j.result || !j.taken) return false;
     assess(j, state.clock);
-    if (j.kind === "build" && !j.departed && j.due <= state.clock) depart(j, state.clock);
+    if (j.kind === "build" && !j.departed && !j.ready && j.due <= state.clock) depart(j, state.clock);
     return true;
   }
 
@@ -3123,7 +3816,7 @@
   // The benchmark page (index.html?bench, CHECKS) saves under keys of its
   // own, never over the player's yard.
   const BENCH = new URLSearchParams(location.search).has("bench");
-  const SAVE_KEY = "switching-game.yard.13" + (BENCH ? ".bench" : "");
+  const SAVE_KEY = "switching-game.yard.14" + (BENCH ? ".bench" : "");
   const CARS_KEY = SAVE_KEY + ".cars";
   let saves = 0;
 
@@ -3166,6 +3859,12 @@
         || !st.register.every(l => isObj(l) && typeof l.number === "string" && Number.isFinite(l.booked) && Number.isFinite(l.late))
         || !Number.isInteger(st.seed) || !Number.isFinite(st.nextShiftAt) || !Number.isFinite(st.timetableAt)) return false;
     if (!Array.isArray(st.held) || !st.held.every(r => isObj(r) && timetableEntry(r.tt) && Number.isFinite(r.at))) return false;
+    if (!Number.isFinite(st.roadAt) || !Array.isArray(st.road) || !st.road.every(r => isObj(r) && typeof r.id === "string"
+        && timetableEntry(r.tt) && timetableEntry(r.tt).east && Number.isFinite(r.at) && ROAD_ROUTES[r.route]
+        && Number.isInteger(r.leg) && r.leg >= 0 && r.leg < ROAD_ROUTES[r.route].length && Number.isFinite(r.speed)
+        && ["refused", "accepted", "running", "cutting", "waiting", "shed", "hooking", "check", "ready"].includes(r.status)
+        && Array.isArray(r.vehicles) && Array.isArray(r.cars) && Array.isArray(r.locks) && r.locks.every(id => SWITCHES[id])
+        && isObj(r.wait) && Number.isFinite(r.checkedAt))) return false;
     if (!Number.isFinite(st.throughAt) || !isObj(st.main) || typeof st.main.held !== "boolean"
         || (st.main.held && !Number.isFinite(st.main.until))) return false;
     if (!Array.isArray(st.through) || !st.through.every(r => isObj(r) && throughEntry(r.tt) && Number.isFinite(r.at) && Number.isFinite(r.enters)
@@ -3200,6 +3899,9 @@
     for (const id in st.cars) if (st.cars[id].away === null) startIds[id] = st.cars[id].type;
     const runOf = {};                     // a through train's vehicles on the map
     for (const r of st.through) for (const id of r.vehicles) { startIds[id] = throughType(id); runOf[id] = r.id; }
+    // A Retiro road train's (#78): its loco, and its cars, away while they
+    // run in or out.
+    for (const r of st.road) for (const id of r.vehicles) { startIds[id] = st.cars[id] ? st.cars[id].type : ROAD_LOCO; runOf[id] = r.id; }
     if (!sameKeys(st.vehicles, startIds)) return false;
     for (const id in st.vehicles) {
       const v = st.vehicles[id], type = VEHICLE_TYPES[v.type];
@@ -3595,7 +4297,9 @@
         ctx.closePath();
       }
       ctx.stroke(); ctx.fill();
-      if (MAIN_SWITCHES.includes(id) && !state.main.held) {   // padlocked: a small lock beside it
+      // Padlocked, lying for the main or locked for a Retiro road train's
+      // route (#78): a small lock beside it.
+      if ((MAIN_SWITCHES.includes(id) && !state.main.held) || roadLock(id)) {
         const lx = c.x + r * 1.3, ly = c.y - r * 1.3, w = Math.max(7, r * 0.9);
         ctx.strokeStyle = PALETTE.light; ctx.lineWidth = Math.max(1.5, w * 0.18);
         ctx.beginPath(); ctx.arc(lx, ly - w * 0.25, w * 0.3, Math.PI, 0); ctx.stroke();
@@ -3603,12 +4307,13 @@
       }
     }
     // The east home signal, beside the main on the side away from the yard:
-    // clear while a through train from the east runs in past it, at danger
-    // otherwise.
+    // clear while a through train or a Retiro road train from the east runs
+    // in past it, at danger otherwise.
     {
       const sig = homeSignal(), p = pointOn(sig.seg, sig.s), side = 3.5;
-      const clear = state.through.some(r => r.status === "running" && throughEntry(r.tt).enters === "east"
-        && r.vehicles.some(id => pointOn(state.vehicles[id].seg, state.vehicles[id].s).x > p.x));
+      const past = r => r.vehicles.some(id => pointOn(state.vehicles[id].seg, state.vehicles[id].s).x > p.x);
+      const clear = state.through.some(r => r.status === "running" && throughEntry(r.tt).enters === "east" && past(r))
+        || state.road.some(r => r.kind === "arrival" && r.status === "running" && past(r));
       const foot = { x: p.x - p.uy * 2, y: p.y + p.ux * 2 }, top = { x: p.x - p.uy * (2 + side), y: p.y + p.ux * (2 + side) };
       line(foot.x, foot.y, top.x, top.y, PALETTE.light, Math.max(1.5, k * 0.25));
       const c = view.toScreen(top.x, top.y);
@@ -3936,8 +4641,9 @@
   }
 
   // The panel: the clock raw and as day and time, day or night by the
-  // night rule, the seed; who holds the main; the through trains and the
-  // arrivals held outside; the open jobs; the industries and the pool;
+  // night rule, the seed; who holds the main; the through trains, the
+  // Retiro road trains and the arrivals held outside; the open jobs; the
+  // industries and the pool;
   // stateProblems(), run every DEV_PROBLEMS_SECONDS as it checks the whole
   // yard. Written only when it changes.
   const devPanel = document.getElementById("devPanel"), devHead = document.getElementById("devHead");
@@ -3962,6 +4668,9 @@
       `enters ${at(r.enters)}${r.late ? ` · late ${Math.round(r.late)} s` : ""}${r.vehicles.length ? ` · ${(r.speed * 3.6).toFixed(1)} km/h` : ""}`,
       r.status !== "offered" && r.status !== "running");
     if (!state.through.length) html += row("through", "none");
+    for (const r of state.road) html += row("road", `${r.id} · ${r.kind} · ${r.status}${r.why ? ` · ${r.why}` : ""} · booked ${at(r.at)} · ` +
+      `${r.route} leg ${r.leg}${r.locks.length ? ` · locked ${r.locks.join(" ")}` : ""}${r.vehicles.length ? ` · ${(r.speed * 3.6).toFixed(1)} km/h` : ""}`,
+      r.status === "refused" || r.blocked);
     for (const r of state.held) html += row("held", `${r.tt} · due ${at(r.at)}, outside`, true);
     for (const j of openJobs()) html += row(j.id, `${j.short || j.title} · ${j.taken ? `taken · moves ${jobMoves(j)} of par ${+jobPar(j).toFixed(1)}` : "not taken"}` +
       ` · due ${at(j.due)}`, j.due <= state.clock);
@@ -4105,7 +4814,7 @@
       if (d < bestD) { best = act; bestD = d; bestShows = shows; }
     };
     for (const id in SWITCHES)
-      consider(NODES[id].x, NODES[id].y, () => MAIN_SWITCHES.includes(id) && !state.main.held ? (askFor = id) : throwSwitch(id));
+      consider(NODES[id].x, NODES[id].y, () => MAIN_SWITCHES.includes(id) && !state.main.held && !roadLock(id) ? (askFor = id) : throwSwitch(id));
     for (const c of couplings()) if (!state.vehicles[c.vehicle].run) consider(c.at.x, c.at.y, () => { menuFor = c.key; });
     for (const id in state.vehicles) {
       const v = state.vehicles[id];
@@ -4137,17 +4846,42 @@
     if (b) { unlessPaused(askForMain)(Number(b.dataset.min)); askFor = null; }
   });
   // The main-line chip: holding the main, until when and Report clear (a
-  // train offered meanwhile calls the player off); otherwise the through
-  // train offered, held or passing.
+  // train offered meanwhile calls the player off); otherwise a Retiro road
+  // train under way (#78), or the through train offered, held or passing.
   const mainChip = document.getElementById("mainChip");
   let mainChipHtml = "";
+  // A Retiro road train's state, for the chip, and whether it waits on
+  // the yard.
+  function roadChip(r) {
+    const tt = timetableEntry(r.tt), track = `Track ${YARD_TRACKS[ARRIVAL_TRACK].number}`, yard = r.why && ROAD_CAUSES[r.why];
+    const stopped = r.blocked && r.speed === 0, name = trainName(tt);
+    if (r.kind === "arrival") return {
+      refused: { text: `${name} · held at La Oriental: ${WAIT_TEXT[r.why] || "waiting"}`, warn: !!yard },
+      accepted: { text: `${name} · offered, for ${track} at ${clockText(r.enters + ROAD_IN_TIME)}` },
+      running: { text: `${name} · ${stopped ? "stopped: route not clear" : `coming in to ${track}`}`, warn: stopped },
+      cutting: { text: `${name} · in, its loco cutting off` } }[r.status];
+    const late = state.clock >= r.at;
+    return {
+      waiting: { text: `${tt.number} · loco waits: ${WAIT_TEXT[r.why] || "build not ready"}`, warn: !!yard && state.clock >= readyBy(jobById(r.job) || { due: r.at }) },
+      shed: { text: `${tt.number} · road loco ${stopped ? "stopped: route not clear" : "off shed"}`, warn: stopped },
+      hooking: { text: `${tt.number} · road crew hooking up` },
+      check: { text: `${name} · station check, leaves ${clockText(r.at)}` },
+      ready: { text: `${name} · ${late && r.why ? `waits: ${WAIT_TEXT[r.why]}` : `ready, leaves ${clockText(r.at)}`}`, warn: late && !!yard },
+      running: { text: `${name} · ${stopped ? "stopped: route not clear" : "leaving"}`, warn: stopped } }[r.status];
+  }
   function renderMainChip() {
-    const r = state.through[0], tt = r && throughEntry(r.tt);
+    const r = state.through[0], tt = r && throughEntry(r.tt), road = state.road[0];
+    const calls = !r && state.road.find(o => o.why === "main");
     let html = "", warn = false;
     if (state.main.held) {
-      warn = !!r || state.clock > state.main.until;
-      html = (r ? (r.status === "refused" ? `${tt.number} held at ${waitsAt(tt)}` : `Clear the main for ${tt.number}`) : `Main yours until ${clockText(state.main.until)}${state.clock > state.main.until ? " · over time" : ""}`)
+      warn = !!r || !!calls || state.clock > state.main.until;
+      html = (r ? (r.status === "refused" ? `${tt.number} held at ${waitsAt(tt)}` : `Clear the main for ${tt.number}`)
+        : calls ? `Clear the main for ${timetableEntry(calls.tt).number}`
+        : `Main yours until ${clockText(state.main.until)}${state.clock > state.main.until ? " · over time" : ""}`)
         + " · <em>Report clear</em>";
+    } else if (road && (!r || r.status === "offered")) {
+      const c = roadChip(road) || { text: roadName(road) };
+      html = c.text; warn = !!c.warn;
     } else if (r) {
       html = `${throughName(tt)} · ${r.status === "offered" ? `due ${clockText(r.enters)}` : r.status === "refused" ? `held at ${waitsAt(tt)}`
         : r.status === "held" ? "held for the main" : "passing"}`;
@@ -4249,7 +4983,7 @@
     // A job not taken that a skip passes the due time of goes to another
     // crew: the menu says so before the skip, beside the event and the marks.
     for (const e of eventsAhead()) {
-      if (e.kind === "offer") {
+      if (e.kind === "offer" && e.through) {
         const tt = throughEntry(e.through);
         html += `<button class="event" data-at="${e.at}"><b>${clockText(e.at)}</b><span>${throughName(tt)} offered` +
           `<small>Through to ${tt.to}, due ${clockText(e.at + OFFER_LEAD_SECONDS)}${state.main.held ? "; clear the main" : ""}` +
@@ -4257,8 +4991,10 @@
         continue;
       }
       const j = e.job && jobById(e.job), crew = j && !j.taken ? `<small class="warn">Not taken: another crew does it</small>` : "";
-      const tt = e.tt && timetableEntry(e.tt);
-      const text = tt ? (tt.arrives ? `${trainName(tt)} arrives<small>Onto Track ${YARD_TRACKS[ARRIVAL_TRACK].number}</small>`
+      const tt = e.tt && timetableEntry(e.tt), track = `Track ${YARD_TRACKS[ARRIVAL_TRACK].number}`;
+      const text = e.kind === "offer" ? `${trainName(tt)} offered<small>For ${track} over the crossover; keep its route clear</small>`
+        : e.kind === "loco" ? `Road loco off shed for ${tt.number}<small>Its build must be ready</small>${crew}`
+        : tt ? (tt.arrives ? `${trainName(tt)} arrives<small>${tt.east ? `Over the crossover onto ${track}` : `Onto ${track}`}</small>`
           : `${trainName(tt)} leaves${j ? (j.taken ? "<small>It waits for your build</small>" : crew) : ""}`)
         : j ? `${j.title} falls due${crew}` : e.industry ? `Work done at ${INDUSTRIES[e.industry].name}<small>A pull job opens</small>`
         : e.kind === "fuelled" ? `Loco fuelled<small>A full tank, and sand</small>`
@@ -4270,13 +5006,13 @@
     html += `<h3>Skip to time</h3><div class="marks">`;
     let last = 0;
     for (let i = 0, at = nextMark(); i < marksShown; i++, at += SKIP_MARK_SECONDS) {
-      const warn = handed.some(j => j.due <= at);
+      const warn = handed.some(j => readyBy(j) <= at);
       html += `<button data-at="${at}"${warn ? ' class="warn"' : ""}>${clockText(at)}</button>`;
       last = at;
     }
     html += `<button data-more="1" aria-label="More times">…</button></div>`;
-    const passed = handed.filter(j => j.due <= last);
-    if (passed.length) html += `<p class="note">From ${clockText(passed[0].due)}, another crew does: ${passed.map(j => j.title).join("; ")}</p>`;
+    const passed = handed.filter(j => readyBy(j) <= last).sort((a, b) => readyBy(a) - readyBy(b));
+    if (passed.length) html += `<p class="note">From ${clockText(readyBy(passed[0]))}, another crew does: ${passed.map(j => j.title).join("; ")}</p>`;
     skipMenu.innerHTML = html;
   }
   function closeSkipMenu() { skipOpen = false; placeSkipMenu(); }
@@ -4321,7 +5057,7 @@
     let chip = "";
     if (worked) {
       const st = jobStatus(worked);
-      chip = `${worked.short} · <em>${st.met} of ${st.lines.length}</em> done${worked.due <= state.clock ? " · late" : ""}`;
+      chip = `${worked.short} · <em>${st.met} of ${st.lines.length}</em> done${readyBy(worked) <= state.clock ? " · late" : ""}`;
     }
     if (chip !== chipHtml) jobChip.innerHTML = chipHtml = chip;
     jobChip.classList.toggle("open", !!worked);
@@ -4343,7 +5079,8 @@
   const headline = r => `${r.outcome} · ${lateness(r.late)}`;
   const outcomeText = j => (j.result.by === "crew" ? `Done by another crew at ${shortTime(j.result.at)}`
     : `${headline(j.result)} · ${shortTime(j.result.at)}`) + trainText(j);
-  const dueText = j => j.kind === "build" ? `leaves ${shortTime(j.due)}` : `due ${shortTime(j.due)}`;
+  const dueText = j => j.kind !== "build" ? `due ${shortTime(j.due)}`
+    : j.ready ? `ready ${shortTime(j.ready)}, leaves ${shortTime(j.due)}` : `leaves ${shortTime(j.due)}`;
   // The "Fuel the loco" task (#117), while the tank is below FUEL_LOW or
   // the loco is taking fuel: how full it is, and what's happening. Not a
   // job: nobody else does it, and it isn't assessed.
@@ -4363,7 +5100,7 @@
       `${fuel.text} · at the fuel point by the turntable</small></div>` +
       `<button class="act" data-act="fuelpoint">Show</button></div>`;
     for (const j of openJobs()) {
-      const late = j.due <= state.clock ? ` · <span class="warn">late</span>` : "";
+      const late = readyBy(j) <= state.clock ? ` · <span class="warn">late</span>` : "";
       h += `<div class="job" data-job="${j.id}"><div><b>${j.title}</b><small>${j.cars.length} cars · ${dueText(j)}` +
         `${j.taken ? " · taken" : ""}${late}</small></div>` + (j.taken
           ? `<button class="act primary" data-act="open" data-job="${j.id}">Open</button>`
@@ -4378,6 +5115,9 @@
     }
     for (const r of state.held) h += `<div class="job later"><div><b>${trainName(timetableEntry(r.tt))} held outside</b>` +
       `<small class="warn">Due ${shortTime(r.at)}; Track ${YARD_TRACKS[ARRIVAL_TRACK].number} must be clear</small></div></div>`;
+    for (const r of state.road) if (r.kind === "arrival" && r.status === "refused")
+      h += `<div class="job later"><div><b>${roadName(r)} held at La Oriental</b>` +
+        `<small class="warn">Due ${shortTime(r.at)}; refused: ${WAIT_TEXT[r.why] || "waiting"}</small></div></div>`;
     const done = state.jobs.filter(j => j.result).reverse();
     if (done.length) h += `<h3><span>Finished</span><span></span></h3>`;
     for (const j of done) h += `<div class="job" data-job="${j.id}"><div><b>${j.title}</b><small>${outcomeText(j)}</small></div></div>`;
@@ -4389,12 +5129,15 @@
       `<button data-act="close" aria-label="Close">✕&#xFE0E;</button></header>` +
       `<div class="meta"><span>Place</span><span>${YARD_NAME}</span><span>Loco</span><span>${vehicleType(playerLoco()).name}</span>` +
       `<span>Shift</span><span>${clockText(shift.start).slice(0, 2)}–${clockText(shift.end).slice(0, 2)}, day ${dayOf(j.opens)}</span>` +
+      (j.ready ? `<span>Ready by</span><span>${shortTime(j.ready)}</span>` : "") +
       `<span>${j.kind === "build" ? "Leaves" : "Due"}</span><span>${shortTime(j.due)}</span></div>`;
     const remarks = [];
     if (j.kind === "breakup") remarks.push(`Train ${tt.number} from ${tt.from}, on Track ${YARD_TRACKS[ARRIVAL_TRACK].number}` +
-      (j.arrivedLate >= ON_TIME_SECONDS ? `, held outside ${lateText(j.arrivedLate)}` : ""));
+      (j.arrivedLate >= ON_TIME_SECONDS ? (j.east ? `, ${lateText(j.arrivedLate)} late` : `, held outside ${lateText(j.arrivedLate)}`) : ""));
     if (j.kind === "build") remarks.push(`Train ${tt.number} to ${tt.to}, built on ${tracksText(j.block)} as one coupled cut, ` +
-      `left by the loco, nothing else coupled in, the air joined through and every hand brake off`);
+      `left by the loco, nothing else coupled in, the air joined through and every hand brake off` +
+      (j.ready ? `; its road loco comes off shed for it at ${clockText(j.ready)} ` +
+      `and couples on at the ladder end, and it leaves over the crossover` : ""));
     if (j.kind === "setout") remarks.push(INDUSTRIES[j.industry].workTime === null
       ? `Empties to ${INDUSTRIES[j.industry].name} on ${tracksText(YARD_TRACKS[INDUSTRIES[j.industry].track].block)}, on any of its ` +
         `${INDUSTRY_SPOTS} spots from the buffer; loaded by the next shift change after the set-out`
@@ -4481,7 +5224,7 @@
       shifts[shifts.length - 1].lines.push(l);
     }
     for (const sh of shifts) {
-      const caused = p => sh.lines.filter(l => l.cause && l.passenger === p).reduce((t, l) => t + l.late, 0);
+      const caused = p => sh.lines.filter(l => l.cause && l.passenger === p).reduce((t, l) => t + (l.yardLate === undefined ? l.late : l.yardLate), 0);
       const total = p => { const s = caused(p); return s >= ON_TIME_SECONDS ? lateText(s) : "0 min"; };
       h += `<h3><span>Shift ${clockText(sh.start).slice(0, 2)}–${clockText(sh.start + SHIFT_HOURS * HOUR).slice(0, 2)}, day ${dayOf(sh.start)}</span>` +
         `<span>${sh.lines.length} train${sh.lines.length === 1 ? "" : "s"}</span></h3>` +
@@ -4666,6 +5409,27 @@
       need(has(VEHICLE_TYPES, THROUGH_CONSISTS[c].loco) && VEHICLE_TYPES[THROUGH_CONSISTS[c].loco].loco, `through make-up ${c}: loco ${THROUGH_CONSISTS[c].loco} isn't a loco`);
       for (const type of THROUGH_CONSISTS[c].cars) need(has(VEHICLE_TYPES, type), `through make-up ${c}: kind ${type} doesn't exist`);
     }
+    // Retiro's road trains (#78): each leg's path (ROAD_LEGS, built from
+    // these) passes every switch it sets, set to one of its own legs, and
+    // ends where its stop says.
+    need(has(VEHICLE_TYPES, ROAD_LOCO) && VEHICLE_TYPES[ROAD_LOCO].loco, `road loco ${ROAD_LOCO} isn't a loco`);
+    for (const id in ROAD_ROUTES) ROAD_ROUTES[id].forEach((spec, i) => {
+      const leg = ROAD_LEGS[id][i], name = `road route ${id}, leg ${i + 1}`;
+      need(has(NODES, spec.from) && SEGMENTS_AT[spec.from].length === 1, `${name}: ${spec.from} isn't an end of track`);
+      for (const sw in spec.set) {
+        if (!has(SWITCHES, sw)) { out.push(`${name}: switch ${sw} doesn't exist`); continue; }
+        need(SWITCHES[sw].legs.includes(spec.set[sw]), `${name}: ${spec.set[sw]} isn't a leg of ${sw}`);
+        need(has(leg.nodes, sw), `${name}: its path doesn't pass ${sw}`);
+      }
+      const ends = leg.end && SEGMENTS_AT[leg.end].length === 1;
+      if (spec.stop === "edge") need(MAP_EDGES.includes(leg.end), `${name}: its path doesn't reach the map's edge`);
+      else if (spec.stop === "buffer" || spec.stop === "cut") need(ends && !MAP_EDGES.includes(leg.end) && (spec.stop === "buffer" || legTrack(leg)),
+        `${name}: its path doesn't end at a ${spec.stop === "cut" ? "yard track's " : ""}buffer`);
+      else {
+        const c = spec.stop && spec.stop.clearOf, at = has(YARD_TRACKS, c) ? YARD_TRACKS[c].switch : c;
+        need(has(leg.nodes, at), `${name}: its stop, clear of ${c}, isn't on its path`);
+      }
+    });
     for (const e in THROUGH_EDGES) need(MAP_EDGES.includes(THROUGH_EDGES[e].node), `through edge ${e}: ${THROUGH_EDGES[e].node} isn't a map edge`);
     return out;
   }
@@ -4722,6 +5486,9 @@
       if (!playerLoco().speed) out.problems.push("the loco didn't move under power");
 
       freshYard();
+      // The loco parked on a short track, clear of Retiro's road trains'
+      // routes (#78), so they run as the yard ages.
+      layTrain("stub2_7", 20, -1, (detach(PLAYER_LOCO), [PLAYER_LOCO]));
       const start = state.clock;
       let skips = 0, skipMs = 0;
       while (state.clock < start + BENCH_DAYS * DAY) {
@@ -4771,7 +5538,7 @@
   }
   window.switching = { get state() { return state; }, step, traffic, throwSwitch, uncouple, hookUp, meetings, moveReverser, moveThrottle,
     moveLocoBrake, moveTrainBrake, emergency, release, trainEnds, toggleAir, toggleHandBrake, brakeReach, skipTo, eventsAhead,
-    takeJob, handBack, reportDone, jobStatus, dispositionOf, dispositionMet, blockInOrder, damageCar, TRACK_GEOM,
+    takeJob, handBack, reportDone, ROAD_LEGS, ROAD_IN_TIME, ROAD_OUT_TIME, LOCO_RUN_TIME, jobStatus, dispositionOf, dispositionMet, blockInOrder, damageCar, TRACK_GEOM,
     get paused() { return paused; }, togglePause, askForMain, reportClear, homeSignal, NODES, get view() { return view; }, saveYard, loadYard, newYard, fitsYard, SAVE_KEY, worldProblems, stateProblems,
     setSand, atFuelPoint, restLocos, FUEL_POINT, ADHESION };
 })();

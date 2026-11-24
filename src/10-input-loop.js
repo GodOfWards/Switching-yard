@@ -129,7 +129,7 @@
       if (d < bestD) { best = act; bestD = d; bestShows = shows; }
     };
     for (const id in SWITCHES)
-      consider(NODES[id].x, NODES[id].y, () => MAIN_SWITCHES.includes(id) && !state.main.held ? (askFor = id) : throwSwitch(id));
+      consider(NODES[id].x, NODES[id].y, () => MAIN_SWITCHES.includes(id) && !state.main.held && !roadLock(id) ? (askFor = id) : throwSwitch(id));
     for (const c of couplings()) if (!state.vehicles[c.vehicle].run) consider(c.at.x, c.at.y, () => { menuFor = c.key; });
     for (const id in state.vehicles) {
       const v = state.vehicles[id];
@@ -161,17 +161,42 @@
     if (b) { unlessPaused(askForMain)(Number(b.dataset.min)); askFor = null; }
   });
   // The main-line chip: holding the main, until when and Report clear (a
-  // train offered meanwhile calls the player off); otherwise the through
-  // train offered, held or passing.
+  // train offered meanwhile calls the player off); otherwise a Retiro road
+  // train under way (#78), or the through train offered, held or passing.
   const mainChip = document.getElementById("mainChip");
   let mainChipHtml = "";
+  // A Retiro road train's state, for the chip, and whether it waits on
+  // the yard.
+  function roadChip(r) {
+    const tt = timetableEntry(r.tt), track = `Track ${YARD_TRACKS[ARRIVAL_TRACK].number}`, yard = r.why && ROAD_CAUSES[r.why];
+    const stopped = r.blocked && r.speed === 0, name = trainName(tt);
+    if (r.kind === "arrival") return {
+      refused: { text: `${name} · held at La Oriental: ${WAIT_TEXT[r.why] || "waiting"}`, warn: !!yard },
+      accepted: { text: `${name} · offered, for ${track} at ${clockText(r.enters + ROAD_IN_TIME)}` },
+      running: { text: `${name} · ${stopped ? "stopped: route not clear" : `coming in to ${track}`}`, warn: stopped },
+      cutting: { text: `${name} · in, its loco cutting off` } }[r.status];
+    const late = state.clock >= r.at;
+    return {
+      waiting: { text: `${tt.number} · loco waits: ${WAIT_TEXT[r.why] || "build not ready"}`, warn: !!yard && state.clock >= readyBy(jobById(r.job) || { due: r.at }) },
+      shed: { text: `${tt.number} · road loco ${stopped ? "stopped: route not clear" : "off shed"}`, warn: stopped },
+      hooking: { text: `${tt.number} · road crew hooking up` },
+      check: { text: `${name} · station check, leaves ${clockText(r.at)}` },
+      ready: { text: `${name} · ${late && r.why ? `waits: ${WAIT_TEXT[r.why]}` : `ready, leaves ${clockText(r.at)}`}`, warn: late && !!yard },
+      running: { text: `${name} · ${stopped ? "stopped: route not clear" : "leaving"}`, warn: stopped } }[r.status];
+  }
   function renderMainChip() {
-    const r = state.through[0], tt = r && throughEntry(r.tt);
+    const r = state.through[0], tt = r && throughEntry(r.tt), road = state.road[0];
+    const calls = !r && state.road.find(o => o.why === "main");
     let html = "", warn = false;
     if (state.main.held) {
-      warn = !!r || state.clock > state.main.until;
-      html = (r ? (r.status === "refused" ? `${tt.number} held at ${waitsAt(tt)}` : `Clear the main for ${tt.number}`) : `Main yours until ${clockText(state.main.until)}${state.clock > state.main.until ? " · over time" : ""}`)
+      warn = !!r || !!calls || state.clock > state.main.until;
+      html = (r ? (r.status === "refused" ? `${tt.number} held at ${waitsAt(tt)}` : `Clear the main for ${tt.number}`)
+        : calls ? `Clear the main for ${timetableEntry(calls.tt).number}`
+        : `Main yours until ${clockText(state.main.until)}${state.clock > state.main.until ? " · over time" : ""}`)
         + " · <em>Report clear</em>";
+    } else if (road && (!r || r.status === "offered")) {
+      const c = roadChip(road) || { text: roadName(road) };
+      html = c.text; warn = !!c.warn;
     } else if (r) {
       html = `${throughName(tt)} · ${r.status === "offered" ? `due ${clockText(r.enters)}` : r.status === "refused" ? `held at ${waitsAt(tt)}`
         : r.status === "held" ? "held for the main" : "passing"}`;
@@ -273,7 +298,7 @@
     // A job not taken that a skip passes the due time of goes to another
     // crew: the menu says so before the skip, beside the event and the marks.
     for (const e of eventsAhead()) {
-      if (e.kind === "offer") {
+      if (e.kind === "offer" && e.through) {
         const tt = throughEntry(e.through);
         html += `<button class="event" data-at="${e.at}"><b>${clockText(e.at)}</b><span>${throughName(tt)} offered` +
           `<small>Through to ${tt.to}, due ${clockText(e.at + OFFER_LEAD_SECONDS)}${state.main.held ? "; clear the main" : ""}` +
@@ -281,8 +306,10 @@
         continue;
       }
       const j = e.job && jobById(e.job), crew = j && !j.taken ? `<small class="warn">Not taken: another crew does it</small>` : "";
-      const tt = e.tt && timetableEntry(e.tt);
-      const text = tt ? (tt.arrives ? `${trainName(tt)} arrives<small>Onto Track ${YARD_TRACKS[ARRIVAL_TRACK].number}</small>`
+      const tt = e.tt && timetableEntry(e.tt), track = `Track ${YARD_TRACKS[ARRIVAL_TRACK].number}`;
+      const text = e.kind === "offer" ? `${trainName(tt)} offered<small>For ${track} over the crossover; keep its route clear</small>`
+        : e.kind === "loco" ? `Road loco off shed for ${tt.number}<small>Its build must be ready</small>${crew}`
+        : tt ? (tt.arrives ? `${trainName(tt)} arrives<small>${tt.east ? `Over the crossover onto ${track}` : `Onto ${track}`}</small>`
           : `${trainName(tt)} leaves${j ? (j.taken ? "<small>It waits for your build</small>" : crew) : ""}`)
         : j ? `${j.title} falls due${crew}` : e.industry ? `Work done at ${INDUSTRIES[e.industry].name}<small>A pull job opens</small>`
         : e.kind === "fuelled" ? `Loco fuelled<small>A full tank, and sand</small>`
@@ -294,13 +321,13 @@
     html += `<h3>Skip to time</h3><div class="marks">`;
     let last = 0;
     for (let i = 0, at = nextMark(); i < marksShown; i++, at += SKIP_MARK_SECONDS) {
-      const warn = handed.some(j => j.due <= at);
+      const warn = handed.some(j => readyBy(j) <= at);
       html += `<button data-at="${at}"${warn ? ' class="warn"' : ""}>${clockText(at)}</button>`;
       last = at;
     }
     html += `<button data-more="1" aria-label="More times">…</button></div>`;
-    const passed = handed.filter(j => j.due <= last);
-    if (passed.length) html += `<p class="note">From ${clockText(passed[0].due)}, another crew does: ${passed.map(j => j.title).join("; ")}</p>`;
+    const passed = handed.filter(j => readyBy(j) <= last).sort((a, b) => readyBy(a) - readyBy(b));
+    if (passed.length) html += `<p class="note">From ${clockText(readyBy(passed[0]))}, another crew does: ${passed.map(j => j.title).join("; ")}</p>`;
     skipMenu.innerHTML = html;
   }
   function closeSkipMenu() { skipOpen = false; placeSkipMenu(); }
@@ -345,7 +372,7 @@
     let chip = "";
     if (worked) {
       const st = jobStatus(worked);
-      chip = `${worked.short} · <em>${st.met} of ${st.lines.length}</em> done${worked.due <= state.clock ? " · late" : ""}`;
+      chip = `${worked.short} · <em>${st.met} of ${st.lines.length}</em> done${readyBy(worked) <= state.clock ? " · late" : ""}`;
     }
     if (chip !== chipHtml) jobChip.innerHTML = chipHtml = chip;
     jobChip.classList.toggle("open", !!worked);
@@ -367,7 +394,8 @@
   const headline = r => `${r.outcome} · ${lateness(r.late)}`;
   const outcomeText = j => (j.result.by === "crew" ? `Done by another crew at ${shortTime(j.result.at)}`
     : `${headline(j.result)} · ${shortTime(j.result.at)}`) + trainText(j);
-  const dueText = j => j.kind === "build" ? `leaves ${shortTime(j.due)}` : `due ${shortTime(j.due)}`;
+  const dueText = j => j.kind !== "build" ? `due ${shortTime(j.due)}`
+    : j.ready ? `ready ${shortTime(j.ready)}, leaves ${shortTime(j.due)}` : `leaves ${shortTime(j.due)}`;
   // The "Fuel the loco" task (#117), while the tank is below FUEL_LOW or
   // the loco is taking fuel: how full it is, and what's happening. Not a
   // job: nobody else does it, and it isn't assessed.
@@ -387,7 +415,7 @@
       `${fuel.text} · at the fuel point by the turntable</small></div>` +
       `<button class="act" data-act="fuelpoint">Show</button></div>`;
     for (const j of openJobs()) {
-      const late = j.due <= state.clock ? ` · <span class="warn">late</span>` : "";
+      const late = readyBy(j) <= state.clock ? ` · <span class="warn">late</span>` : "";
       h += `<div class="job" data-job="${j.id}"><div><b>${j.title}</b><small>${j.cars.length} cars · ${dueText(j)}` +
         `${j.taken ? " · taken" : ""}${late}</small></div>` + (j.taken
           ? `<button class="act primary" data-act="open" data-job="${j.id}">Open</button>`
@@ -402,6 +430,9 @@
     }
     for (const r of state.held) h += `<div class="job later"><div><b>${trainName(timetableEntry(r.tt))} held outside</b>` +
       `<small class="warn">Due ${shortTime(r.at)}; Track ${YARD_TRACKS[ARRIVAL_TRACK].number} must be clear</small></div></div>`;
+    for (const r of state.road) if (r.kind === "arrival" && r.status === "refused")
+      h += `<div class="job later"><div><b>${roadName(r)} held at La Oriental</b>` +
+        `<small class="warn">Due ${shortTime(r.at)}; refused: ${WAIT_TEXT[r.why] || "waiting"}</small></div></div>`;
     const done = state.jobs.filter(j => j.result).reverse();
     if (done.length) h += `<h3><span>Finished</span><span></span></h3>`;
     for (const j of done) h += `<div class="job" data-job="${j.id}"><div><b>${j.title}</b><small>${outcomeText(j)}</small></div></div>`;
@@ -413,12 +444,15 @@
       `<button data-act="close" aria-label="Close">✕&#xFE0E;</button></header>` +
       `<div class="meta"><span>Place</span><span>${YARD_NAME}</span><span>Loco</span><span>${vehicleType(playerLoco()).name}</span>` +
       `<span>Shift</span><span>${clockText(shift.start).slice(0, 2)}–${clockText(shift.end).slice(0, 2)}, day ${dayOf(j.opens)}</span>` +
+      (j.ready ? `<span>Ready by</span><span>${shortTime(j.ready)}</span>` : "") +
       `<span>${j.kind === "build" ? "Leaves" : "Due"}</span><span>${shortTime(j.due)}</span></div>`;
     const remarks = [];
     if (j.kind === "breakup") remarks.push(`Train ${tt.number} from ${tt.from}, on Track ${YARD_TRACKS[ARRIVAL_TRACK].number}` +
-      (j.arrivedLate >= ON_TIME_SECONDS ? `, held outside ${lateText(j.arrivedLate)}` : ""));
+      (j.arrivedLate >= ON_TIME_SECONDS ? (j.east ? `, ${lateText(j.arrivedLate)} late` : `, held outside ${lateText(j.arrivedLate)}`) : ""));
     if (j.kind === "build") remarks.push(`Train ${tt.number} to ${tt.to}, built on ${tracksText(j.block)} as one coupled cut, ` +
-      `left by the loco, nothing else coupled in, the air joined through and every hand brake off`);
+      `left by the loco, nothing else coupled in, the air joined through and every hand brake off` +
+      (j.ready ? `; its road loco comes off shed for it at ${clockText(j.ready)} ` +
+      `and couples on at the ladder end, and it leaves over the crossover` : ""));
     if (j.kind === "setout") remarks.push(INDUSTRIES[j.industry].workTime === null
       ? `Empties to ${INDUSTRIES[j.industry].name} on ${tracksText(YARD_TRACKS[INDUSTRIES[j.industry].track].block)}, on any of its ` +
         `${INDUSTRY_SPOTS} spots from the buffer; loaded by the next shift change after the set-out`
@@ -505,7 +539,7 @@
       shifts[shifts.length - 1].lines.push(l);
     }
     for (const sh of shifts) {
-      const caused = p => sh.lines.filter(l => l.cause && l.passenger === p).reduce((t, l) => t + l.late, 0);
+      const caused = p => sh.lines.filter(l => l.cause && l.passenger === p).reduce((t, l) => t + (l.yardLate === undefined ? l.late : l.yardLate), 0);
       const total = p => { const s = caused(p); return s >= ON_TIME_SECONDS ? lateText(s) : "0 min"; };
       h += `<h3><span>Shift ${clockText(sh.start).slice(0, 2)}–${clockText(sh.start + SHIFT_HOURS * HOUR).slice(0, 2)}, day ${dayOf(sh.start)}</span>` +
         `<span>${sh.lines.length} train${sh.lines.length === 1 ? "" : "s"}</span></h3>` +

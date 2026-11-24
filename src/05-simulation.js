@@ -433,6 +433,7 @@
     stepWork();
     countMoves();
     stepThrough(dt);
+    stepRoad(dt);
     runEvents();
     if (state.notice && (state.notice.time -= dt) <= 0) state.notice = null;
   }
@@ -445,16 +446,29 @@
   }
   // The events ahead of the clock, soonest first, up to and including the
   // end of this shift: jobs falling due, road trains arriving and leaving
-  // (a departure with its build job), through trains offered, an
-  // industry's work done, the loco full at the fuel point or fuel brought
-  // out to it, and the shift change, when the next jobs open.
+  // (a departure with its build job), a Retiro road train offered or its
+  // loco off shed (#78), through trains offered, an industry's work done,
+  // the loco full at the fuel point or fuel brought out to it, and the
+  // shift change, when the next jobs open.
   function eventsAhead() {
     const end = shiftAt(state.clock).end, out = [];
+    const train = (at, tt, run, kind = "train") => {
+      const j = state.jobs.find(j => j.run === run);
+      if (at > state.clock && at <= end) out.push({ at, kind, tt, job: j && !j.result ? j.id : null });
+    };
     for (const j of state.jobs) if (!j.result && j.kind !== "build" && j.due > state.clock && j.due <= end) out.push({ at: j.due, kind: "due", job: j.id });
-    for (const r of runsBetween(state.timetableAt, end)) {
-      if (r.at <= state.clock) continue;
-      const j = state.jobs.find(j => j.run === r.id);
-      out.push({ at: r.at, kind: "train", tt: r.tt, job: j && !j.result ? j.id : null });
+    for (const r of runsBetween(state.timetableAt, end)) if (!timetableEntry(r.tt).east) train(r.at, r.tt, r.id);
+    // Retiro's: those still to start, by when they start and their time;
+    // those started, by when an arrival accepted is in or a departure leaves.
+    for (const r of runsBetween(state.roadAt, end + ROAD_LEAD)) {
+      const tt = timetableEntry(r.tt);
+      if (!tt.east) continue;
+      train(roadStartAt(tt, r.at), r.tt, r.id, tt.arrives ? "offer" : "loco");
+      train(r.at, r.tt, r.id);
+    }
+    for (const r of state.road) {
+      const at = r.kind === "arrival" ? (r.status === "accepted" ? r.enters + ROAD_IN_TIME : null) : r.at;
+      if (at !== null) train(at, r.tt, r.id);
     }
     for (const r of runsBetween(Math.max(state.throughAt, state.clock + 1) + OFFER_LEAD_SECONDS, end + OFFER_LEAD_SECONDS, THROUGH_TIMETABLE))
       out.push({ at: r.at - OFFER_LEAD_SECONDS, kind: "offer", through: r.tt });

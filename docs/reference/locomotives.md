@@ -7,7 +7,8 @@ Which real locomotive the game's loco should model. Researched 2026-10-08.
   G12: no G12 ever ran on the San Martín. Figures estimated, Unconfirmed;
   see [below](#alco-rsd-35-the-yard-engine).
 - **Through freights are headed by the RSD-16** (2026-11-24, #117), the
-  San Martín's main-line loco, replacing the G12 there too.
+  San Martín's main-line loco, replacing the G12 there too; so are
+  Retiro's road trains (#78).
 - ~~The loco models a GM G12 / GR12~~ (2026-10-08, PR #5, v0.2.1);
   superseded by the RSD-35.
 
@@ -109,7 +110,7 @@ The game draws it from above in yellow-orange with the red band showing
 along each side. Its mass and length matter only to its length on the
 main; the game doesn't model its pull.
 
-The RSD-16 also heads the through freights (#117). The Diesel Shop's
+The RSD-16 also heads the through freights and Retiro's road trains (#117). The Diesel Shop's
 DL540 tractive figures (361 / 349 kN) are the US RSD-12's, not the
 Argentine RSD-16's; 108 t is favoured over its 131.5 t (#116, third pass).
 

@@ -2,6 +2,63 @@
 
 Newest first. One entry per version bump.
 
+## 0.21.0
+
+**Added**
+- The yard engine is an ALCO RSD-35, the San Martín's light branch loco,
+  replacing the G12, which never ran on the line (#117, #116). Its figures
+  are estimates from its weight and its sister, the Renfe 313. Through
+  freights and Retiro's road trains are headed by the RSD-16.
+- Diesel-electric traction (#117): 8 notches plus idle, the load building
+  over a few seconds after a notch change; pull limited by the notch, by
+  power at speed and by the rail's grip.
+- Wheel slip: the rail's grip falls as speed rises, and asking for more
+  than it slips the wheels. The Wheel slip light shows and pull drops
+  until the throttle is notched down or sand goes on. A hard pull in notch
+  7 or 8 at walking pace slips. Sand is held on with its button (or Z).
+- A load meter: motor current against continuous, with the short-time
+  bands. Too much current for too long trips the motors: power cuts until
+  they cool, and the jobs being worked note it as rough handling.
+- Fuel: a gauge, burned by the notch in use and at idle. Below a quarter
+  tank a "Fuel the loco" task shows on the board; the loco fills, and its
+  sand box, at the fuel point by the turntable. Run dry, fuel is brought
+  out an hour later.
+
+**Changed**
+- The throttle reads 0–8.
+- Skipping needs the throttle shut. Over a skip the motors cool and the
+  engine idles; the loco full at the fuel point is an event to skip to.
+- A yard saved before this version is not carried over.
+
+## 0.20.0
+
+**Added**
+- Retiro's road trains run in and out over the crossover (#78). An
+  arrival is offered 10 minutes before it reaches the map. The station
+  accepts it only with Track 3 and its route clear, the main free and no
+  through train due; otherwise it waits at La Oriental and is offered
+  again once they are. Accepted, its route is set and padlocked, and it
+  runs in on sight to Track 3's buffer, stopping short of anything in its
+  way, where its loco cuts off and goes on west.
+- A Retiro departure's road loco comes off the depot fan 20 minutes
+  ahead, once the build is ready, reverses on Track 7 and the lead,
+  couples to Track 1's cut, its crew joining the hose to the train, and
+  the station checks the train for 10 minutes. At its time it pulls out
+  over the crossover.
+- The main chip shows a Retiro train's state; the board lists one
+  refused; the skip menu has its offer and its loco off shed.
+- The register gives a Retiro train's lateness the yard's cause:
+  refused with Track 3 not clear, route not clear, build not ready, main
+  held. A wait on a through train isn't the yard's.
+
+**Changed**
+- A Retiro build must be ready by its loco's time (20 minutes before
+  departure): it is late after that, and another crew does it then if
+  it isn't taken.
+- The main is refused to the player while a Retiro train waits or runs,
+  or is due in the time asked for.
+- A yard saved before this version is not carried over.
+
 ## 0.19.2
 
 **Added**

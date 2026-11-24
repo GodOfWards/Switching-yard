@@ -19,7 +19,8 @@
   //                destinations waybills name, the cars' traffic at the
   //                start, the traffic plan's flows and the numbers of cars
   //                that join, and the road trains' and through trains'
-  //                timetables; the lines out of Junín, for the Map.
+  //                timetables, and the routes Retiro's road trains run;
+  //                the lines out of Junín, for the Map.
   //                Content passes (a new siding, a new yard) touch only this.
   //   STATE        what changes while playing: the time of day, switch
   //                positions, vehicles, the trains they are coupled into,
@@ -28,7 +29,8 @@
   //                motor heat, fuel), the cars' traffic (away off the
   //                map included) and the pool of cars elsewhere on the
   //                line, the industries' work, the jobs, the arrivals held
-  //                outside, the through trains offered, refused line clear
+  //                outside, Retiro's road trains under way,
+  //                the through trains offered, refused line clear
   //                or running, who holds the main, and the train register.
   //                Built from WORLD DATA by makeState(); never edits WORLD DATA.
   //   UTILITIES    small geometry, track-walking and lookup helpers.
@@ -48,7 +50,9 @@
   //                leaving, jobs opening with them and at shift changes,
   //                their lines checked against the yard, work done
   //                off-screen, rough handling, and results; through trains
-  //                offered, held or run past on the main; and the train
+  //                offered, held or run past on the main; Retiro's road
+  //                trains offered, accepted on their locked routes and
+  //                driven on sight over the crossover; and the train
   //                register of every train run and how late.
   //   ACTIONS      what the player can do (reverser, levers, Emergency,
   //                Release, sand, throw a switch, connect or part the air,

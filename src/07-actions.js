@@ -49,8 +49,11 @@
     const c = playerLoco().controls;
     c.locoBrake = 0; c.trainBrake = 0; c.emergency = false;
   }
-  // A switch with a vehicle over it cannot be thrown.
+  // A switch with a vehicle over it cannot be thrown, nor one the station
+  // has locked for a Retiro road train (#78).
   function throwSwitch(swId) {
+    const lock = roadLock(swId);
+    if (lock) { setNotice(`Locked for ${roadName(lock)}`); return false; }
     if (MAIN_SWITCHES.includes(swId) && !state.main.held) { setNotice("Padlocked: ask the station for the main"); return false; }
     if (nodeOccupied(swId)) { setNotice("A train is on that switch"); return false; }
     const sw = SWITCHES[swId], cur = state.switches[swId];
@@ -116,11 +119,30 @@
   // The main (#57): the player asks the station for it for `minutes`. It's
   // granted, unlocking the crossover, when no through train is offered or
   // on the map and none will be offered in that time; otherwise refused,
-  // saying why.
+  // saying why. A Retiro road train (#78) is treated as a through train:
+  // one waiting to come in or to leave, or on the main, refuses it, as one
+  // offered or leaving in that time does.
   function askForMain(minutes) {
     if (state.main.held || !MAIN_ASK_MINUTES.includes(minutes)) return false;
     const r = state.through[0];
     if (r) { setNotice(`Refused: ${throughName(throughEntry(r.tt))} is ${r.status === "offered" ? "offered" : r.status === "refused" ? "waiting" : "on the main"}`); return false; }
+    const until = state.clock + minutes * 60;
+    const road = state.road.find(o => holdsMain(o) || (o.kind === "arrival" && o.status === "refused") || (o.kind === "departure" && o.at < until));
+    if (road) {
+      const leaving = road.kind === "departure" && road.status !== "running";
+      setNotice(`Refused: ${roadName(road)} ${leaving ? (road.at > state.clock ? `leaves at ${clockText(road.at)}` : "is due to leave")
+        : road.status === "refused" ? "is waiting" : road.kind === "arrival" ? "is coming in" : "is leaving"}`);
+      return false;
+    }
+    const comes = runsBetween(state.roadAt, until + ROAD_LEAD).find(x => {
+      const tt = timetableEntry(x.tt);
+      return tt.east && (tt.arrives ? roadStartAt(tt, x.at) : x.at) < until;
+    });
+    if (comes) {
+      const tt = timetableEntry(comes.tt);
+      setNotice(`Refused: ${trainName(tt)} ${tt.arrives ? "is due at" : "leaves at"} ${clockText(comes.at)}`);
+      return false;
+    }
     const next = nextOfferAt();
     if (next && next.at < state.clock + minutes * 60) {
       setNotice(`Refused: ${throughName(next.tt)} is due at ${clockText(next.at + OFFER_LEAD_SECONDS)}`);
@@ -158,6 +180,8 @@
     if (!(at > state.clock) || !(at % SKIP_MARK_SECONDS === 0 || eventsAhead().some(e => e.at === at))) return false;
     if (playerLoco().speed !== 0) { setNotice("Stop the loco before skipping"); return false; }
     if (playerLoco().controls.throttle) { setNotice("Shut the throttle before skipping"); return false; }
+    const moving = state.road.find(r => r.status === "running" || r.status === "shed");
+    if (moving) { setNotice(`Wait for ${moving.status === "shed" ? "the road loco" : roadName(moving)} to stand`); return false; }
     for (const id in state.vehicles) {
       if (state.vehicles[id].speed !== 0 && !state.vehicles[id].run) { setNotice("Wait for the cars to stop"); return false; }
     }
@@ -170,7 +194,7 @@
     restLocos(at - state.clock);
     state.clock = at;
     stepWork();
-    runEvents();
+    runEvents(true);
     return true;
   }
 
@@ -187,9 +211,9 @@
     const j = jobById(jobId);
     if (!j || j.result || !j.taken) return false;
     j.taken = false;
-    if (j.due <= state.clock) {
+    if (readyBy(j) <= state.clock) {
       doOffScreen(j, state.clock);
-      if (j.kind === "build") depart(j, state.clock);
+      if (j.kind === "build" && !j.ready) depart(j, state.clock);   // a Retiro build's loco comes for it (#78)
     }
     return true;
   }
@@ -198,7 +222,7 @@
     const j = jobById(jobId);
     if (!j || j.result || !j.taken) return false;
     assess(j, state.clock);
-    if (j.kind === "build" && !j.departed && j.due <= state.clock) depart(j, state.clock);
+    if (j.kind === "build" && !j.departed && !j.ready && j.due <= state.clock) depart(j, state.clock);
     return true;
   }
 
