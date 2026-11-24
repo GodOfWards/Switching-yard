@@ -19,6 +19,10 @@ Made in the project chat, after the Junín research of 2026-11-23
 - **Tassara cars use the west end**: a car for the mill waits on the local
   track, goes out at the next shift change, and comes back about 2 days
   later on an arrival. The moves to and from the mill stay off-screen.
+- **A second daily road train to Retiro** (2026-11-24, in the project
+  thread, #105): on top of the rest, Tassara's 10 cars a week overload the
+  one 16-car train to Retiro, which already left full 9 days in 10. A
+  departure 1102 to Retiro at 09:00 joins the timetable (time retunable).
 
 ## 2026-11-23: The Map (#53)
 

@@ -1021,8 +1021,9 @@
     elevator: { name: "Elevator", ordering: "none" },
     shed:    { name: "Goods shed", ordering: "exact" },
   };
-  // The industries at Junín (#84), each on its track, both invented: no
-  // rail-served industry at Junín was found (#45, docs/decisions.md). A
+  // The industries at Junín (#84), each on its track, both invented: the
+  // one rail-served industry found at Junín, Molinos Tassara, stood off the
+  // map, and is a station of its own in DESTINATIONS (#45, #105). A
   // flow with `atJunin` loads or unloads at that industry; the rest at
   // Junín stay the shift-change placeholder. `spot` is what a spot is
   // called there. The elevator's cars stand on any spot; at the shed, a
@@ -1036,7 +1037,10 @@
   // there included: from FA's 18-day broad-gauge car turnaround, split by
   // distance (docs/reference/fa-freight-traffic.md; the split is assumed,
   // retunable). Its block is also its side: cars come back from it on the
-  // arrivals from that side.
+  // arrivals from that side. A station `westEnd` is reached through the
+  // west end instead, off-screen (#105): its cars wait on its block's
+  // track, go out at the next shift change, and come back on the next
+  // arrival from either side.
   const DESTINATIONS = {
     ohiggins:   { name: "O'Higgins",          block: "retiro",  away: 8 * DAY },
     membrillar: { name: "Membrillar",         block: "retiro",  away: 8 * DAY },
@@ -1048,13 +1052,14 @@
     elevator:   { name: "Junín, the elevator", block: "empties" },
     shed:       { name: "Junín, the goods shed", block: "local" },
     stored:     { name: "Storage",            block: "storage" },
+    tassara:    { name: "Molinos Tassara",    block: "local",   away: 2 * DAY, westEnd: true },
   };
   // The traffic plan (#50): each flow carries `load` in cars of kind
   // `type` from one station to another, `perWeek` loaded cars a week, and
   // each car goes back empty to where it was loaded. Stations are
   // DESTINATIONS off the map, or "junin". Sized to what the timetable can
-  // carry: each side balances in and out, about 190 cars a week each way
-  // through the yard. FA's bulk (wine in tank trains, most grain) moved
+  // carry: each side balances in and out; the Retiro side, about 120
+  // cars a week each way, needs both its departures (#105). FA's bulk (wine in tank trains, most grain) moved
   // in through trains; these are wagonload. Estimates, retunable; Tom's
   // calls of 2026-10-12, docs/decisions.md.
   const FLOWS = {
@@ -1069,6 +1074,11 @@
     lotsVedia:    { from: "junin",   to: "vedia",      type: "cubierto",  load: "small lots",              perWeek: 8, atJunin: "shed" },
     lotsOHiggins: { from: "junin",   to: "ohiggins",   type: "cubierto",  load: "small lots",              perWeek: 4, atJunin: "shed" },
     materials:    { from: "junin",   to: "membrillar", type: "bordeAlto", load: "materials",               perWeek: 4 },
+    // Molinos Tassara's mill, off the map west of the station (#105): about
+    // 11,000 t of flour a year out, and about half the wheat it needs in
+    // (the rest by road). docs/reference/fa-freight-traffic.md.
+    flourTassara: { from: "tassara", to: "retiro",     type: "cubierto",  load: "bagged flour",            perWeek: 6 },
+    wheatTassara: { from: "ohiggins", to: "tassara",   type: "tolva",     load: "wheat",                   perWeek: 4 },
   };
   // Each car's traffic at the start: its flow, or a waybill when it has
   // none, and why it's bad order, if it is. Cars away at the start, and
@@ -1087,9 +1097,12 @@
   // a departure takes its block's cars from that block's track and goes.
   // The buffer stands for the rest of the yard toward the station. `at` is
   // the time of day; numbers are the game's. An arrival brings the cars
-  // coming back from the stations on its `side` (their block). Retunable.
+  // coming back from the stations on its `side` (their block). Retiro has
+  // two departures a day: one 16-car train can't take Molinos Tassara's
+  // traffic on top of the rest (#105). Retunable.
   const TIMETABLE = [
     { id: "a1101", number: "1101", arrives: true, from: "Retiro",  side: "retiro",   at: 7 * HOUR },
+    { id: "d1102", number: "1102", arrives: false, to: "Retiro",  block: "retiro",   at: 9 * HOUR },
     { id: "d1202", number: "1202", arrives: false, to: "Mendoza", block: "mendoza",  at: 12.5 * HOUR },
     { id: "a1203", number: "1203", arrives: true, from: "Mendoza", side: "mendoza",  at: 15 * HOUR },
     { id: "d1104", number: "1104", arrives: false, to: "Retiro",  block: "retiro",   at: 20.5 * HOUR },
@@ -1885,12 +1898,14 @@
   // are repaired, and loads for Junín left on the local track unloaded and
   // empties for loading left on the empties track loaded (placeholders for
   // the traffic no industry takes), each with a new waybill; stored cars
-  // go to flows short of cars; set-outs open at the industries free for
+  // go to flows short of cars; cars for a station reached through the west
+  // end go out (toWestEnd()); set-outs open at the industries free for
   // them; and a job opens to sort the cars still not where they belong. A
   // car in an open job is left alone.
   function shiftChange(at) {
     carsChanged();
     for (const j of openJobs()) if (!j.taken && j.kind !== "build" && j.due <= at) doOffScreen(j, at);
+    toWestEnd(at);
     for (const id of Object.keys(state.cars)) {
       const t = state.cars[id].trip;
       if (t && t.pool && t.back <= at) { resolveTrip(id); toPool(id, at); state.poolCount.left++; }
@@ -2141,13 +2156,13 @@
   // back by then from the stations on its side, soonest due first, up to
   // ARRIVAL_CARS_MAX, topped up from the pool toward ARRIVAL_CARS_MIN. Each is
   // loaded or unloaded at its station by the plan, and billed on. A job
-  // opens to break it up, due at the shift change, and another to build
-  // the departure that follows it.
+  // opens to break it up, due at the shift change, and one to build each
+  // departure that follows it, up to the next arrival.
   function arrive(run, at) {
     const tt = timetableEntry(run.tt), late = at - run.at;
     const ids = Object.keys(state.cars).filter(id => {
       const t = state.cars[id].trip;
-      return t && !t.pool && t.back <= at && DESTINATIONS[t.at].block === tt.side;
+      return t && !t.pool && t.back <= at && (DESTINATIONS[t.at].westEnd || DESTINATIONS[t.at].block === tt.side);
     }).sort((a, b) => state.cars[a].trip.back - state.cars[b].trip.back).slice(0, ARRIVAL_CARS_MAX);
     for (let id; ids.length < ARRIVAL_CARS_MIN && (id = joinFromPool(tt.side, at));) ids.push(id);
     const note = late >= 60 ? `, held outside ${lateText(late)}` : "";
@@ -2162,8 +2177,10 @@
       addJob({ kind: "breakup", title: `Break up ${trainName(tt)}`, short: `Break up ${tt.number}`, opens: at,
                due: shiftAt(at).end, cars: ids, run: run.id, arrivedLate: late });
     }
-    const next = runsBetween(run.at + 1, run.at + DAY).find(r => !timetableEntry(r.tt).arrives);
-    if (next && next.at >= state.timetableAt && !state.jobs.some(j => j.run === next.id)) openBuild(next, at);
+    for (const next of runsBetween(run.at + 1, run.at + DAY)) {
+      if (timetableEntry(next.tt).arrives) break;
+      if (next.at >= state.timetableAt && !state.jobs.some(j => j.run === next.id)) openBuild(next, at);
+    }
   }
   // Opens the job to build departure `run`: every car on the map whose
   // disposition is its block, up to DEPARTURE_MAX_CARS, those already on
@@ -2194,16 +2211,31 @@
   function depart(job, at) {
     const tt = timetableEntry(job.run.split(".")[0]), late = Math.max(0, at - job.due);
     const going = job.cars.filter(id => state.cars[id].away === null && dispositionOf(id) === job.block && dispositionMet(id));
-    for (const id of going) {
-      detach(id);
-      delete state.vehicles[id];
-      const c = state.cars[id], x = c.waybill;
-      const pool = !c.flow || flowCars(c.flow) > flowShare(c.flow) + FLOW_SLACK;
-      const back = at + DESTINATIONS[x].away * (1 + TRIP_SPREAD * (2 * random() - 1));
-      Object.assign(c, { away: at, trip: { at: x, back, pool } });
-      logCar(id, `Left on ${trainName(tt)}${late >= 60 ? `, ${lateText(late)} late` : ""}`, at);
-    }
+    for (const id of going) sendAway(id, at, `Left on ${trainName(tt)}${late >= 60 ? `, ${lateText(late)} late` : ""}`);
     job.departed = { at, cars: going.length, late };
+  }
+  // Car `id` leaves the map at `at` on a trip to its waybill's station.
+  function sendAway(id, at, text) {
+    detach(id);
+    delete state.vehicles[id];
+    const c = state.cars[id], x = c.waybill;
+    const pool = !c.flow || flowCars(c.flow) > flowShare(c.flow) + FLOW_SLACK;
+    const back = at + DESTINATIONS[x].away * (1 + TRIP_SPREAD * (2 * random() - 1));
+    Object.assign(c, { away: at, trip: { at: x, back, pool } });
+    logCar(id, text, at);
+  }
+  // At a shift change, the cars billed to a station reached through the
+  // west end (#105) go out to it, off-screen: those standing where they
+  // belong on its block's track, sound, and in no open job or the loco's
+  // train.
+  function toWestEnd(at) {
+    const busy = new Set(openJobs().flatMap(j => j.cars));
+    for (const id of Object.keys(state.cars)) {
+      const c = state.cars[id], d = c.waybill && DESTINATIONS[c.waybill];
+      if (!d || !d.westEnd || c.away !== null || c.badOrder || c.spot || busy.has(id)) continue;
+      if (state.vehicles[id].speed !== 0 || !dispositionMet(id)) continue;
+      sendAway(id, at, `Left at the west end for ${d.name}`);
+    }
   }
 
   // Another crew does a job off-screen at `at`: each car not yet where it
