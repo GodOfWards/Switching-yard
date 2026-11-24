@@ -17,9 +17,11 @@ the paint colours are **Confirmed**, read on FA's own technical
 specifications (FAT) and drawings (NEFA), hosted by CNRT. **Lengths: two
 kinds found.** No general-arrangement drawing of a game car is on CNRT's
 site, but detail sheets give the grain hopper about **15.0 m** and the 50 t
-box car about **13.5 m** over buffers (both derived). The borde alto,
-tank, jaula and two-axle cars stay estimates. Open gap: those lengths and
-the fleet split by axles, in #98.
+box car about **13.5 m** over buffers (both derived). For the borde alto,
+jaula and tank, a state-railway diagram book gives older 28–45 t
+broad-gauge cars of **11.0–13.2 m**, which bounds them (derived). Two-axle
+cars ran until 1989, but how many and how long weren't found. Open gaps:
+#112.
 
 ## Load limits and tares
 
@@ -203,14 +205,43 @@ buffers. No drawing found gives it directly. What was found:
   m diameter, and with a frame about 1 m longer and the buffers, **12.5–13.5
   m over buffers, about 13.0 m.** Derived, weak. FAT V-1548 (its frame)
   still won't download.
-- **Borde alto:** no length found (2026-11-24). FAT V-1527 and V-1529 give
+- **Older broad-gauge bogie cars, 1910–1945** (2026-11-24): the wagon
+  diagram book of the Ferrocarriles del Estado's broad-gauge Patagonian
+  lines (San Antonio Oeste–Bariloche and others; part of the Roca from
+  1948), scanned by Sergio Barral on Railways of the Far South, gives
+  lengths in mm. Confirmed for the figures, read off the scans:
+
+  | Series | Kind | Built | Capacity | Bogie centres | Body | Over buffers |
+  |---|---|---|---|---|---|---|
+  | 600 | Cubierto | 1910, Ringhoffer | 40 t | 7,550 | 10,510 | **11,510** |
+  | 1500 | Cubierto | 1910, Cie de Fer, Paris | 45 t | 10,200 | 11,800 | **12,930** |
+  | 3000 | Cubierto, wooden body | 1925, Familleureux | 40 t | 8,000 | 12,180 | **13,180** |
+  | 1000 | Hacienda convertible (cattle, two decks) | 1924–25, rebuilt on flats | 40 t | 7,830 | 10,500 | **11,500** |
+  | 1200 | Hacienda, two decks | 1945, rebuilt on flats | 40 t | 8,000 | 12,130 | **13,190** |
+  | 6000 | **Borde alto** | 1926, rebuilt on flats | 40 t | 8,000 | 12,190 | **13,190** |
+  | 7000 | Plataforma | 1925, Familleureux | 40 t | 8,000 | 12,190 | **13,190** |
+  | 4500 | Tanque (water, petrol) | 1933, Tafí Viejo | 30 t | 6,840 | | **11,530** |
+  | 4500 | Tanque, petrol (ex Leeds Forge flats) | 1936, 1947–48 | 28 t | 6,880 | | **10,986** |
+
+  The drawings show buffers of 500–565 mm each side, matching FA's 520 mm.
+  These are not San Martín cars, and they are older and lighter than the
+  1970s 50–60 t cars; no BAP diagram was found. Unconfirmed that the San
+  Martín's cars were similar.
+- **Borde alto:** no FA-era length found (2026-11-24). The 1926 40 t borde
+  alto above is **13.19 m**; a 1970s 60 t car is heavier and no shorter,
+  so **about 13.5 m (13.2–14 m)**. Derived. FAT V-1527 and V-1529 give
   none; NEFA 544, its marking layout, isn't drawn to scale. World Bank 1979
   (Annex, item 20) planned to **replace 256 old broad-gauge high-sided
   wagons with 128 new ones**, so the old ones carried about half a new
   one's load. Confirmed for the figures; that they were shorter or
   two-axle is an inference.
-- **Jaula:** no drawing found. It's a type 2 cubierto in FA's code, so the
-  box car's 13.5 m is the nearest figure. Unconfirmed.
+- **Jaula:** no FA-era drawing found. It's a type 2 cubierto in FA's code.
+  The newest cattle car in the diagram book (1945) is **13.19 m**, one of
+  1924 11.5 m, so **about 13.5 m (13.2–13.5 m)**, the box car's length.
+  Derived.
+- **Tank, cross-check:** the diagram book's 28–30 t tanks are 11.0–11.5 m;
+  a 60 m³ tank needs about 2 m more barrel, which fits the 13.0 m above.
+  Derived.
 - **Length classes** (NEFA 429, broad gauge, 1962): buffer face sizes are
   set for vehicles **up to 15.25 m**, 15.25–19 m and over 19 m over
   buffers, so 15.25 m was the ordinary upper limit for a car. Confirmed.
@@ -226,7 +257,17 @@ buffers. No drawing found gives it directly. What was found:
   (RITO art. 203, [fa-yard-operations.md](fa-yard-operations.md)), and
   were still in the 1993 rulebook (arts. 196, 210). How many were
   two-axle: not found (2026-11-24); World Bank Tables 2.2 and 2.5 don't
-  split the fleet by axles. How long: no NEFA sheet of a two-axle
+  split the fleet by axles. **Unbraked two-axle cars stayed in use until
+  1989** and held train speeds down (Müller 2012, in
+  [fa-car-turnaround.md](fa-car-turnaround.md); Secondary), and FA's 1972
+  maintenance instruction MR4-002 still has a task sheet for "Suspensión
+  (vagones de dos ejes)" (Confirmed). On the state's Patagonian line the
+  two-axle wagons (built 1890–1898) carried **10–12 t**, against 37–45 t
+  for its bogie cars (Railways of the Far South, from the 1912–1955 stock
+  lists; Secondary). FA planned to scrap 5,464 broad-gauge commercial
+  wagons in 1978–81, about 17% of the fleet, by type, not by axles (World
+  Bank 1979, Table 2.6; Confirmed). Reading (mine): two-axle cars were a
+  small, shrinking share by the game's era, in local and work trains. How long: no NEFA sheet of a two-axle
   broad-gauge wagon found. British four-wheel wagons of the period were
   typically 18–24 ft (5.5–7.3 m) over headstocks, so **about 8 m over
   buffers**: Assumed, from general British practice, not an Argentine
@@ -248,7 +289,7 @@ Unconfirmed and retunable.
 |---|---|---|---|
 | Vagón cubierto | 15.5 m, estimated; **FA's is about 13.5 m** (NEFA 594, derived) | 21 t, estimated | 50 t, Unconfirmed (above) |
 | Tolva cerealera | 15 m; matches NEFA 24.381 (15.0 m, derived) | 21 t, estimated | 58 t, FAT V-1539 |
-| Borde alto | 14 m, estimated; not found, 13.5 m is the nearest analogy | 20 t, FAT V-1529 | 60 t, FAT V-1529 |
+| Borde alto | 14 m, estimated; **about 13.5 m** derived (a 1926 one is 13.19 m) | 20 t, FAT V-1529 | 60 t, FAT V-1529 |
 | Plataforma | 19.5 m, estimated from three 6.06 m containers | 19 t, FAT V-1520 | 61 t, FAT V-1520 |
 | Vagón tanque | 14 m, estimated; **about 13.0 m** derived (weak) | 21 t, estimated | 50 t: 60 m³ of gasoil at about 0.84 t/m³, derived |
 
@@ -281,6 +322,8 @@ Unconfirmed and retunable.
 - World Bank 1979, Table 2.5 (age of freight wagons): see [fa-freight-traffic.md](fa-freight-traffic.md).
 
 - Read 2026-11-24 (#98): [NEFA 594](https://www.argentina.gob.ar/sites/default/files/para_reemplazar-20181105t152627z-001/Para%20reemplazar/NEFA_594.pdf) (box car roof), [29.006](https://www.argentina.gob.ar/sites/default/files/subidos_tanda_6/NEFA_29006.pdf), [29.007](https://www.argentina.gob.ar/sites/default/files/subidos_tanda_6/NEFA_29007.pdf), [29.016](https://www.argentina.gob.ar/sites/default/files/subidos_tanda_6/NEFA_29016.pdf) (50 t box car, 1971), [25.024](https://www.argentina.gob.ar/sites/default/files/para_reemplazar-20181105t152627z-001/Para%20reemplazar/NEFA_25024.pdf) (monocoque tank barrel), [833](https://www.argentina.gob.ar/sites/default/files/subidos_tanda_4/NEFA_833.pdf) (1948 broad-gauge tank), [429](https://www.argentina.gob.ar/sites/default/files/subidos_tanda_2/NEFA_429.pdf) (draw gear and buffers, 1962), [544](https://www.argentina.gob.ar/sites/default/files/subidos_tanda_3/NEFA_544.pdf) (borde alto marking), [1037](https://www.argentina.gob.ar/sites/default/files/subidos_tanda_5/NEFA_1037.pdf) (rail wagon); World Bank 1979, Annex item 20 (wagon replacement).
+- Read 2026-11-24 (#98, second pass): Ferrocarriles del Estado broad-gauge wagon diagram book, scanned by Sergio Barral, [Railways of the Far South, Appendix 9](https://railwaysofthefarsouth.co.uk/04x9fcewagondiag.html) (copies of the nine pages in the project files, `research/cars/fce-diagrams/`); [Bariloche line rolling stock](https://railwaysofthefarsouth.co.uk/04Sesanantstock.html) (stock lists 1912–1955), Secondary; World Bank 1979, Table 2.6 (freight wagon scrapping program); Instrucción Técnica MR4-002 (September 1972), Anexo 2 (copy in the project files, `research/fa-operations/`).
+- Not on CNRT's site (listed, no file), 2026-11-24: NEFA 19.003 and 19.067 (borde alto frame), 25.010, 25.018 and 832 (tanks), 439 (hacienda).
 - [Especificaciones FAT, CNRT](https://www.argentina.gob.ar/cnrt/especificaciones-fat): the index of FA's technical specifications, with titles and capacities.
 - [FAT V-1520](https://www.argentina.gob.ar/sites/default/files/normas_fat/FAT_V_1520.pdf), [FAT V-1527](https://www.argentina.gob.ar/sites/default/files/normas_fat/FAT_V_1527.pdf), [FAT V-1529](https://www.argentina.gob.ar/sites/default/files/normas_fat/FAT_V_1529.pdf), [FAT V-1530](https://www.argentina.gob.ar/sites/default/files/normas_fat/FAT_V_1530.pdf), [FAT V-1545](https://www.argentina.gob.ar/sites/default/files/normas_fat/FAT_V_1545.pdf): read 2026-10-08.
 - [FAT MRe-2002, marcado unificado](https://www.argentina.gob.ar/sites/default/files/normas_fat/FAT_MRe_2002.pdf): read 2026-10-08.
