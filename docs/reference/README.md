@@ -38,7 +38,7 @@ game builds on them are in [../design/](../design/README.md).
 
 | File | Covers |
 |---|---|
-| [locomotives.md](locomotives.md) | Switcher candidates (Class 08, SW1500, GM G12, GAIA) and why the G12 |
+| [locomotives.md](locomotives.md) | Switcher candidates (Class 08, SW1500, GM G12, GAIA) and why the G12; the ALCo RSD-16 on the *Aconcagua* |
 | [train-physics.md](train-physics.md) | Rolling and starting resistance (Davis), curve drag, brakes, air, hand brakes, slack, FA coupler types and which vehicles carried them |
 | [argentine-rolling-stock-naming.md](argentine-rolling-stock-naming.md) | Line initials, FA loco numbers, Spanish car type names, current operators |
 | [fa-freight-cars.md](fa-freight-cars.md) | FA freight cars: load limits and tares from FA's specifications, type codes, the marking panel, tare stencil, paint colours, couplers in brief, lengths of the grain hopper and box car, estimates for the rest |
@@ -48,4 +48,5 @@ game builds on them are in [../design/](../design/README.md).
 | [next-yard.md](next-yard.md) | Candidates for the next yard after Junín (Rufino, Palmira, Caseros, Justo Daract, Chacabuco), ranked from OSM yard track and FA traffic |
 | [fa-yard-operations.md](fa-yard-operations.md) | How an FA yard worked, from FA's rulebook (RITO): train formation order, switching rules, crews, the vehicle list and train weight, bad-order labels, authority to use the main line; Junín's inspection station and rail-served mill |
 | [fa-freight-traffic.md](fa-freight-traffic.md) | What FA carried, how much and how far (1977, World Bank), wine by rail from Mendoza, freight car turnaround (1977 actual and target) |
+| [aconcagua.md](aconcagua.md) | The *Aconcagua* (FA trains 565/566): route, consist, Materfer coaches and their FA codes, livery from a photo, the RSD-16, what wasn't found |
 | [switch-indicators.md](switch-indicators.md) | How Argentine railways show a switch's position (RGF art. 100), and the track figures used to draw rails |

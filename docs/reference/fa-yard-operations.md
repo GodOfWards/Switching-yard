@@ -6,12 +6,16 @@ how a yard crew got the main line. Researched 2026-10-09 (#45) for jobs
 stages 2 and 3 (#49, #50); articles 63, 154, 155 and 163 added the same day
 for the main line (#56, #57). FA's bad-order labels, Junín's place among the
 San Martín's repair points and Molinos Tassara added 2026-11-23 (#45).
+Articles 64 d and 65, on passenger trains at night, added 2026-11-24 (#104).
 
 **Decided (Tom):**
 - **Traffic sources** (2026-10-09): the era stays FA, 1977 or later.
   Product mix, seasons and destinations may come from modern data; the
   kinds of traffic and trains come from the FA sources here; volumes are
   labelled estimates. Modern block-train operation isn't carried back.
+- **Passenger trains at night** (2026-11-24, #104): offered with the main
+  not clear outside 06:00–20:00, a passenger train is refused line clear
+  (art. 64 d 3, art. 65) and waits off the map until the main is clear.
 
 **Status:** the rules are **Confirmed**, read on FA's own rulebook, the
 *Reglamento Interno Técnico Operativo* (RITO), in the text that carries
@@ -165,6 +169,9 @@ light repairs, including lifting a car to change wheelsets or a bogie; a
 | A facing hand switch on the main is clamped and padlocked before a train passes over it; clamps are always padlocked, the key kept | art. 155 b, 163 a | Confirmed |
 | **Asking for the main with a time estimate, and reporting back clear**: Tom's account of train-sim practice (yard limits, a dispatcher), North American. The RITO has the station consent to switching (art. 391) but no time estimate from the crew | Tom, 2026-10-09 | Unconfirmed for FA |
 | A station whose tracks are obstructed by switching may still accept a train with a **conditional line clear**; the train is stopped at the station behind and told in writing it must stop at the home signal | art. 64 | Confirmed |
+| **Not for passenger trains at night**: art. 64 applies only by day when the train offered, or the one obstructing the track inside the signals, is passenger or mixed (*"sólo tendrá aplicación este artículo durante el día"*). Read 2026-11-24 | art. 64 d 3 | Confirmed |
+| Art. 64 is also barred in poor visibility unless detonators have been placed. Not in the game | art. 64 d 1 | Confirmed |
+| A station that **can't accept a train refuses line clear** (bell code 8); if acceptance will be delayed it tells the station behind why, and that station repeats the request at short intervals | art. 65 | Confirmed |
 | **Stopping the switching for a train**: the station or signalman waves a red flag or light up and down. The switchman stops at once, clears the switches, sets hand switches to normal, and acknowledges with the same signal; nothing moves on them until he has | art. 392 a, b | Confirmed |
 | Switching beyond station limits: pull out, push back; otherwise make sure no car was left outside (a man rides the far car, or the far car's number or the count is checked) | art. 379 | Confirmed |
 | Train classes asked for by bell code include **through freight** (*tren de carga directo*, 2-4), **pick-up freight** (*tren de carga de maniobras*, 2-5), livestock (2-3), and parcels, milk, fruit or fish (2-2) | art. 42 | Confirmed |
