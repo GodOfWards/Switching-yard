@@ -18,6 +18,12 @@ Made in the project thread and on #117, from the research in #116
 - **8 notches** plus idle, replacing 0–4.
 - **Rail is always dry** for now; slip and sand are built so weather can
   come later.
+- **Grip falls as speed rises** (Curtius–Kniffler's shape, scaled to the
+  usable 0.25 at a stand), so a hard pull slips on dry rail and sand
+  matters. Asked in the thread after the first build showed dry rail never
+  slipping.
+- **Run dry, fuel is brought out an hour later; sand refills with the
+  fuel.** Kept as proposed in the pull request.
 - **At the heat limit, a protective trip:** power cuts until the motors
   cool to 80 %; the overheat counts as rough handling in results.
 - **Fuel:** a gauge, and a "Fuel the loco" task at the turntable fuel

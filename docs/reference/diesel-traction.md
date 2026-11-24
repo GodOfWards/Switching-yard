@@ -97,7 +97,8 @@ modelled (#117: no maintenance yet).
 | Notch power shares | 7, 13, 27, 38, 48, 64, 87, 100 % | EMD 16-645 test | Assumed for the 251 |
 | Notch pull cap | starting pull × √share | none | Assumed |
 | Load build-up | within 5 % in ~4 s up, ~1 s down | none | Assumed |
-| Adhesion, dry / sanded | 0.25 / 0.35 | EMD booklet | Confirmed (range) |
+| Adhesion, dry / sanded | 0.25 / 0.35 at a stand | EMD booklet | Confirmed (range) |
+| Adhesion against speed | × μ(v) / μ(0), Curtius–Kniffler's shape | Curtius & Kniffler 1950 | Secondary curve, Assumed scaling |
 | Slip | load drops to 60 % of the grip, held until notched down or sanded | none | Assumed |
 | Sand box | 20 min of sanding; refilled with fuel | none | Assumed |
 | Motor heat time constant | 10 min | fitted to the D37 plate (5 min at 1.42×, 15 min at 1.18×) | Assumed for the GE 761 |
@@ -112,12 +113,17 @@ The model's own short-time times from cold (heat = r²(1 − e^(−t/τ))):
 5 min at 1.59×, 10 min at 1.26×, 15 min at 1.13×, 30 min at 1.03×; the
 load meter marks these, not the D37 plate's.
 
-**With the RSD-35's estimates, dry rail never slips:** its starting pull
-(25 % of its weight) equals the dry grip (0.25 × its weight), so even N8
-from a stand asks for exactly the limit. Slip and sand matter once wet
-rail or a lower adhesion comes in. Adhesion that falls with speed
-(Curtius–Kniffler) or weight transfer off the leading axles would make dry
-rail slip at a hard start; neither is modelled.
+**Adhesion falls with speed** (Tom, 2026-11-24): Curtius and Kniffler's
+curve for dry rail, μ = 0.161 + 7.5 / (v + 44), v in km/h (Curtius &
+Kniffler, *Elektrische Bahnen*, 1950; as restated in railway traction
+texts) — **Secondary**. Its value at a stand (0.33) is a peak, above EMD's
+usable 0.25, so the game takes only its shape: grip = 0.25 (0.35 sanded) ×
+μ(v) / μ(0), about 95 % at 5 km/h, 90 % at 10 km/h, 83 % at 21 km/h
+(**Assumed**, retunable). With it, the RSD-35's starting pull (exactly the
+dry grip at a stand) is more than the grip once moving: in checks with a
+heavy drag, N8 slipped at about 5 km/h and N7 at about 8 km/h, N6 didn't,
+and sand stopped it. A light loco gets away before its load builds, and
+doesn't slip. Weight transfer off the leading axles is not modelled.
 
 ## Open
 

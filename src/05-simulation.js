@@ -73,9 +73,11 @@
     return Math.min(tr.starting * Math.sqrt(load), load * tr.power / Math.max(Math.abs(along), EPS)) * governor;
   }
   // The rail's grip under loco `v`: the adhesion, sanded while sand goes
-  // on and the box has some, times the weight on its driven axles.
+  // on and the box has some, falling with speed, times the weight on its
+  // driven axles.
   const sanding = c => c.sanding && c.sand > 0;
-  const gripOf = (v, tr) => (sanding(v.controls) ? ADHESION.sanded : ADHESION.dry) * tr.driven * vehicleMass(v) * G;
+  const gripOf = (v, tr) => (sanding(v.controls) ? ADHESION.sanded : ADHESION.dry) * ADHESION_AT_SPEED(v.speed)
+    * tr.driven * vehicleMass(v) * G;
   // Whether loco `v` stands at the fuel point.
   function atFuelPoint(v) {
     const p = pointOn(v.seg, v.s), f = pointOn(FUEL_POINT.segment, FUEL_POINT.s);

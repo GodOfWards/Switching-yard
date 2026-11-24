@@ -436,7 +436,14 @@
   const LOAD_DOWN_SECONDS = 1;          // Assumed, retunable
   const LOCO_MAX_SPEED = 8;             // m/s (29 km/h); a yard limit, not the loco's own; pull fades to nothing over the last GOVERNOR_BAND
   const GOVERNOR_BAND = 1;              // m/s
-  const ADHESION = { dry: 0.25, sanded: 0.35 };  // usable share of the weight on drivers (EMD); the rail is always dry for now (Tom)
+  const ADHESION = { dry: 0.25, sanded: 0.35 };  // usable share of the weight on drivers at a stand (EMD); the rail is always dry for now (Tom)
+  // The grip falls as speed rises, by the shape of Curtius and Kniffler's
+  // curve, μ = 0.161 + 7.5 / (v + 44) with v in km/h, scaled so it is
+  // ADHESION at a stand (Tom, 2026-11-24): about 90 % of it at 10 km/h,
+  // 83 % at 21 km/h. The curve is Secondary; scaling it to EMD's usable
+  // figure is Assumed, retunable.
+  const curtiusKniffler = kmh => 0.161 + 7.5 / (kmh + 44);
+  const ADHESION_AT_SPEED = speed => curtiusKniffler(Math.abs(speed) * 3.6) / curtiusKniffler(0);  // speed in m/s
   const SLIP_SHARE = 0.6;               // a slipping loco's pull, as a share of the grip; Assumed, retunable
   const SAND_BOX_SECONDS = 20 * 60;     // s of sanding a full box holds; Assumed, retunable
   // Traction motor heat, `heat` per loco, 1 at the trip: it moves by
@@ -1669,9 +1676,11 @@
     return Math.min(tr.starting * Math.sqrt(load), load * tr.power / Math.max(Math.abs(along), EPS)) * governor;
   }
   // The rail's grip under loco `v`: the adhesion, sanded while sand goes
-  // on and the box has some, times the weight on its driven axles.
+  // on and the box has some, falling with speed, times the weight on its
+  // driven axles.
   const sanding = c => c.sanding && c.sand > 0;
-  const gripOf = (v, tr) => (sanding(v.controls) ? ADHESION.sanded : ADHESION.dry) * tr.driven * vehicleMass(v) * G;
+  const gripOf = (v, tr) => (sanding(v.controls) ? ADHESION.sanded : ADHESION.dry) * ADHESION_AT_SPEED(v.speed)
+    * tr.driven * vehicleMass(v) * G;
   // Whether loco `v` stands at the fuel point.
   function atFuelPoint(v) {
     const p = pointOn(v.seg, v.s), f = pointOn(FUEL_POINT.segment, FUEL_POINT.s);

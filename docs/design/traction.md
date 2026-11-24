@@ -17,12 +17,14 @@ number is retunable.
 - **Pull against speed:** the least of the notch's cap at low speed
   (starting pull × √share), its power over the speed, and the rail's grip.
   Pull fades out at the yard's 29 km/h limit.
-- **Wheel slip:** asking for more than the grip (dry rail 0.25 of the
-  weight on the driven axles; sanded 0.35) slips the wheels. Pull drops to
-  60 % of the grip, the Wheel slip light shows, and it holds until the
-  player notches down or puts sand on. **The rail is always dry** for now
-  (Tom), so with the RSD-35's estimates it never slips; slip and sand are
-  built for weather later.
+- **Wheel slip:** asking for more than the grip slips the wheels. The grip
+  is 0.25 of the weight on the driven axles at a stand on dry rail (0.35
+  sanded), and **falls as speed rises** on Curtius and Kniffler's curve
+  (Tom, 2026-11-24): about 90 % of it at 10 km/h. Pull drops to 60 % of
+  the grip, the Wheel slip light shows, and it holds until the player
+  notches down or puts sand on. **The rail is always dry** for now (Tom).
+  A hard pull in N7 or N8 at walking pace slips; N6 and below, or sand,
+  doesn't.
 - **Sand** goes on while its button is held, from a box that empties
   slowly and is refilled with the fuel.
 - **Traction motors heat** with the square of their current and cool by
@@ -48,5 +50,4 @@ number is retunable.
 
 - Maintenance: engine start and air pump-up, a walk-around, damage from
   rough handling, shop visits (each its own issue when wanted; #117).
-- Weather, wet rail and adhesion that falls with speed, which would make
-  slip and sand matter.
+- Weather and wet rail.
