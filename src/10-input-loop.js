@@ -395,7 +395,7 @@
     if (j.kind === "breakup") remarks.push(`Train ${tt.number} from ${tt.from}, on Track ${YARD_TRACKS[ARRIVAL_TRACK].number}` +
       (j.arrivedLate >= ON_TIME_SECONDS ? `, held outside ${lateText(j.arrivedLate)}` : ""));
     if (j.kind === "build") remarks.push(`Train ${tt.number} to ${tt.to}, built on ${tracksText(j.block)} as one coupled cut, ` +
-      `left by the loco, nothing else coupled in`);
+      `left by the loco, nothing else coupled in, the air joined through and every hand brake off`);
     if (j.kind === "setout") remarks.push(INDUSTRIES[j.industry].workTime === null
       ? `Empties to ${INDUSTRIES[j.industry].name} on ${tracksText(YARD_TRACKS[INDUSTRIES[j.industry].track].block)}, on any of its ` +
         `${INDUSTRY_SPOTS} spots from the buffer; loaded by the next shift change after the set-out`
@@ -420,6 +420,9 @@
       if (j.kind === "build" && b === j.block) {
         h += checkHtml(st.cut.one, "One coupled cut", "Coupled together, the loco cut off");
         h += checkHtml(st.cut.clean, "Nothing else in the cut", "No car that isn't for this train");
+        h += checkHtml(st.cut.air, "Air through the train", "Hoses joined between every two cars");
+        const braked = lines.filter(l => !l.away && state.vehicles[l.id].handBrake).map(l => carName(l.id));
+        h += checkHtml(st.cut.brakes, "Hand brakes off", braked.length ? `Still on: ${braked.join(", ")}` : "Released on every car");
       }
     }
     const gone = st.lines.filter(l => l.away);
@@ -452,6 +455,8 @@
     const rows = [
       `${r.met} of ${r.total} cars where they belong${r.inOrder === null || r.met < r.total ? "" : r.inOrder ? ", in block order" : ", out of block order"}`,
       r.cut && !(r.cut.one && r.cut.clean) ? `<span class="warn">${!r.cut.one ? "Not one coupled cut" : "Another car in the cut"}</span>` : "",
+      r.cut && r.cut.air === false ? `<span class="warn">Air not joined through the train</span>` : "",
+      r.cut && r.cut.brakes === false ? `<span class="warn">A hand brake still on</span>` : "",
       `${r.moves} move${r.moves === 1 ? "" : "s"} (changes of direction), par ${+r.par.toFixed(1)}`,
       `Reported at ${shortTime(r.at)}, due ${shortTime(j.due)}`].filter(Boolean);
     return `<div class="result"><b>${r.outcome} · ${r.late >= ON_TIME_SECONDS ? `<span class="warn">${lateness(r.late)}</span>` : lateness(r.late)}</b>${rows.map(t => `<small>${t}</small>`).join("")}${train}` +

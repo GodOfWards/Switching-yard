@@ -2,6 +2,14 @@
 
 Newest first. One entry per version bump.
 
+## 0.19.0
+
+**Added**
+- A build job also needs its train's air hoses joined between every two
+  cars and every hand brake off before it leaves (#61; RITO art. 367,
+  450). Both are lines on the job sheet, which names the cars still
+  braked; with either missing the result reads "Invalid formation".
+
 ## 0.18.1
 
 **Changed**
