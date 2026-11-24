@@ -11,6 +11,13 @@
   const MAP_WIDEN_MAX = 3;              // the Map's yard step widens across the yard up to this many times; retunable
   const DRAG_START_PX = 8;              // CSS px a press moves before it pans instead of tapping
   const TAP_RADIUS_PX = 32;             // CSS px from a switch or coupling that a tap counts; retunable (a fingertip)
+  // The dev overlay (#42): a long press of DEV_PRESS_SECONDS on the version
+  // number turns it on or off. Its labels are DEV_LABEL_PX high; the
+  // panel's live stateProblems() runs every DEV_PROBLEMS_SECONDS, as it
+  // checks the whole yard. All retunable.
+  const DEV_PRESS_SECONDS = 1;
+  const DEV_LABEL_PX = 11;
+  const DEV_PROBLEMS_SECONDS = 1;
   const GAUGE = 1.676;                  // m, Argentine broad gauge (Junín's)
   const TIE_SPACING = 0.65;             // m between tie centres; approximate
   const TIE_LENGTH = 2.75;              // m; approximate

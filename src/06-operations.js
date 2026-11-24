@@ -594,12 +594,15 @@
     if (ids.length) state.vehicles[ids[0]].handBrake = true;
   }
 
+  // A job's moves since it was taken, and its par: PAR_PER_CAR_AND_BLOCK
+  // for each car and each block it handles.
+  const jobMoves = job => state.moves - job.movesAtTake;
+  const jobPar = job => PAR_PER_CAR_AND_BLOCK * (job.cars.length + job.blocks);
   // Assesses a job the player reports done at `at` (docs/design/results.md):
   // correctness, ordering, moves against par, timeliness, and the cars
   // damaged while it was worked.
   function assess(job, at) {
-    const st = jobStatus(job), moves = state.moves - job.movesAtTake;
-    const par = PAR_PER_CAR_AND_BLOCK * (job.cars.length + job.blocks);
+    const st = jobStatus(job), moves = jobMoves(job), par = jobPar(job);
     let outcome;
     if (st.met === st.lines.length) outcome = !formationValid(st) ? "Invalid formation" : moves > par ? "Valid but inefficient" : "Operationally valid";
     else outcome = st.met ? "Partially complete" : "Incomplete";
