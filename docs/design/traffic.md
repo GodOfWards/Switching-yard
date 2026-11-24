@@ -69,6 +69,12 @@ exists independently of the player's jobs.
 - **Bulk moves in through trains** (#56), not the road trains: the road
   trains carry wagonload traffic ([fa-freight-traffic.md](../reference/fa-freight-traffic.md)).
 
+- **Molinos Tassara**, a real flour mill west of Junín's station, is an
+  off-map destination cars can be sent to (Tom, 2026-11-24). It doesn't
+  replace the elevator on the map.
+
 ## Open
 
 - Places for Junín's fuel and materials traffic, now on the placeholder.
+- Molinos Tassara's traffic: car types, loads, rate, which end its cars
+  leave by (#105).
