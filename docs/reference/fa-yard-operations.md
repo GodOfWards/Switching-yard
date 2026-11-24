@@ -4,7 +4,8 @@ How a Ferrocarriles Argentinos yard handled freight: who did the work, the
 order trains were formed in, how switching was done, the paperwork, and
 how a yard crew got the main line. Researched 2026-10-09 (#45) for jobs
 stages 2 and 3 (#49, #50); articles 63, 154, 155 and 163 added the same day
-for the main line (#56, #57).
+for the main line (#56, #57). FA's bad-order labels, Junín's place among the
+San Martín's repair points and Molinos Tassara added 2026-11-23 (#45).
 
 **Decided (Tom):**
 - **Traffic sources** (2026-10-09): the era stays FA, 1977 or later.
@@ -17,8 +18,9 @@ for the main line (#56, #57).
 FA's amendments to May 1993, so it covers the game's era (1977 or later).
 How crews actually organised the work comes from ex-staff accounts of two
 other yards (**Secondary**). **Nothing specific to Junín's yard was
-found** (searched again 2026-10-12): its track roles, traffic and crews
-are **Assumed** for the game, listed under [Junín](#junín).
+found** (searched again 2026-10-12 and 2026-11-23) beyond its being an
+inspection station and one rail-served mill: its track roles, traffic and
+crews are **Assumed** for the game, listed under [Junín](#junín).
 
 ## Sources
 
@@ -28,6 +30,8 @@ are **Assumed** for the game, listed under [Junín](#junín).
 | MR 4-002 | FA technical instruction *Mantenimiento de vehículos: vagones y furgones de carga*, September 1972, hosted by CNRT at argentina.gob.ar/sites/default/files/mr4_002_ndeg_1.pdf. Copy at `research/fa-operations/mr4-002-1972.pdf` | Confirmed |
 | Mar del Plata Cargas | "Los últimos años de Mar del Plata Cargas", blog *Trenes Argentinos (todotren)*, July 2013, by someone who worked the yard: crews, track uses, the 1970s routing plan, train order | Secondary |
 | La Paternal | "Los ferroviarios de La Paternal", *Voces de la Comuna 15*, 29 June 2023, quoting the station's last chief: yard crew and freight office, to 1993 | Secondary |
+| MR 4-001 No. 6 | FA technical instruction *Rotulado de vehículos averiados – vagones*, May 1988, the labelling of bad-order freight cars; CNRT certified copy, 43 pages, hosted at argentina.gob.ar/sites/default/files/mr4_001_ndeg_6.pdf. Copy in the project files at `research/junin-yard/mr4-001-n6-1988-rotulado.pdf` | Confirmed |
+| MAGyP acopios list | Ministry of Agriculture, *Acopios con desvío propio a ferrocarril* (grain stores with their own siding), web table at magyp.gob.ar, undated, read 2026-11-23 | Secondary |
 | Ferrosario dictionary | ferrosario.blogspot.com, *Diccionario ferroviario*. Read only through a search engine's summary; the page returned 503 on 2026-10-09 | Secondary |
 
 RITO articles are cited as "art. NNN". Where FA amended an article, the
@@ -137,10 +141,15 @@ light repairs, including lifting a car to change wheelsets or a bogie; a
 | A car weighed on the way takes the weight on the latest weighing slip (*boleta de verificación*) attached to its **waybill** (*guía oficial*) | art. 211 c | Confirmed |
 | Fixed weights: lot cars with goods to deliver, tare + 7 t; freight vans, tare only; livestock by head (export steer 500 kg, common cattle 400, horse 350, large calf 150, pig 100, sheep or goat 50) | art. 211 d | Confirmed |
 | A train may not exceed the tonnage table for its loco class | art. 212 | Confirmed |
-| Each car carries its **card** (*tarjeta*) | art. 207 a 3 | Confirmed (what the card shows was not found) |
+| Each car carries its **card** (*tarjeta*) | art. 207 a 3 | Confirmed (what the traffic card shows was not found) |
+| **Bad-order labels** (*etiquetas de averías*), stuck by the car inspector on **both sides** of the car, on its marking panel (*pizarra*, plan NEFA 549). **Model 1, red**: the car must not move from where it stands (damage that is an immediate danger, or a load shifted or badly stowed). **Model 2, blue**: *no cargar*, do not load; empty, it may run to repair; loaded, it may run to its destination and is repaired before loading again | MR 4-001 art. 4, 5, 8, 9 | Confirmed |
+| A label is made out in four: the original to the Computer Centre, two copies on the car's sides, one to the station's Transport representative | MR 4-001 art. 6 | Confirmed |
+| A label's fields: line; series and serial number; inspection post code; inspector's name; hour, day, month, year; **vehicle number**; **reason held**, one tick (periodic shop repair A or B, periodic siding repair, accidental shop repair, accidental siding repair, inspection-station repair, private industry or warranty, re-identification or weighing, special fitting or international traffic, various inspections, overload or bad stowing); **part affected**, one tick (running gear, bogies or suspension, frame or tank or body, discharge system, brake, draw and buffing gear, paint or fittings, various, no damage) | MR 4-001 art. 7, Annex 1 | Confirmed |
+| **Destination stamps** (*estampillas*), stuck at the label's top right, tell the yard where to send the car: **T** to a shop, **D** to a repair siding, **E** to an inspection station, **C** to a storage yard (awaiting repair, withdrawal or scrapping, with a coded storage track). Fields: destination code, post number, 6-digit car number with check digit, date and hour. A red label never carries a stamp, so as not to hide "do not move"; once the car can move, it is swapped for a blue one and the stamp added | MR 4-001 art. 9–17 | Confirmed |
+| A labelled car unloaded where there is an inspection station is inspected before unloading; the line keeps such cars from waiting in the traffic yard longer than needed | MR 4-001 art. 8 | Confirmed |
 | Dangerous goods: a red "Peligro" label on both sides, and the same word on the waybills and envelopes (*guías y sobres*) | art. 201 | Confirmed |
 | Waybills (*cartas de porte*) filled in by the freight clerk; freight work recorded in "Book 404" | La Paternal | Secondary |
-| The yard crew's own switch list: **no FA name or form was found**. The RITO only says switching is planned beforehand and told to the driver | — | Unconfirmed |
+| The yard crew's own switch list: **no FA name or form was found** (searched again 2026-11-23). The RITO only says switching is planned beforehand and told to the driver | — | Unconfirmed |
 
 ## Authority to move
 
@@ -170,8 +179,15 @@ light repairs, including lifting a car to change wheelsets or a bogie; a
 | Junín was the seat of the San Martín's Mechanical Department, over the Junín shops, the wagon shops at Alianza (later also Avanzada and Palmira) and the loco depots at Retiro, Villa Mercedes and Mendoza | Sagastume (2021), *Imaginarios sociales de los trabajadores ferroviarios de Junín (1948–1973)*, PhD thesis, UNLP, note 63 (ex-staff interview) | Secondary |
 | **Wagon repair at the Junín shops stopped in 1970**; from then they repaired passenger coaches for the San Martín and Sarmiento. Before that they repaired, among others, milk cars and tank cars | Sagastume (2021), note 635 (a 1977 company monograph in Junín's Historical Archive) and an interview | Secondary |
 | Junín's Historical Archive (Archivo Histórico Municipal) holds over 100 plans of the shops (1895–1950); a private collection holds about 240 undated railway plans | *Bitácora Urbano Territorial*, *Archipiélago ferroviario en Junín* | Secondary |
+| **Junín was an inspection station** (*estación revisora*, code 508), not a repair point. The San Martín's wagon shop was **Alianza** (570), its repair sidings **Alianza, Palmira and Avanzada** (581, 583, 585). So a car needing more than minimal repair was labelled and sent away | MR 4-001 Annex 8 (1988); repair levels per MR 4-002 art. 4 | Confirmed |
+| **Molinos Tassara S.A.**, a flour mill, had its own sidings (*desvío propio*) at Junín: three establishments on Alberdi between Uruguay and Muñiz and at Javier Muñiz 160 (stores of 15,160, 2,100 and 1,540 t), rail use "no se utiliza hace 20 años" (not used for 20 years) | MAGyP acopios list | Secondary |
+| Where that is: Alberdi and Uruguay meet about 190 m south of the San Martín main line, about 500 m south-west of the station; so the mill stood on the San Martín, south of the line and west of the station, **not on the game's east-end map**. No track to it is left in OSM | OSM export of 2026-10-08, measured | Secondary |
+| The mill was founded in the 1890s (the company says 1896) and had a siding to its silos and sheds, now disused | *Historia Regional*, article 1020 (historiaregional.org), read only through a search engine's summary; the site refused the fetch on 2026-11-23 | Unconfirmed |
+| The Junín yard (*playa de maniobras*) covers 120,000 m² | M. Merlino, "Luces y sombras en la política ferroviaria del Ministro Meoni", *Crónica Ferroviaria*, 30 Jan 2021 | Secondary, modern |
+| The Historical Archive's catalogued plan set is 123 plans (115 original): 3 network diagrams, 21 longitudinal profiles, 7 location plans (among them F-191, F-227 of 1931, Series 4/707 D and E of about 1930), 23 room, 4 water, 38 structural and 19 mechanical; about 200 more found later. All cover buildings to 1950; **no yard track plan or track use is described** | Montecelli, Carrizo and Yuln (UNNOBA), "El ferrocarril en Junín (provincia de Buenos Aires). Una lectura histórica a partir de planos arquitectónicos e ingenieriles", pp. 194–201, CIC digital repository | Secondary |
+| Sagastume's 2013 thesis is *Imaginarios y memorias de ex-ferroviarios que trabajaron en Ferrocarriles Argentinos. Junín: 1948–1993*, master's thesis, Universidad CAECE, **unpublished**; a book, *El mundo ferroviario: memorias de trabajadores de Ferrocarriles Argentinos. Junín, 1948–1993* (Editorial Maipue, 2016), is catalogued and not online | Montecelli et al., ref. 7; a library catalogue via search | Secondary |
 | Grain is loaded by rail in Junín district today: Laplacette, on a branch, reopened to grain in 2019 for an *acopio* (country elevator) | Agrofy News, 2019 | Secondary, modern |
-| **Track roles (arrival, classification, departure, repair), crews, rail-served industries and FA-era traffic at Junín: not found** | searches 2026-10-09 and 2026-10-12 | Unconfirmed: a station track plan (the plan collections above), an *Apéndice* of the RITO for the San Martín zone, or *Junín: 1948–1993* (Sagastume's 2013 master's thesis, Universidad CAECE, not online) would confirm |
+| **Track roles (arrival, classification, departure, repair), crews and FA-era traffic at Junín: not found** | searches 2026-10-09, 2026-10-12 and 2026-11-23 | Unconfirmed: a station track plan (the 1930s location plans above, or the 200 uncatalogued ones), the RITO's San Martín zone *Apéndice* (a separate document, not in the RITO itself), or Sagastume's 2016 book would confirm |
 
 ### Assumed for the game
 
@@ -182,16 +198,25 @@ line is replaced if a source turns up.
 | Assumed | Rests on | Would be replaced by |
 |---|---|---|
 | Yard track roles: 1 Retiro, 2 Mendoza, 3 arrival, 4 local, 5 storage, 6 empties, 7 repair (#49) | RITO's sequence at a yard (reception, classification, formation) laid on the east end's tracks | A Junín track plan or station appendix |
-| The repair track does light repairs in the yard (a car is fixed where it stands), not shop work | Wagon shop repair left Junín in 1970 (above); RITO art. 412-417 on bad-order cars | A source on where Junín's bad-order cars went |
+| The repair track does light repairs in the yard (a car is fixed where it stands), not shop work | Junín was an inspection station, doing minimal repairs, with heavier work sent to Alianza, Palmira or Avanzada (MR 4-001, 1988, Confirmed); wagon shop repair left Junín in 1970; RITO art. 412-417 | A source on what Junín's inspectors did on which track |
 | Retiro block order O'Higgins, Membrillar, Retiro from the ladder end | RITO art. 197, cars in order of destination; nearest stations first, the order Mar del Plata went back to (the 1970s plan had the farthest first) | The *Manual de Formación y Afectación de los Trenes* |
-| A grain elevator (*acopio*) on an east-throat track (#84) | Grain is the Pampas' main rail traffic; acopios on sidings were common; Laplacette today | A named rail-served industry at Junín |
+| A grain elevator (*acopio*) on an east-throat track (#84) | Grain is the Pampas' main rail traffic; acopios on sidings were common; Laplacette today | A rail-served industry on the east end. Molinos Tassara, the one found, stood west of the station (above); swapping it in is Tom's call |
 | Traffic flows and rates (#50) | Tom's sourcing call of 2026-10-09: FA-era kinds of traffic, modern product mix, labelled estimates | FA-era traffic figures for Junín |
 | The job sheet's and consist page's fields | The foja de ruta (art. 213) and train weight (art. 211) | The foja de ruta's columns; an FA switch list |
 
 ## Not found
 
+Searched again 2026-11-23: RITO, RGF, MR 4-001, Sagastume, the UNNOBA
+plan survey, enthusiast blogs and forums.
+
 - The *Manual de Formación y Afectación de los Trenes* (the per-line block
-  order) and the RITO's zone appendices.
-- The foja de ruta's columns, what a car card showed, and any FA name for
-  the switch list.
-- Anything about Junín's yard in the FA era (assumed above).
+  order) and the RITO's zone appendices, which are separate documents.
+- The foja de ruta's columns, what the traffic card showed (the bad-order
+  labels are above), and any FA name for the switch list.
+- The **RGF's own text**: only its *Suplemento* (amendments to the 1960
+  edition, to 31 Dec 1995) is online, at
+  argentina.gob.ar/sites/default/files/suplemento_rgf.pdf, and it holds no
+  yard-limit rule. Authority to move rests on the RITO above.
+- Junín's yard track roles, crews and FA-era traffic (assumed above).
+- A hump yard: a search summary named a "playa de gravitación" at Villa
+  María, not confirmed on any page read.
