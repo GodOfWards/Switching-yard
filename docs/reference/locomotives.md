@@ -34,6 +34,28 @@ No dedicated Argentine shunter with published numbers turned up. Argentine
 yards seem to have been worked mostly by general-purpose locos. Ferrosur
 Roca reports 15 shunters but doesn't name the models.
 
+## ALCo RSD-16 (the *Aconcagua*'s loco)
+
+Researched 2026-11-24 for #77.
+
+**Decided (Tom, 2026-11-24):** the RSD-16 is the game's second loco type,
+at the head of the *Aconcagua*. The game drives it; the player never does.
+
+| | ALCo RSD-16 | Status |
+|---|---|---|
+| Built | Schenectady, 1957–59; 130 for the Sarmiento, Mitre and San Martín | Secondary |
+| Mass | ~108 t | Secondary |
+| Length | 17.06 m (55 ft 11¾ in); the game uses 17.1 m | Secondary |
+| Axles | Co'Co' (6) | Secondary |
+| Engine | ALCo 251-B, ~1,950 hp | Secondary |
+| Top speed | 122 km/h | Secondary |
+| Gauge | 1,676 mm | Secondary |
+| FA livery | yellow-orange body, red lower band, dark roof, black and yellow chevrons on the pilot (one photo; see [aconcagua.md](aconcagua.md)) | Secondary |
+
+The game draws it from above in yellow-orange with the red band showing
+along each side. Its mass and length matter only to its length on the
+main; the game doesn't model its pull.
+
 ## Open points
 
 - **Length.** No published length found; 14 m is a placeholder.
@@ -48,3 +70,4 @@ Roca reports 15 shunters but doesn't name the models.
 - [Ferrosur Roca, Wikipedia](https://en.wikipedia.org/wiki/Ferrosur_Roca)
 - [British Rail Class 08, Wikipedia](https://en.wikipedia.org/wiki/British_Rail_Class_08)
 - [EMD SW1500, Wikipedia](https://en.wikipedia.org/wiki/EMD_SW1500)
+- [ALCO RSD-16, Wikipedia](https://en.wikipedia.org/wiki/ALCO_RSD-16)
