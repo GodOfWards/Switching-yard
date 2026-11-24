@@ -9,6 +9,6 @@
 | [performance.md](performance.md) | How speed and code health are measured: the benchmark page and the Performance check |
 | [screenshots/](screenshots/) | Game screenshots, named `vX.Y.Z-<what>-<orientation>.png` |
 
-Values the game uses still live in CONFIG and WORLD DATA in `index.html`.
+Values the game uses still live in CONFIG and WORLD DATA in `src/`, built into `index.html`.
 These docs say where they came from; they don't replace them. History is
 the changelog's.

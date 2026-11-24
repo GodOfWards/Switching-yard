@@ -1,7 +1,13 @@
 # Switching Game
 
 A top-down railway switching game: one self-contained file, `index.html`, no
-build step, no dependencies. Open it in a browser to run it.
+dependencies. Open it in a browser to run it.
+
+- **The source is `src/`; `index.html` is built from it.** Edit `src/`, then
+  run `python tools/build.py`. Never edit `index.html` by hand; a conflict in
+  it is resolved by rebuilding. The Build check fails a pull request whose
+  `index.html` doesn't match `src/`. A branch that edited `index.html`
+  directly is ported with `python tools/split.py`. → #113
 
 ## Rules that bind
 
@@ -49,8 +55,9 @@ on GitHub himself.
   type up front, but never the number: PATCH for fixes and content, MINOR
   for a new mechanic or saved state, MAJOR only when Tom says so.
 - When Tom marks it ready for review, one commit on that branch merges
-  `main` in, bumps `GAME_CONFIG.VERSION` from the version on `main`, and
-  adds the drafted entry to `CHANGELOG.md` under it.
+  `main` in, bumps `GAME_CONFIG.VERSION` (in `src/01-config.js`) from the
+  version on `main`, rebuilds `index.html`, and adds the drafted entry to
+  `CHANGELOG.md` under it.
 - If another pull request takes that number first, the version commit is
   redone from the new `main`.
 - A pull request that doesn't change `index.html` gets no version.
