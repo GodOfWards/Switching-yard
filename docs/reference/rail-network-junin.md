@@ -1,7 +1,9 @@
 # Rail network around Junín
 
 Researched 2026-10-08 from OpenStreetMap (#52). The yard itself is in
-[junin-yard.md](junin-yard.md). Nothing here is in the game yet.
+[junin-yard.md](junin-yard.md). The lines are in the game as the Map's
+outermost step (#53): `tools/rail_network.py game` writes them, simplified
+to 200 m, into WORLD DATA as `NETWORK_LINES`.
 
 ## Decided (Tom)
 
