@@ -18,6 +18,14 @@ Made in the project thread. The rules are in
 - **A move is a change of direction** of the player's loco, not a start
   from a stand.
 
+## 2026-11-24: Standing cuts are secured (#109)
+
+Made in the project chat, after #33's build found that an unbraked cut
+rolls out of hook-up reach when the loco touches it.
+
+- **Cuts left by other crews have a hand brake set**, as real crews secure
+  what they leave. The player secures their own.
+
 ## 2026-11-24: The *Aconcagua* and passenger trains at night (#77, #104)
 
 Made in the project thread. Facts in
