@@ -314,7 +314,7 @@
     const blockOrder = Object.keys(BLOCKS);
     job.cars.sort((a, b) => blockOrder.indexOf(dispositionOf(a)) - blockOrder.indexOf(dispositionOf(b)));
     const j = { id: "job" + state.nextJob++, blocks: new Set(job.cars.map(dispositionOf)).size,
-                taken: false, movesAtTake: 0, damaged: [], trainsHeld: [], overruns: [], result: null, ...job };
+                taken: false, movesAtTake: 0, damaged: [], trainsHeld: [], overruns: [], overheats: [], result: null, ...job };
     state.jobs.push(j);
     return j;
   }

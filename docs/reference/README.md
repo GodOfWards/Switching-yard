@@ -38,7 +38,8 @@ game builds on them are in [../design/](../design/README.md).
 
 | File | Covers |
 |---|---|
-| [locomotives.md](locomotives.md) | Switcher candidates (Class 08, SW1500, GM G12, GAIA) and why the G12; the ALCo RSD-16 on the *Aconcagua* |
+| [locomotives.md](locomotives.md) | Switcher candidates (Class 08, SW1500, GM G12, GAIA); why the yard engine is an ALCO RSD-35, its figures; the ALCo RSD-16 on the *Aconcagua* and the through freights |
+| [diesel-traction.md](diesel-traction.md) | How a DC diesel-electric pulls: notches, adhesion and slip, traction motor heating and short-time ratings, fuel per notch, a switcher's duty cycle, fuelling at Junín, inspection |
 | [train-physics.md](train-physics.md) | Rolling and starting resistance (Davis), curve drag, brakes, air, hand brakes, slack, FA coupler types and which vehicles carried them |
 | [argentine-rolling-stock-naming.md](argentine-rolling-stock-naming.md) | Line initials, FA loco numbers, Spanish car type names, current operators |
 | [fa-freight-cars.md](fa-freight-cars.md) | FA freight cars: load limits and tares from FA's specifications, type codes, the marking panel, tare stencil, paint colours, couplers in brief, lengths of the grain hopper and box car, older broad-gauge cars from a 1910–1945 diagram book, two-axle cars |

@@ -142,6 +142,33 @@
   #sheet .consist td b { font-weight: 600; }
   #readout { font-variant-numeric: tabular-nums; display: flex; justify-content: space-between; }
   #readout small { color: var(--muted); font-size: 12px; align-self: center; }
+  #readout .fuel { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+  #readout .fuel.warn { color: var(--warn); }
+  #readout .fuel .meter { display: block; width: 36px; margin: 0; }
+  #readout .fuel.warn .meter i { background: var(--warn); }
+  /* The traction gauges (#117), a row over the levers: the load meter
+     (motor current, with a red mark at continuous and a tick for each
+     short-time band past it), the wheel slip light, and Sand, held while
+     it's needed, over Release. */
+  #loadMeter { grid-column: span 3; align-self: center; }
+  #loadMeter { min-width: 0; margin-bottom: 4px; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  #loadMeter .label { display: flex; justify-content: space-between; }
+  #loadMeter .label b { font-weight: 600; color: var(--warn); }
+  #loadMeter .dial { position: relative; height: 10px; margin-top: 3px; border-radius: 3px; background: var(--line); }
+  #loadMeter .dial i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; border-radius: 3px; background: var(--accent); }
+  #loadMeter.over .dial i { background: var(--warn); }
+  #loadMeter .dial s { position: absolute; top: -2px; bottom: -2px; width: 1px; background: var(--muted); }
+  #loadMeter .dial u { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; background: var(--danger); }
+  #slipLight { height: 40px; box-sizing: border-box; border-radius: 11px; border: 1px solid var(--line);
+    display: flex; align-items: center; justify-content: center; text-align: center; line-height: 1.1;
+    font-size: 11px; font-weight: 600; color: var(--line); }
+  #slipLight.on { background: var(--warn); border-color: var(--warn); color: #000; }
+  #slipLight.danger { background: var(--danger-bg); border-color: var(--danger-line); color: var(--danger); }
+  #slipLight { margin-bottom: 4px; }
+  #sandBtn { margin-bottom: 4px; min-height: 40px; border-radius: 11px; border: 1px solid var(--line); background: var(--button); color: var(--fg);
+    font: 600 12px system-ui, sans-serif; touch-action: none; -webkit-tap-highlight-color: transparent; }
+  #sandBtn small { color: var(--muted); font-weight: 500; }
+  #sandBtn.on { background: var(--button-down); color: var(--accent); border-color: var(--accent); }
   /* The version number takes a long press (the dev overlay), so its target
      reaches past its text to a thumb's size. */
   #version { padding: 12px 16px; margin: -12px -16px; -webkit-touch-callout: none; touch-action: manipulation; }
@@ -214,16 +241,26 @@
   #carCard button:active { background: var(--button-down); }
   #carCard button.on { color: var(--accent); border-color: var(--accent); }
   /* A phone on its side has little height to spare: the controls move to the
-     right-hand edge instead, in two columns to keep that edge narrow:
-     reverser and throttle, then the two brakes, then Emergency and Release. */
+     right-hand edge instead, in two columns to keep that edge narrow: the
+     load meter, reverser and throttle, then the two brakes, then
+     Emergency, Release, the wheel slip light and Sand. */
   @media (orientation: landscape) and (max-height: 520px) {
     body { flex-direction: row; padding-bottom: env(safe-area-inset-bottom); }
     #bar { border-top: 0; border-left: 1px solid var(--line); justify-content: center;
       padding: 8px calc(12px + env(safe-area-inset-right)) 8px 12px; width: 232px; box-sizing: border-box; }
-    #controls { grid-template-columns: 1fr 1fr; gap: 3px 8px;
-      grid-template-areas: "revUp thrUp" "revL thrL" "revDown thrDown" "lbUp tbUp" "lbL tbL" "lbDown tbDown"
-        "emerg release"; }
+    #controls { grid-template-columns: repeat(4, 1fr); gap: 3px 6px;
+      grid-template-areas: "load load load load" "revUp revUp thrUp thrUp" "revL revL thrL thrL" "revDown revDown thrDown thrDown"
+        "lbUp lbUp tbUp tbUp" "lbL lbL tbL tbL" "lbDown lbDown tbDown tbDown" "emerg release slip sand"; }
     #controls .spacer { display: none; }
+    #bar { gap: 6px; }
+    #readout { flex-wrap: wrap; gap: 0 8px; font-size: 13px; }
+    #loadMeter { grid-area: load; display: flex; align-items: center; gap: 8px; margin-bottom: 2px; }
+    #loadMeter .label { flex: none; display: block; }
+    #loadMeter .label b { margin-left: 4px; }
+    #loadMeter .dial { flex: 1; margin-top: 0; }
+    #slipLight { grid-area: slip; } #sandBtn { grid-area: sand; }
+    #slipLight, #sandBtn { margin: 6px 0 0; height: auto; min-height: 40px; font-size: 10px; }
+    #sandBtn small { display: block; }
     #lbUp, #tbUp, #emergBtn, #releaseBtn { margin-top: 6px; }
     #revUp { grid-area: revUp; } #thrUp { grid-area: thrUp; } #lbUp { grid-area: lbUp; } #tbUp { grid-area: tbUp; }
     #revLever { grid-area: revL; } #thrLever { grid-area: thrL; } #lbLever { grid-area: lbL; } #tbLever { grid-area: tbL; }

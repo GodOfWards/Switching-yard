@@ -77,8 +77,16 @@
   // Puts vehicle `id` of kind `type` into STATE, standing and in no train.
   function addVehicle(id, type, flip = 1) {
     state.vehicles[id] = { id, type, flip, speed: 0, handBrake: false };
+    // A loco's controls, and its traction (#117): the `load` built up (a
+    // share of full), the `pull` it gives this step (N), whether its wheels
+    // `slip`, whether sand is going on (`sanding`) and how much is left in
+    // the box (`sand`, a share), its motors' `heat` (1 trips them) and
+    // whether they are `tripped`, its `fuel` in litres, and when it ran
+    // dry (`emptyAt`, or null). A loco starts with a full tank and box.
+    const tr = VEHICLE_TYPES[type].traction;
     if (VEHICLE_TYPES[type].loco) state.vehicles[id].controls = { reverser: 0, throttle: 0, locoBrake: 0, trainBrake: 0,
-      locoApplied: 0, trainApplied: 0, emergency: false };
+      locoApplied: 0, trainApplied: 0, emergency: false,
+      load: 0, pull: 0, slip: false, sanding: false, sand: 1, heat: 0, tripped: false, fuel: tr ? tr.tank : 0, emptyAt: null };
   }
   // Lays vehicles `ids` out as one train, coupled and bunched, back from
   // its head end, which stands `s` metres along `segment` facing `dir` (+1

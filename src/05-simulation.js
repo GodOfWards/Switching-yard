@@ -58,6 +58,133 @@
     return reach;
   }
 
+  // Diesel-electric traction (#117; docs/design/traction.md). Each step,
+  // a loco's load moves toward its notch's, its pull is worked out from
+  // the load, its speed and the rail's grip, and its motors heat or cool
+  // and its engine burns fuel by what it does. A loco whose kind has no
+  // `traction` (the game drives it) gives no pull.
+  const tractionOf = v => vehicleType(v).traction;
+  // The pull loco `v` asks for at load share `load`, before the rail's
+  // grip: the notch's cap or its power at this speed, whichever is less,
+  // fading out near the yard's speed limit.
+  function askedPull(v, tr, load) {
+    const along = v.speed * v.controls.reverser * v.flip;        // speed in the direction of pull
+    const governor = Math.max(0, Math.min(1, (LOCO_MAX_SPEED - along) / GOVERNOR_BAND));
+    return Math.min(tr.starting * Math.sqrt(load), load * tr.power / Math.max(Math.abs(along), EPS)) * governor;
+  }
+  // The rail's grip under loco `v`: the adhesion, sanded while sand goes
+  // on and the box has some, falling with speed, times the weight on its
+  // driven axles.
+  const sanding = c => c.sanding && c.sand > 0;
+  const gripOf = (v, tr) => (sanding(v.controls) ? ADHESION.sanded : ADHESION.dry) * ADHESION_AT_SPEED(v.speed)
+    * tr.driven * vehicleMass(v) * G;
+  // Whether loco `v` stands at the fuel point.
+  function atFuelPoint(v) {
+    const p = pointOn(v.seg, v.s), f = pointOn(FUEL_POINT.segment, FUEL_POINT.s);
+    return v.speed === 0 && Math.hypot(p.x - f.x, p.y - f.y) <= FUEL_REACH;
+  }
+  // The share of full fuel burn at the throttle's notch: idle when the
+  // throttle is shut or the motors are tripped, as the load is off.
+  function burnRate(c, tr) {
+    if (c.fuel <= 0) return 0;
+    return c.throttle && !c.tripped ? tr.topBurn * NOTCH_FUEL[c.throttle - 1] : tr.idleBurn;
+  }
+  // Burns `litres` from loco `v`'s tank, with the notice when it falls
+  // low, and stops its engine when it runs dry at `at`.
+  function burnFuel(v, tr, litres, at) {
+    const c = v.controls, before = c.fuel;
+    c.fuel = Math.max(0, c.fuel - litres);
+    if (before >= FUEL_LOW * tr.tank && c.fuel < FUEL_LOW * tr.tank && c.fuel > 0) setNotice("Fuel low: fuel the loco by the turntable");
+    if (before > 0 && c.fuel === 0) {
+      Object.assign(c, { emptyAt: at, load: 0, pull: 0, slip: false });
+      setNotice(`Out of fuel: the engine stopped. Fuel comes out at ${clockText(at + FUEL_RESCUE_SECONDS)}`);
+    }
+  }
+  // The depot brings fuel out to a loco run dry, FUEL_RESCUE_SECONDS after.
+  function rescueDue(v, tr, at) {
+    const c = v.controls;
+    if (c.emptyAt === null || at < c.emptyAt + FUEL_RESCUE_SECONDS) return;
+    Object.assign(c, { fuel: tr.tank, emptyAt: null });
+    setNotice("Fuel brought out: the engine runs again");
+  }
+  // Fills loco `v`'s tank, and its sand box, at the fuel point for `dt`.
+  function fillAt(v, tr, dt) {
+    const c = v.controls;
+    c.fuel = Math.min(tr.tank, c.fuel + FUEL_FILL_RATE * dt);
+    if (tr.tank - c.fuel < 0.01) c.fuel = tr.tank;
+    if (c.fuel > 0) c.emptyAt = null;
+    c.sand = 1;
+  }
+  // The motors trip at full heat: power is cut until they cool. It counts
+  // as rough handling on the jobs being worked (Tom, 2026-11-24).
+  function checkTrip(c) {
+    if (!c.tripped && c.heat >= 1) {
+      Object.assign(c, { tripped: true, slip: false });
+      for (const j of openJobs()) if (j.taken) j.overheats.push(Math.round(state.clock));
+      setNotice("Traction motors overheated: power cut until they cool");
+    } else if (c.tripped && c.heat <= MOTOR_RESET_HEAT) {
+      c.tripped = false;
+      setNotice("Traction motors cooled: power back");
+    }
+  }
+  function stepTraction(v, dt) {
+    const c = v.controls, tr = tractionOf(v);
+    if (!tr) return;
+    const running = c.fuel > 0, notch = running && !c.tripped && c.reverser ? c.throttle : 0;
+    const target = notch ? NOTCH_POWER[notch - 1] : 0;
+    // The load builds or falls toward the notch's; slipping, it holds.
+    // Tripped or out of fuel, power is cut at once.
+    if (!running || c.tripped) c.load = 0;
+    else if (!c.slip || target < c.load) {
+      const tau = (target > c.load ? LOAD_UP_SECONDS : LOAD_DOWN_SECONDS) / 3;    // within 5 % in three time constants
+      c.load += (target - c.load) * Math.min(1, dt / tau);
+      if (target === 0 && c.load < 1e-4) c.load = 0;
+    }
+    const grip = gripOf(v, tr);
+    let ask = c.reverser && c.load ? askedPull(v, tr, c.load) : 0;
+    if (!c.slip && ask > grip * (1 + 1e-9)) {
+      // The wheels let go: the load drops until it asks for SLIP_SHARE of
+      // the grip, at this speed.
+      c.slip = true;
+      const want = SLIP_SHARE * grip, along = Math.abs(v.speed);
+      c.load = Math.min(c.load, Math.max((want / tr.starting) ** 2, want * along / tr.power));
+      ask = askedPull(v, tr, c.load);
+    }
+    c.pull = c.slip ? Math.min(ask, SLIP_SHARE * grip) : ask;
+    if (sanding(c)) c.sand = Math.max(0, c.sand - dt / SAND_BOX_SECONDS);
+    // Heat: the current share squared in, the blowers' cooling out.
+    const r = c.pull / tr.continuous, b = BLOWER_IDLE + (1 - BLOWER_IDLE) * (running ? c.throttle : 0) / THROTTLE_NOTCHES;
+    c.heat = Math.max(0, c.heat + (r * r - b * c.heat) / MOTOR_HEAT_SECONDS * dt);
+    checkTrip(c);
+    burnFuel(v, tr, burnRate(c, tr) * dt / HOUR, state.clock);
+    rescueDue(v, tr, state.clock);
+    if (atFuelPoint(v)) fillAt(v, tr, dt);
+  }
+  // A skip of `dt` seconds from the clock, everything standing and the
+  // throttle shut: no physics runs, so each loco's motors cool, its engine
+  // idles and it takes fuel at the fuel point, worked out at once.
+  function restLocos(dt) {
+    for (const id in state.vehicles) {
+      const v = state.vehicles[id], c = v.controls, tr = c && tractionOf(v);
+      if (!tr) continue;
+      Object.assign(c, { load: 0, pull: 0, slip: false });
+      c.heat *= Math.exp(-BLOWER_IDLE * dt / MOTOR_HEAT_SECONDS);
+      checkTrip(c);
+      if (atFuelPoint(v)) { fillAt(v, tr, (1 - tr.idleBurn / HOUR / FUEL_FILL_RATE) * dt); continue; }
+      let left = dt, at = state.clock;
+      if (c.fuel > 0) {
+        const lasts = c.fuel / tr.idleBurn * HOUR, t = Math.min(left, lasts);
+        burnFuel(v, tr, t >= lasts ? c.fuel : tr.idleBurn * t / HOUR, at + t);
+        left -= t; at += t;
+      }
+      if (left > 0 && c.emptyAt !== null && c.emptyAt + FUEL_RESCUE_SECONDS <= state.clock + dt) {
+        const from = c.emptyAt + FUEL_RESCUE_SECONDS;
+        rescueDue(v, tr, from);
+        burnFuel(v, tr, tr.idleBurn * (state.clock + dt - from) / HOUR, state.clock + dt);
+      }
+    }
+  }
+
   // The forces on each vehicle of a train this step, by id: `pull` (+
   // toward the head), `hold` from brakes, and the resistance to rolling
   // (`roll`) or to getting a standing vehicle moving (`start`). Curves add
@@ -73,14 +200,7 @@
     for (const id of t.vehicles) {
       const v = state.vehicles[id], type = vehicleType(v), c = v.controls, weight = vehicleMass(v) * G;
       let pull = 0, hold = 0;
-      if (c && c.throttle && c.reverser) {
-        const sense = c.reverser * v.flip;                        // toward the head, or not
-        const along = v.speed * sense;                            // speed in the direction of pull
-        const share = c.throttle / THROTTLE_NOTCHES;
-        const force = Math.min(LOCO_MAX_FORCE, LOCO_POWER / Math.max(Math.abs(along), EPS));
-        const governor = Math.max(0, Math.min(1, (LOCO_MAX_SPEED - along) / GOVERNOR_BAND));
-        pull = sense * share * force * governor;
-      }
+      if (c && c.pull) pull = c.reverser * v.flip * c.pull;       // toward the head, or not
       if (c) hold += c.locoApplied * LOCO_BRAKE_RATIO * weight;
       hold += trainApplied * TRAIN_BRAKE_RATIO * weight * reach[id];
       if (v.handBrake) hold += HAND_BRAKE_FORCE;
@@ -302,7 +422,10 @@
 
   function step(dt) {
     state.clock += dt;
-    for (const id in state.vehicles) if (state.vehicles[id].controls) stepBrakes(state.vehicles[id].controls, dt);
+    for (const id in state.vehicles) if (state.vehicles[id].controls) {
+      stepBrakes(state.vehicles[id].controls, dt);
+      stepTraction(state.vehicles[id], dt);
+    }
     for (const id in state.trains) stepAir(state.trains[id], dt);
     const forces = {};
     for (const id in state.trains) vehicleForces(state.trains[id], forces);
@@ -325,7 +448,8 @@
   // end of this shift: jobs falling due, road trains arriving and leaving
   // (a departure with its build job), a Retiro road train offered or its
   // loco off shed (#78), through trains offered, an industry's work done,
-  // and the shift change, when the next jobs open.
+  // the loco full at the fuel point or fuel brought out to it, and the
+  // shift change, when the next jobs open.
   function eventsAhead() {
     const end = shiftAt(state.clock).end, out = [];
     const train = (at, tt, run, kind = "train") => {
@@ -351,6 +475,15 @@
     for (const ind in INDUSTRIES) {
       const r = state.industries[ind].readyAt;
       if (r !== null && r > state.clock && r < end) out.push({ at: r, kind: "industry", industry: ind });
+    }
+    // A loco taking fuel is full, or one run dry gets fuel brought out.
+    for (const id in state.vehicles) {
+      const v = state.vehicles[id], tr = v.controls && tractionOf(v);
+      if (!tr) continue;
+      const c = v.controls, full = atFuelPoint(v) && tr.tank - c.fuel >= 0.01
+        ? state.clock + (tr.tank - c.fuel) / (FUEL_FILL_RATE - tr.idleBurn / HOUR) : null;
+      if (full !== null && full < end) out.push({ at: full, kind: "fuelled" });
+      else if (c.emptyAt !== null && c.emptyAt + FUEL_RESCUE_SECONDS < end) out.push({ at: c.emptyAt + FUEL_RESCUE_SECONDS, kind: "fuel" });
     }
     out.push({ at: end, kind: "shift" });
     return out.sort((a, b) => a.at - b.at);

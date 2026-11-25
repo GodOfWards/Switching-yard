@@ -15,10 +15,20 @@
     return true;
   }
   // The throttle opens only with the reverser in forward or reverse.
+  // Notching down ends a wheel slip (#117).
   function moveThrottle(delta) {
     const c = playerLoco().controls;
     if (delta > 0 && !c.reverser) { setNotice("Reverser is in neutral"); return; }
-    c.throttle = clampNotch(c.throttle + delta, 0, THROTTLE_NOTCHES);
+    const next = clampNotch(c.throttle + delta, 0, THROTTLE_NOTCHES);
+    if (next < c.throttle) c.slip = false;
+    c.throttle = next;
+  }
+  // Sand goes on while the button is held (#117), from a box that empties
+  // as it's used; putting it on ends a wheel slip, if there's sand left.
+  function setSand(on) {
+    const c = playerLoco().controls;
+    c.sanding = on;
+    if (on && c.sand > 0) c.slip = false;
   }
   function moveLocoBrake(delta) {
     const c = playerLoco().controls;
@@ -163,11 +173,13 @@
   }
 
   // Skips the clock ahead to `at`, an event ahead or a SKIP_MARK_SECONDS
-  // mark, only while every vehicle stands still. Nothing else moves or
-  // changes: no physics runs during a skip.
+  // mark, only while every vehicle stands still and the throttle is shut.
+  // Nothing else moves or changes: no physics runs during a skip; the
+  // locos' heat and fuel are worked out at once (restLocos()).
   function skipTo(at) {
     if (!(at > state.clock) || !(at % SKIP_MARK_SECONDS === 0 || eventsAhead().some(e => e.at === at))) return false;
     if (playerLoco().speed !== 0) { setNotice("Stop the loco before skipping"); return false; }
+    if (playerLoco().controls.throttle) { setNotice("Shut the throttle before skipping"); return false; }
     const moving = state.road.find(r => r.status === "running" || r.status === "shed");
     if (moving) { setNotice(`Wait for ${moving.status === "shed" ? "the road loco" : roadName(moving)} to stand`); return false; }
     for (const id in state.vehicles) {
@@ -179,6 +191,7 @@
       r.status = "gone";
       registerThrough(r);
     }
+    restLocos(at - state.clock);
     state.clock = at;
     stepWork();
     runEvents(true);
@@ -191,7 +204,7 @@
   function takeJob(jobId) {
     const j = jobById(jobId);
     if (!j || j.result || j.taken) return false;
-    Object.assign(j, { taken: true, movesAtTake: state.moves, damaged: [], trainsHeld: [], overruns: [] });
+    Object.assign(j, { taken: true, movesAtTake: state.moves, damaged: [], trainsHeld: [], overruns: [], overheats: [] });
     return true;
   }
   function handBack(jobId) {

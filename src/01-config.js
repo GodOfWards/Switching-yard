@@ -1,7 +1,7 @@
   // ==================================================
   // CONFIG
   // ==================================================
-  const GAME_CONFIG = { VERSION: "0.20.0" };
+  const GAME_CONFIG = { VERSION: "0.21.0" };
   const STEP_SECONDS = 1 / 60;          // fixed simulation step
   const MAX_STEPS_PER_FRAME = 5;        // drop time rather than spiral after a stall
   const VIEW_MARGIN = 8;                // metres of ground kept around the yard
@@ -26,15 +26,64 @@
   const SWITCH_DIM_STEPS = 5;           // steps the fade is drawn in
   const G = 9.81;                       // m/s²
 
-  // Locomotive pull, modelled on a GM G12 as run in Argentina. The reverser
-  // sets its direction (cab end first is forward); each throttle notch gives
-  // an equal share of the pull; above LOCO_POWER / LOCO_MAX_FORCE (about
-  // 4.3 m/s) the engine's power limits it.
-  const THROTTLE_NOTCHES = 4;           // retunable
-  const LOCO_MAX_FORCE = 187e3;         // N at full notch; the G12's rated tractive effort
-  const LOCO_POWER = 977e3 * 0.8;       // W at the rail: the G12's 977 kW engine less an estimated fifth lost on the way; retunable
-  const LOCO_MAX_SPEED = 8;             // m/s (29 km/h); a yard limit, not the G12's own; pull fades to nothing over the last GOVERNOR_BAND
+  // Diesel-electric traction (#117; docs/design/traction.md, figures in
+  // docs/reference/diesel-traction.md). A loco's own figures (power at the
+  // rail, starting and continuous pull, fuel) are its kind's `traction` in
+  // WORLD DATA; these are the rules every loco follows. The reverser sets
+  // the pull's direction (cab end first is forward). The throttle has
+  // THROTTLE_NOTCHES notches above idle, each a share of full power; the
+  // load, a share of full, builds toward the notch's over about
+  // LOAD_UP_SECONDS and falls over about LOAD_DOWN_SECONDS. At load `l`
+  // the loco asks for the lesser of the notch's cap, starting pull × √l,
+  // and its power, l × power at the rail / speed. Asking for more than the
+  // rail's grip, ADHESION × the weight on the driven axles, slips the
+  // wheels: the load drops until it asks for SLIP_SHARE of the grip, and
+  // holds there until the throttle is notched down or sand goes on.
+  const THROTTLE_NOTCHES = 8;
+  const NOTCH_POWER = [0.07, 0.13, 0.27, 0.38, 0.48, 0.64, 0.87, 1];  // N1–N8, an EMD 16-645 on test (NSW EPA); Assumed for the ALCO 251
+  const LOAD_UP_SECONDS = 4;            // within 5 % of the new notch's load; Assumed, retunable
+  const LOAD_DOWN_SECONDS = 1;          // Assumed, retunable
+  const LOCO_MAX_SPEED = 8;             // m/s (29 km/h); a yard limit, not the loco's own; pull fades to nothing over the last GOVERNOR_BAND
   const GOVERNOR_BAND = 1;              // m/s
+  const ADHESION = { dry: 0.25, sanded: 0.35 };  // usable share of the weight on drivers at a stand (EMD); the rail is always dry for now (Tom)
+  // The grip falls as speed rises, by the shape of Curtius and Kniffler's
+  // curve, μ = 0.161 + 7.5 / (v + 44) with v in km/h, scaled so it is
+  // ADHESION at a stand (Tom, 2026-11-24): about 90 % of it at 10 km/h,
+  // 83 % at 21 km/h. The curve is Secondary; scaling it to EMD's usable
+  // figure is Assumed, retunable.
+  const curtiusKniffler = kmh => 0.161 + 7.5 / (kmh + 44);
+  const ADHESION_AT_SPEED = speed => curtiusKniffler(Math.abs(speed) * 3.6) / curtiusKniffler(0);  // speed in m/s
+  const SLIP_SHARE = 0.6;               // a slipping loco's pull, as a share of the grip; Assumed, retunable
+  const SAND_BOX_SECONDS = 20 * 60;     // s of sanding a full box holds; Assumed, retunable
+  // Traction motor heat, `heat` per loco, 1 at the trip: it moves by
+  // (r² − b·heat) / MOTOR_HEAT_SECONDS a second, r the motor current as a
+  // share of continuous (taken as pull / continuous pull) and b the
+  // blowers' cooling, BLOWER_IDLE at idle up to 1 in the top notch. At 1
+  // the motors trip: no power until the heat falls to MOTOR_RESET_HEAT.
+  // The time constant is fitted to an EMD D37's plate (5 min at 1.42×, 15
+  // min at 1.18×); no GE 761 plate was found. The load meter marks, past
+  // continuous, how long from cold each current is allowed:
+  // r = 1 / √(1 − e^(−t / MOTOR_HEAT_SECONDS)).
+  const MOTOR_HEAT_SECONDS = 10 * 60;   // Assumed, retunable
+  const BLOWER_IDLE = 0.5;              // Assumed, retunable
+  const MOTOR_RESET_HEAT = 0.8;         // Tom, 2026-11-24
+  const LOAD_METER_MINUTES = [60, 30, 15, 10, 5];
+  const LOAD_METER_BANDS = LOAD_METER_MINUTES.map(m => ({ minutes: m, r: 1 / Math.sqrt(1 - Math.exp(-m * 60 / MOTOR_HEAT_SECONDS)) }));
+  const LOAD_METER_MAX = 1.8;           // the meter's full scale, as a share of continuous
+  // Fuel, in litres, burned by the notch in use: a share of the top
+  // notch's burn, from the same EMD test's litres an hour (N1 55 … N8
+  // 618), Assumed for the ALCO 251; idle has its own rate. The engine
+  // idles all shift (Assumed). Below FUEL_LOW of the tank a "Fuel the
+  // loco" task appears; the loco fills, and its sand box with it, standing
+  // with its middle within FUEL_REACH of the fuel point (WORLD DATA), at
+  // FUEL_FILL_RATE. Run dry, its engine stops, and the depot brings fuel
+  // out to it FUEL_RESCUE_SECONDS later. All Assumed, retunable.
+  const NOTCH_FUEL = [55, 90, 179, 245, 309, 400, 538, 618].map(l => l / 618);
+  const DIESEL_DENSITY = 0.84;          // kg/L
+  const FUEL_LOW = 0.25;                // share of the tank
+  const FUEL_FILL_RATE = 150 / 60;      // L/s; a quarter tank filled in about 12 min
+  const FUEL_REACH = 6;                 // m
+  const FUEL_RESCUE_SECONDS = 3600;     // s
 
   // Rolling resistance, from the constant part of the Davis equation:
   // 1.3 lb per short ton of weight plus a fixed drag per axle that depends

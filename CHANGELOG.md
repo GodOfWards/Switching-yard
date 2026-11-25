@@ -2,6 +2,34 @@
 
 Newest first. One entry per version bump.
 
+## 0.21.0
+
+**Added**
+- The yard engine is an ALCO RSD-35, the San Martín's light branch loco,
+  replacing the G12, which never ran on the line (#117, #116). Its figures
+  are estimates from its weight and its sister, the Renfe 313. Through
+  freights and Retiro's road trains are headed by the RSD-16.
+- Diesel-electric traction (#117): 8 notches plus idle, the load building
+  over a few seconds after a notch change; pull limited by the notch, by
+  power at speed and by the rail's grip.
+- Wheel slip: the rail's grip falls as speed rises, and asking for more
+  than it slips the wheels. The Wheel slip light shows and pull drops
+  until the throttle is notched down or sand goes on. A hard pull in notch
+  7 or 8 at walking pace slips. Sand is held on with its button (or Z).
+- A load meter: motor current against continuous, with the short-time
+  bands. Too much current for too long trips the motors: power cuts until
+  they cool, and the jobs being worked note it as rough handling.
+- Fuel: a gauge, burned by the notch in use and at idle. Below a quarter
+  tank a "Fuel the loco" task shows on the board; the loco fills, and its
+  sand box, at the fuel point by the turntable. Run dry, fuel is brought
+  out an hour later.
+
+**Changed**
+- The throttle reads 0–8.
+- Skipping needs the throttle shut. Over a skip the motors cool and the
+  engine idles; the loco full at the fuel point is an event to skip to.
+- A yard saved before this version is not carried over.
+
 ## 0.20.0
 
 **Added**

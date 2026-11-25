@@ -3,6 +3,33 @@
 Design calls Tom has made, newest first, with where they were made. The
 values these produced live in CONFIG and WORLD DATA in `index.html`.
 
+## 2026-11-24: Diesel-electric traction and the RSD-35 (#117)
+
+Made in the project thread and on #117, from the research in #116
+([reference/diesel-traction.md](reference/diesel-traction.md),
+[reference/locomotives.md](reference/locomotives.md)). The rules are in
+[design/traction.md](design/traction.md).
+
+- **The yard engine becomes an ALCO RSD-35**, replacing the G12, with
+  figures estimated from its weight and its sister, the Renfe 313, marked
+  Unconfirmed. The goal is accuracy. Supersedes "The loco models a GM
+  G12 / GR12" (2026-10-08).
+- **Through freights are headed by the RSD-16**, the G12 leaving the game.
+- **8 notches** plus idle, replacing 0–4.
+- **Rail is always dry** for now; slip and sand are built so weather can
+  come later.
+- **Grip falls as speed rises** (Curtius–Kniffler's shape, scaled to the
+  usable 0.25 at a stand), so a hard pull slips on dry rail and sand
+  matters. Asked in the thread after the first build showed dry rail never
+  slipping.
+- **Run dry, fuel is brought out an hour later; sand refills with the
+  fuel.** Kept as proposed in the pull request.
+- **At the heat limit, a protective trip:** power cuts until the motors
+  cool to 80 %; the overheat counts as rough handling in results.
+- **Fuel:** a gauge, and a "Fuel the loco" task at the turntable fuel
+  point when it runs low, about every 4 days.
+- **No maintenance mechanic** in this build.
+
 ## 2026-11-24: Retiro road trains over the crossover (#78)
 
 Made in the project thread. The rules are in
