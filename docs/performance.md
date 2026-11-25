@@ -30,7 +30,11 @@ each on the base and the head, at a phone's size. It fails when:
 
 - a timing is slower than the base by more than the tolerance (the
   `perf-accepted` label turns this into a warning, for a slowdown that is
-  worth what it buys);
+  worth what it buys). A page load's timings wander by up to a quarter on
+  their own, so a timing that looks slower after the first three loads
+  gets six more loads a side, and the verdict is taken on all of them
+  (#128). A re-run of a failed job is no longer the way to tell noise from
+  a slowdown;
 - the checks find any problem, or the page logs an error.
 
 A timing over its budget only warns. The budgets and tolerances are

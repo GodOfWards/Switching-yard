@@ -5,10 +5,13 @@ only when index.html changed. Exits 1 on a failure.
 
 It opens the game's benchmark page (index.html?bench, CHECKS in the game) in
 headless Chromium at a phone's size, PAGE_LOADS times for the pull request's
-head and as many for its base, interleaved, so a runner that slows part-way
-through slows both sides. Each load plays the benchmark's fixed scenarios
+head and as many for its base, interleaved and swapping which goes first,
+so a runner that slows part-way through slows both sides. Each load plays the benchmark's fixed scenarios
 and leaves its result on window.switchingBenchResults. Each timing's runs
-are pooled across a side's loads, and the two medians compared:
+are pooled across a side's loads, and the two medians compared. When any
+timing looks like a regression, CONFIRM_LOADS more loads a side are played
+and every timing is judged again on all of them, so one noisy load can't
+fail the job but a real slowdown still does (#128):
 
 - A regression fails the job: head slower than base by more than
   REGRESSION_TOLERANCE and by more than REGRESSION_FLOOR_MS. The
@@ -59,7 +62,12 @@ BUDGET_MS = {"step": 1, "stepMoving": 1, "render": 4, "renderAged": 4, "save": 4
 REGRESSION_TOLERANCE = 0.25
 REGRESSION_FLOOR_MS = 0.5
 # Page loads per side, and how long one may take before the job fails.
+# A page load's own median of a timing wanders by up to a quarter between
+# loads of the same page (full save, 2.0 to 2.5 ms: #128), so three loads
+# a side clear the tolerance on noise now and then. A suspected regression
+# is confirmed on CONFIRM_LOADS more loads a side before it fails.
 PAGE_LOADS = 3
+CONFIRM_LOADS = 6
 PAGE_TIMEOUT_S = 300
 # A phone held upright: the size the game is built for.
 VIEWPORT = {"width": 390, "height": 844}
@@ -144,6 +152,22 @@ def pooled(results):
     return out
 
 
+def regressed(h, b):
+    """Whether a head median `h` is a regression on a base median `b`."""
+    return b is not None and h > b * (1 + REGRESSION_TOLERANCE) and h - b > REGRESSION_FLOOR_MS
+
+
+def suspects(results):
+    """The timings that look like a regression on the loads so far."""
+    if not results.get("base") or not results["head"]:
+        return []
+    def median(side, key):
+        runs = [t for r in results[side] for t in r["timings"].get(key, [])]
+        return statistics.median(runs) if runs else None
+    return [k for k in TIMINGS
+            if median("head", k) is not None and regressed(median("head", k), median("base", k))]
+
+
 def ms(v):
     return "—" if v is None else f"{v:.2f} ms"
 
@@ -160,13 +184,29 @@ def main():
         with sync_playwright() as p:
             browser = p.chromium.launch(executable_path=os.environ.get("PERF_CHROMIUM") or None,
                                         args=GC_FLAGS)
-            try:
-                for n in range(PAGE_LOADS):
-                    for side, path in sides.items():
-                        print(f"Load {n + 1} of {PAGE_LOADS}: {side}", flush=True)
+            pairs = []  # the pairs played so far, one entry each
+
+            def play(loads):
+                for n in range(loads):
+                    # Each pair swaps which side goes first, so neither
+                    # always loads into a browser the other just warmed.
+                    order = list(sides.items())
+                    pairs.append(n)
+                    for side, path in (order if len(pairs) % 2 else order[::-1]):
+                        print(f"Load {n + 1} of {loads}: {side}", flush=True)
                         r = load(browser, path, side)
                         if r is not None:
                             results[side].append(r)
+            try:
+                play(PAGE_LOADS)
+                suspect = suspects(results)
+                if suspect:
+                    print(f"Looks slower: {', '.join(suspect)}. Confirming on "
+                          f"{CONFIRM_LOADS} more loads a side.", flush=True)
+                    play(CONFIRM_LOADS)
+                    notes.append(f"{', '.join(TIMINGS[k] for k in suspect)} looked slower after "
+                                 f"{PAGE_LOADS} loads a side, so {CONFIRM_LOADS} more were played "
+                                 "and every timing judged on all of them.")
             finally:
                 browser.close()
     if not results["head"]:
@@ -184,7 +224,7 @@ def main():
         change = f"{(h - b) / b * 100:+.1f}%" if b else "—"
         budget = BUDGET_MS.get(key)
         verdicts = []
-        if b is not None and h > b * (1 + REGRESSION_TOLERANCE) and h - b > REGRESSION_FLOOR_MS:
+        if regressed(h, b):
             if accepted:
                 verdicts.append("accepted")
                 print(f"::warning::{label}: {ms(h)} against {ms(b)} on the base ({change}), "
@@ -202,7 +242,8 @@ def main():
     lines = [
         "## Performance",
         "",
-        f"Medians of each timing's runs, pooled over {PAGE_LOADS} page loads per side.",
+        f"Medians of each timing's runs, pooled over {len(results['head'])} page loads of the head"
+        + (f" and {len(results['base'])} of the base." if base else "."),
         "",
         "| Timing | Base | Head | Change | Budget | Verdict |",
         "|---|---|---|---|---|---|",
