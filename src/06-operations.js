@@ -476,6 +476,7 @@
     const note = late < ON_TIME_SECONDS ? "" : road ? `, ${lateText(late)} late` : `, held outside ${lateText(late)}`;
     const delay = road ? roadDelay(road, late) : { cause: `Track ${YARD_TRACKS[ARRIVAL_TRACK].number} not clear`, yardLate: late };
     registerTrain({ number: tt.number, name: trainName(tt), passenger: false, kind: "arrival", booked: run.at, late, ...delay });
+    const root = delay.yardLate >= ON_TIME_SECONDS ? arrivalRoot(tt, delay, road) : null;
     for (const id of ids) {
       resolveTrip(id);
       if (!onMap) addVehicle(id, state.cars[id].type);
@@ -485,12 +486,47 @@
     if (ids.length) {
       if (!onMap) layOnTrack(ARRIVAL_TRACK, ids);
       addJob({ kind: "breakup", title: `Break up ${trainName(tt)}`, short: `Break up ${tt.number}`, opens: at,
-               due: shiftAt(at).end, cars: ids, run: run.id, arrivedLate: late, ...(tt.east ? { east: true } : {}) });
+               due: shiftAt(at).end, cars: ids, run: run.id, arrivedLate: late, root, ...(tt.east ? { east: true } : {}) });
     }
+    for (const next of feeds(run))
+      if (next.at >= state.timetableAt && !state.jobs.some(j => j.run === next.id)) openBuild(next, at);
+  }
+  // The departures arrival `run` feeds: those after it, up to the next
+  // arrival.
+  function feeds(run) {
+    const out = [];
     for (const next of runsBetween(run.at + 1, run.at + DAY)) {
       if (timetableEntry(next.tt).arrives) break;
-      if (next.at >= state.timetableAt && !state.jobs.some(j => j.run === next.id)) openBuild(next, at);
+      out.push(next);
     }
+    return out;
+  }
+  // Knock-on delays (#47; docs/design/results.md). An arrival the yard
+  // made late is the root of a late departure it brought cars for: how
+  // the departure's cause names it, "after 1101 held outside 40 min". A
+  // Retiro arrival (#78) refused by the yard was held at La Oriental; one
+  // only stopped on sight on its way in was late in.
+  function arrivalRoot(tt, delay, road) {
+    const refused = road && ["track", "route", "main"].some(c => road.wait[c] > 0);
+    const how = !road ? "held outside" : refused ? "held at La Oriental" : "late in";
+    return `after ${tt.number} ${how} ${lateText(delay.yardLate)}`;
+  }
+  // The root of build `cars`' lateness for departure `run`: the latest
+  // arrival that day the yard made late and that brought any of them, by
+  // its break-up job; null when none did.
+  function buildRoot(run, cars) {
+    const b = state.jobs.filter(j => j.kind === "breakup" && j.root && j.opens > run.at - DAY && j.cars.some(id => cars.includes(id)))
+      .sort((a, b) => b.opens - a.opens)[0];
+    return b ? b.root : null;
+  }
+  // The arrival held, outside or at La Oriental, whose cars departure
+  // `runId` waits on, for the board: "1101 held outside: its cars aren't
+  // in yet"; null when none is.
+  function heldFeeding(runId) {
+    const held = [...state.held.map(run => ({ run, where: "outside" })),
+                  ...state.road.filter(r => r.kind === "arrival" && r.status === "refused").map(run => ({ run, where: "at La Oriental" }))];
+    const h = held.find(h => feeds(h.run).some(n => n.id === runId));
+    return h ? `${timetableEntry(h.run.tt).number} held ${h.where}: its cars aren't in yet` : null;
   }
   // Opens the job to build departure `run`: every car on the map whose
   // disposition is its block, up to DEPARTURE_MAX_CARS, those already on
@@ -502,7 +538,7 @@
       .sort((a, b) => onTrack(a) - onTrack(b)).slice(0, DEPARTURE_MAX_CARS);
     // A Retiro departure's build must be ready for its road loco off shed.
     return addJob({ kind: "build", title: `Build ${trainName(tt)}`, short: `Build ${tt.number}`, opens: at, due: run.at,
-                    cars, run: run.id, block: tt.block, departed: null, ...(tt.east ? { ready: run.at - LOCO_OFF_SHED } : {}) });
+                    cars, run: run.id, block: tt.block, departed: null, root: buildRoot(run, cars), ...(tt.east ? { ready: run.at - LOCO_OFF_SHED } : {}) });
   }
   // A departure's time has come. Built, or not taken (and so built now by
   // another crew), it leaves; taken and not reported done, it waits for
@@ -521,13 +557,30 @@
   // its share will stay out in the pool once its trip is over.
   // A Retiro departure (#78) gives the cars its road loco took, `taken`,
   // which leave on the map, and its own delay.
+  // The train isn't held for the cars of its build that miss it (#47):
+  // each still for its block, on the map, waits for the next train to it,
+  // and says why in its history; the register's line counts them. A late
+  // build's cause names its root, the arrival the yard made late that
+  // brought its cars (buildRoot()).
   function depart(job, at, taken = null, delay = null) {
     const tt = timetableEntry(job.run.split(".")[0]), late = Math.max(0, at - job.due);
     const going = taken || job.cars.filter(id => state.cars[id].away === null && dispositionOf(id) === job.block && dispositionMet(id));
+    const missed = job.cars.filter(id => state.cars[id] && state.cars[id].away === null && dispositionOf(id) === job.block && !going.includes(id));
+    const nextRun = runsBetween(job.due + 1, job.due + 2 * DAY).find(r => timetableEntry(r.tt).block === job.block);
+    const next = nextRun ? timetableEntry(nextRun.tt).number : null;
     for (const id of going) sendAway(id, at, `Left on ${trainName(tt)}${late >= ON_TIME_SECONDS ? `, ${lateText(late)} late` : ""}`, !!taken);
-    job.departed = { at, cars: going.length, late };
+    for (const id of missed) logCar(id, `Missed ${tt.number}, ${missedWhy(id, job.block)}${next ? `; waits for ${next}` : ""}`, at);
+    job.departed = { at, cars: going.length, late, missed: missed.length, next };
+    const d = { ...(delay || { cause: "Build not ready", yardLate: late }) };
+    if (job.root && d.cause && /build not ready$/i.test(d.cause)) d.cause += `, ${job.root}`;
     registerTrain({ number: tt.number, name: trainName(tt), passenger: false, kind: "departure", booked: job.due, late,
-                    ...(delay || { cause: "Build not ready", yardLate: late }) });
+                    ...d, missed: missed.length, next });
+  }
+  // Why car `id`, for `block`, wasn't on its train.
+  function missedWhy(id, block) {
+    if (inPlayerTrain(state.vehicles[id])) return "in the loco's train";
+    if (dispositionMet(id)) return "not in its cut";
+    return `not on Track ${blockTracks(block).map(t => YARD_TRACKS[t].number).join(" or ")}`;
   }
   // Car `id` leaves at `at` on a trip to its waybill's station: off the
   // map now, or, `onTrain`, as its train runs off it.
@@ -990,7 +1043,8 @@
     const tt = timetableEntry(run.tt);
     const r = { id: run.id, tt: run.tt, at: run.at, kind: tt.arrives ? "arrival" : "departure", status: tt.arrives ? "refused" : "waiting",
                 route: tt.arrives ? "in" : "shed", leg: 0, legSet: false, locks: [], speed: 0, vehicles: [], cars: [], blocked: false,
-                enters: null, until: null, job: null, notional: false, light: false, why: null, wait: {}, checkedAt: at };
+                enters: null, until: null, job: null, notional: false, light: false, why: null, wait: {}, checkedAt: at,
+                path: null, behind: null };
     if (!tt.arrives) r.job = (state.jobs.find(j => j.run === run.id) || openBuild(run, at)).id;
     state.road.push(r);
     if (tt.arrives) setNotice(`${trainName(tt)} offered, for Track ${YARD_TRACKS[ARRIVAL_TRACK].number}`);
@@ -1006,6 +1060,10 @@
   // when the cause changes.
   function noteWait(r, now, why) {
     if (r.why) r.wait[r.why] = (r.wait[r.why] || 0) + Math.max(0, now - r.checkedAt);
+    if (why === "through" && r.kind === "departure" && !r.behind) {
+      const tt = throughDueTrain(now, ROAD_OUT_TIME);
+      r.behind = tt ? tt.number : null;
+    }
     if (why && why !== r.why) setNotice(why === "main" ? `Clear the main for ${roadName(r)}`
       : `${roadName(r)}${r.kind === "arrival" ? " refused" : ""}: ${WAIT_TEXT[why]}`);
     r.why = why;
@@ -1020,26 +1078,41 @@
   // (through trains, other road trains) is taken off; any lateness its
   // waits don't account for was lost stopped on sight. The cause is the
   // yard's longest wait.
+  // A departure that would have had its path at its booked time (`path`)
+  // and then waited behind through train `behind` lost it to the yard
+  // (#47): the whole wait but on other road trains is the yard's, "Lost
+  // its path behind 565, build not ready".
   function roadDelay(r, late) {
     const wait = { ...r.wait }, waited = Object.values(wait).reduce((t, w) => t + w, 0);
     if (late > waited) wait.route = (wait.route || 0) + late - waited;
-    const yardLate = Math.max(0, late - (wait.through || 0) - (wait.train || 0));
     const worst = Object.keys(ROAD_CAUSES).filter(c => wait[c] > 0).sort((a, b) => wait[b] - wait[a])[0];
+    if (r.kind === "departure" && r.path && r.behind && wait.through > 0 && worst)
+      return { cause: `Lost its path behind ${r.behind}, ${WAIT_TEXT[worst]}`, yardLate: Math.max(0, late - (wait.train || 0)) };
+    const yardLate = Math.max(0, late - (wait.through || 0) - (wait.train || 0));
     return { cause: worst ? ROAD_CAUSES[worst] : null, yardLate };
   }
 
   // Whether a through train is due on the main between `now` and
   // `seconds` later: one offered whose run over the map falls in that time,
   // or not yet offered and due in it, or one held, refused or running.
-  function throughDue(now, seconds) {
-    const runFor = tt => (MAIN_LENGTH + throughLength(tt)) / THROUGH_SPEED;
+  // The first such train, or null (throughDueTrain()).
+  const throughRunFor = tt => (MAIN_LENGTH + throughLength(tt)) / THROUGH_SPEED;
+  const throughDue = (now, seconds) => !!throughDueTrain(now, seconds);
+  function throughDueTrain(now, seconds) {
     for (const r of state.through) {
-      if (r.status !== "offered") return true;
-      if (r.enters + runFor(throughEntry(r.tt)) > now && r.enters < now + seconds) return true;
+      const tt = throughEntry(r.tt);
+      if (r.status !== "offered") return tt;
+      if (r.enters + throughRunFor(tt) > now && r.enters < now + seconds) return tt;
     }
-    return runsBetween(state.throughAt + OFFER_LEAD_SECONDS, now + seconds, THROUGH_TIMETABLE)
-      .some(x => x.at + runFor(throughEntry(x.tt)) > now);
+    const x = runsBetween(state.throughAt + OFFER_LEAD_SECONDS, now + seconds, THROUGH_TIMETABLE)
+      .find(x => x.at + throughRunFor(throughEntry(x.tt)) > now);
+    return x ? throughEntry(x.tt) : null;
   }
+  // Whether a through train is booked on the main between `at` and
+  // `seconds` later, by the timetable alone: whether a departure leaving
+  // at its booked time would have had its path (#47).
+  const bookedThroughDue = (at, seconds) => runsBetween(at - HOUR, at + seconds, THROUGH_TIMETABLE)
+    .some(x => x.at + throughRunFor(throughEntry(x.tt)) > at);
   // Whether another run has locked a switch that route `route` sets.
   const roadBusy = (r, route) => state.road.some(o => o !== r && o.locks.some(id => ROUTE_SWITCHES[route].includes(id)));
   // What stands in the way on `leg` from `from` to `to` metres along it:
@@ -1162,6 +1235,7 @@
       if (r.status === "cutting" && (instant || now >= r.until)) cutOff(r);
     } else {
       const job = jobById(r.job);
+      if (r.path === null && now >= r.at) r.path = !bookedThroughDue(r.at, ROAD_OUT_TIME);
       if (r.status === "waiting" && checkDue(r, now, instant)) {
         if (job && !job.result && !job.taken) doOffScreen(job, now);
         const why = !job || !job.result ? "build" : queued(r) ? "train" : shedBlock(r);

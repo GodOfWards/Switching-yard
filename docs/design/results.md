@@ -15,7 +15,31 @@ an economy or reward system.
 - **Outcomes read as:** Operationally valid; Valid but inefficient;
   Partially complete; Incomplete; Invalid formation.
 - **Nothing fails.** Late is recorded, and the train leaves late; delays
-  can carry on down the line (#47).
+  carry on down the line (below).
+- **Knock-on delays** (#47; Tom, 2026-11-24). A held arrival opens its
+  break-up late, which squeezes the builds it feeds; a build not ready
+  makes its departure late, or the departure leaves without some of its
+  cars. Only what the game times carries a delay: the yard, the main on
+  the map, and a late departure's own cars, whose trips start when it
+  actually leaves. Nothing makes up time but the yard's own slack between
+  an arrival and its departures: no train leaves early, and nothing is
+  made up off the map.
+  - **A missed car** (one of its build's cars, still for its block, not
+    on its train when it leaves) waits for the next train to its block.
+    The train isn't held for it. Its history says why ("Missed 1102, not
+    on Track 1; waits for 1104") and the register's line counts them
+    ("2 cars left for 1104").
+  - **A late departure's cause names its root**: the latest arrival that
+    day the yard made late and that brought cars on its build, "Build not
+    ready, after 1101 held outside 40 min". With none, it is plain "Build
+    not ready". Its wait counts in the shift's yard total.
+  - **On the board**, while an arrival is held, each build it feeds says
+    so: "1203 held outside: its cars aren't in yet".
+  - Implementation choices, retunable: a build's cars are those listed
+    when its job opened; a departure "would have gone ahead" of a through
+    train when none is booked on the main during its run out from its
+    booked time; a Retiro arrival refused by the yard reads "held at La
+    Oriental", one only slowed on its way in reads "late in".
 - **Rough handling is a consequence, not a score:** a coupling closing
   faster than the hard-hit speed (`HARD_HIT_SPEED`, 5 km/h) damages the
   car, which becomes bad order and needs the repair track. Retunable.

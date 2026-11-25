@@ -122,6 +122,9 @@
   #sheet h3 + .line { border-top: 0; }
   #sheet .line > div:nth-child(2) { flex: 1; min-width: 0; }
   #sheet .line .where { text-align: right; }
+  /* A register line: its causes wrap, its lateness doesn't (#47). */
+  #sheet .line.train > div:first-child { flex: 1; min-width: 0; }
+  #sheet .line.train .where { flex: none; }
   #sheet .line.met:not(.order) b { text-decoration: line-through; color: var(--muted); }
   #sheet .tick { flex: none; width: 22px; height: 22px; margin-top: 1px; box-sizing: border-box; border-radius: 6px;
     border: 1.5px solid var(--muted); color: #000; font: 700 14px/19px system-ui, sans-serif; text-align: center; }

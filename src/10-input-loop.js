@@ -416,8 +416,9 @@
       `<button class="act" data-act="fuelpoint">Show</button></div>`;
     for (const j of openJobs()) {
       const late = readyBy(j) <= state.clock ? ` · <span class="warn">late</span>` : "";
+      const held = j.kind === "build" && heldFeeding(j.run);
       h += `<div class="job" data-job="${j.id}"><div><b>${j.title}</b><small>${j.cars.length} cars · ${dueText(j)}` +
-        `${j.taken ? " · taken" : ""}${late}</small></div>` + (j.taken
+        `${j.taken ? " · taken" : ""}${late}</small>${held ? `<small class="warn">${held}</small>` : ""}</div>` + (j.taken
           ? `<button class="act primary" data-act="open" data-job="${j.id}">Open</button>`
           : `<button class="act" data-act="take" data-job="${j.id}">Take</button>`) + `</div>`;
     }
@@ -425,8 +426,10 @@
     const ahead = runsBetween(state.timetableAt, state.clock + DAY).map(r => ({ ...r, tt: timetableEntry(r.tt) }));
     for (const r of [ahead.find(r => r.tt.arrives), ahead.find(r => !r.tt.arrives)]) {
       if (!r || state.jobs.some(j => j.run === r.id)) continue;
+      const held = !r.tt.arrives && heldFeeding(r.id);
       h += `<div class="job later"><div><b>${r.tt.arrives ? "Break up" : "Build"} ${trainName(r.tt)}</b>` +
-        `<small>${r.tt.arrives ? `arrives ${shortTime(r.at)}` : `leaves ${shortTime(r.at)}; opens with the train before it`}</small></div></div>`;
+        `<small>${r.tt.arrives ? `arrives ${shortTime(r.at)}` : `leaves ${shortTime(r.at)}; opens with the train before it`}</small>` +
+        `${held ? `<small class="warn">${held}</small>` : ""}</div></div>`;
     }
     for (const r of state.held) h += `<div class="job later"><div><b>${trainName(timetableEntry(r.tt))} held outside</b>` +
       `<small class="warn">Due ${shortTime(r.at)}; Track ${YARD_TRACKS[ARRIVAL_TRACK].number} must be clear</small></div></div>`;
@@ -506,7 +509,8 @@
   }
   function resultHtml(j) {
     const r = j.result, train = j.kind === "build" ? `<small>${j.departed ? `Left ${shortTime(j.departed.at)} with ${j.departed.cars} car${j.departed.cars === 1 ? "" : "s"}` +
-      (j.departed.late >= ON_TIME_SECONDS ? `, <span class="warn">${lateText(j.departed.late)} late</span>` : "") : `Leaves ${shortTime(j.due)}`}</small>` : "";
+      (j.departed.late >= ON_TIME_SECONDS ? `, <span class="warn">${lateText(j.departed.late)} late</span>` : "") : `Leaves ${shortTime(j.due)}`}</small>` +
+      (j.departed && j.departed.missed ? `<small class="warn">${missedText(j.departed)}</small>` : "") : "";
     if (r.by === "crew") return `<div class="result"><b>Done by another crew</b><small>At ${shortTime(r.at)}</small>${train}` +
       `${r.left.length ? `<small class="warn">Left where they stood, the track blocked or full: ${r.left.map(carName).join(", ")}</small>` : ""}</div>`;
     const rows = [
@@ -526,6 +530,8 @@
   // the last REGISTER_DAYS days by shift, newest first, each with its
   // booked and actual times, how late, and the yard's cause; each shift
   // with the minutes of delay the yard caused, freight and passenger apart.
+  // A departure's cars that missed it (#47): "2 cars left for 1104".
+  const missedText = d => `${d.missed} car${d.missed === 1 ? "" : "s"} left${d.next ? ` for ${d.next}` : ""}`;
   function registerHtml() {
     let h = `<div class="grab"></div><header><button data-act="board" aria-label="All jobs">‹</button>` +
       `<h2>Train register</h2><button data-act="close" aria-label="Close">✕&#xFE0E;</button></header>`;
@@ -544,9 +550,9 @@
       h += `<h3><span>Shift ${clockText(sh.start).slice(0, 2)}–${clockText(sh.start + SHIFT_HOURS * HOUR).slice(0, 2)}, day ${dayOf(sh.start)}</span>` +
         `<span>${sh.lines.length} train${sh.lines.length === 1 ? "" : "s"}</span></h3>` +
         `<p class="remarks"><span>Delay caused by the yard:</span> freight ${total(false)}, passenger ${total(true)}.</p>`;
-      for (const l of sh.lines) h += `<div class="line"><div><b>${l.name}</b>` +
+      for (const l of sh.lines) h += `<div class="line train"><div><b>${l.name}</b>` +
         `<small>Booked ${clockText(l.booked)} · ${verb[l.kind]} ${clockText(l.actual)}</small>` +
-        `${l.cause ? `<small class="warn">${l.cause}</small>` : ""}</div>` +
+        `${l.cause ? `<small class="warn">${l.cause}</small>` : ""}${l.missed ? `<small class="warn">${missedText(l)}</small>` : ""}</div>` +
         `<div class="where"><span${l.late >= ON_TIME_SECONDS ? ` class="warn"` : ""}>${l.late >= ON_TIME_SECONDS ? `${lateText(l.late)} late` : "On time"}</span></div></div>`;
     }
     return h;

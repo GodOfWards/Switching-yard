@@ -20,7 +20,7 @@
   // The benchmark page (index.html?bench, CHECKS) saves under keys of its
   // own, never over the player's yard.
   const BENCH = new URLSearchParams(location.search).has("bench");
-  const SAVE_KEY = "switching-game.yard.14" + (BENCH ? ".bench" : "");
+  const SAVE_KEY = "switching-game.yard.15" + (BENCH ? ".bench" : "");
   const CARS_KEY = SAVE_KEY + ".cars";
   let saves = 0;
 
