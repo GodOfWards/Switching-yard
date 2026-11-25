@@ -27,7 +27,9 @@
     // `locoSense` the way it last moved (+1 cab first, −1 back, 0 not yet);
     // `register` is Junín's train register (#62): a line for each road or
     // through train run in REGISTER_DAYS, with its booked and actual times,
-    // how late, and the yard's cause;
+    // how late, the yard's cause (naming its root, #47) and, for a
+    // departure, how many of its build's cars missed it and the train they
+    // wait for;
     // `nextShiftAt` is the next shift change to act on, and `timetableAt`
     // the time from which road trains are still to run; `held` lists the
     // arrivals held outside, waiting for the arrival track; `roadAt` the

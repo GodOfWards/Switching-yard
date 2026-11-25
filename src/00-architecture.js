@@ -53,7 +53,9 @@
   //                offered, held or run past on the main; Retiro's road
   //                trains offered, accepted on their locked routes and
   //                driven on sight over the crossover; and the train
-  //                register of every train run and how late.
+  //                register of every train run and how late, with the
+  //                knock-on delays: a late build's root and the cars that
+  //                missed their train.
   //   ACTIONS      what the player can do (reverser, levers, Emergency,
   //                Release, sand, throw a switch, connect or part the air,
   //                hook up or uncouple, set a hand brake, skip ahead, take, hand back

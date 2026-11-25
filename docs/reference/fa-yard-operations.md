@@ -7,6 +7,7 @@ stages 2 and 3 (#49, #50); articles 63, 154, 155 and 163 added the same day
 for the main line (#56, #57). FA's bad-order labels, Junín's place among the
 San Martín's repair points and Molinos Tassara added 2026-11-23 (#45).
 Articles 64 d and 65, on passenger trains at night, added 2026-11-24 (#104).
+Articles on late trains (215, 221, 224 to 226, 246, 278) added 2026-11-24 (#47).
 
 **Decided (Tom):**
 - **Traffic sources** (2026-10-09): the era stays FA, 1977 or later.
@@ -178,6 +179,22 @@ light repairs, including lifting a car to change wheelsets or a bogie; a
 | **Stopping the switching for a train**: the station or signalman waves a red flag or light up and down. The switchman stops at once, clears the switches, sets hand switches to normal, and acknowledges with the same signal; nothing moves on them until he has | art. 392 a, b | Confirmed |
 | Switching beyond station limits: pull out, push back; otherwise make sure no car was left outside (a man rides the far car, or the far car's number or the count is checked) | art. 379 | Confirmed |
 | Train classes asked for by bell code include **through freight** (*tren de carga directo*, 2-4), **pick-up freight** (*tren de carga de maniobras*, 2-5), livestock (2-3), and parcels, milk, fruit or fish (2-2) | art. 42 | Confirmed |
+
+## Delays
+
+How a late train was handled, for knock-on delays (#47). Read 2026-11-24
+in the RITO copy in the project files.
+
+| Fact | Source | Status |
+|---|---|---|
+| When a train runs off its timetable, the Control Office orders crossings and passes, weighing each train's importance, tonnage, vehicles, the weather, the crews' hours **and how late each train is** | art. 215 b 1 | Confirmed |
+| Preference between trains goes by their speed, so that the timetables are kept: **a late slow train doesn't take a faster train's path** | art. 221 a | Confirmed |
+| A freight train whose work is done and that has no crossing or pass to wait for **may leave early**, unless Control says otherwise. Not in the game (Tom, 2026-11-24) | art. 225 | Confirmed |
+| A late train runs faster than its booked speed, within the limits, to make up time | art. 246 a | Confirmed |
+| A late passenger train leaves as soon as the station's work is done, without waiting out its booked stop | art. 278 b | Confirmed |
+| When a train has to be cut down, livestock, perishables, tanks and priority traffic are not the cars left behind | art. 224 b | Confirmed |
+| Connections wait for a late train, an hour, two at most, but **for passenger trains only**. No freight equivalent was found: a freight car that misses its train waits for the next | art. 226 | Confirmed; the freight case Unconfirmed |
+| How punctual FA freight trains were, Junín's loco rotations, and any figure for recovery margins in FA timetables: **not found** | searches 2026-11-24 | Unconfirmed |
 
 ## Junín
 

@@ -3,6 +3,33 @@
 Design calls Tom has made, newest first, with where they were made. The
 values these produced live in CONFIG and WORLD DATA in `index.html`.
 
+## 2026-11-24: Knock-on delays (#47)
+
+Made in the project chat, from the RITO (amended to 1993; art. 215, 221,
+224 to 226, 246, 278, in
+[reference/fa-yard-operations.md](reference/fa-yard-operations.md#delays)).
+The rules are in [design/results.md](design/results.md) and
+[design/living-railway.md](design/living-railway.md#retiro-road-trains).
+
+- **Reach: only what the game times.** A delay carries through the yard
+  and onto the main on the map; off the map, a late departure only delays
+  its own cars' return. Arrivals still come in on time unless the yard
+  holds them.
+- **Recovery: only through the yard's own slack.** No train leaves early
+  when its build is done (art. 225 would allow it), and nothing is made up
+  off the map.
+- **Missed connections are recorded, trains not held.** A car of a build
+  that misses its train waits for the next one to its block; its history
+  says why, and the register's line counts them ("2 cars left for 1104").
+- **A knock-on delay counts as the yard's, with its root named:** "Build
+  not ready, after 1101 held outside 40 min". This refines #78's rule:
+  waiting on a booked through train is not the yard's delay, **unless the
+  train, leaving at its booked time, would have been accepted ahead of
+  it**; then the whole wait is the yard's, "Lost its path behind 565,
+  build not ready".
+- **Shown in what exists:** the register, the car's history, and the
+  board, where a build fed by an arrival held says so. No delay board.
+
 ## 2026-11-24: Diesel-electric traction and the RSD-35 (#117)
 
 Made in the project thread and on #117, from the research in #116

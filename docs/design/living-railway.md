@@ -101,8 +101,10 @@ station side ([traffic.md](traffic.md)).
 - **Lateness goes in the register** with the yard's cause: "Refused:
   Track 3 not clear", "Route not clear", "Build not ready", "Main held".
   Waiting on a booked through train, or on another road train, is not
-  the yard's delay. (#47 makes a missed path behind a through train the
-  yard's.)
+  the yard's delay, **unless the departure, leaving at its booked time,
+  would have been accepted ahead of that through train** (#47): then the
+  whole wait but on other road trains is the yard's, "Lost its path behind
+  2401, build not ready" (or "route not clear", "main held").
 - **A skip** does a road train's moves at once, at their times: an
   arrival accepted is laid on Track 3 as before #78, a departure's cars
   leave at its time. A skip waits while one is moving.
@@ -110,5 +112,4 @@ station side ([traffic.md](traffic.md)).
 ## Open
 
 - Other crews on the map: #46.
-- Knock-on delays: #47.
 - Every active rail mapped, beyond the lines out of Junín: #52.
